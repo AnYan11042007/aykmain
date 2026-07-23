@@ -161,20 +161,22 @@ export default function App() {
         const uData = snap.val() as User;
         const currentPP = uData.pp || 0;
 
-        // Anti-cheat verification: bypassed to prevent false-positive lockouts on game wins/losses
+        // Anti-cheat verification
         lastVerifiedPPRef.current = currentPP;
         
-        // Anti-spoofing session token validation
-        const localToken = localStorage.getItem('s88_sessionToken');
-        if (uData.sessionToken && uData.sessionToken !== localToken) {
-          handleForceLogout('Phát hiện đăng nhập ở nơi khác! Phiên kết thúc.');
-          return;
+        // Anti-spoofing session token validation (Synchronize token safely without kicking active player)
+        const localToken = safeLocalStorageGet('s88_sessionToken');
+        if (uData.sessionToken) {
+          if (!localToken || localToken !== uData.sessionToken) {
+            safeLocalStorageSet('s88_sessionToken', uData.sessionToken);
+          }
         }
 
         setUser(uData);
       } else {
-        // uid does not exist in db
-        handleForceLogout();
+        // DO NOT force logout on missing snapshot!
+        // Realtime network flickers or updates should NOT kick the player out mid-game.
+        console.warn('User profile snapshot currently unavailable for uid:', uid);
       }
       setLoadingUser(false);
     }, (err) => {
