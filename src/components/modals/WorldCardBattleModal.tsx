@@ -30,8 +30,8 @@ export interface CardItem {
   used?: boolean;
 }
 
-// 30 UNIQUE BALANCED CARDS DECK WITH RARITY SYSTEM (C, B, A, S)
-export const CARD_DECK: CardItem[] = [
+// 100 UNIQUE CARDS FULL POOL
+export const FULL_CARD_POOL: CardItem[] = [
   {
     id: 'c1',
     name: 'Chiến Binh Gào Thét',
@@ -781,8 +781,761 @@ export const CARD_DECK: CardItem[] = [
     energyCost: 2,
     color: 'from-teal-600 via-cyan-800 to-black',
     avatarUrl: getCardImageSvg('c50')
+  },
+  {
+    id: 'c51',
+    name: 'Long Thần Bạo Vũ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 170,
+    def: 40,
+    skillName: 'Mưa Lửa Long Thần',
+    skillDesc: 'Xối xả bão lửa giáng 170 Sát thương thiêu đốt cực đại.',
+    energyCost: 3,
+    color: 'from-amber-500 via-red-600 to-rose-950',
+    avatarUrl: getCardImageSvg('c51')
+  },
+  {
+    id: 'c52',
+    name: 'Khiên Thái Cực Cương',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 45,
+    def: 160,
+    skillName: 'Thái Cực Bất Hoại',
+    skillDesc: 'Dựng tường thái cực +140 Giáp kiên cố & hồi +40 HP.',
+    energyCost: 3,
+    color: 'from-cyan-600 via-blue-800 to-slate-950',
+    avatarUrl: getCardImageSvg('c52')
+  },
+  {
+    id: 'c53',
+    name: 'Ma Trận Hồi Sinh',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 30,
+    def: 95,
+    skillName: 'Vô Cực Tái Sinh',
+    skillDesc: 'Hồi ngay +120 HP cực đại & tăng +2 Năng Lượng.',
+    energyCost: 3,
+    color: 'from-emerald-500 via-teal-700 to-black',
+    avatarUrl: getCardImageSvg('c53')
+  },
+  {
+    id: 'c54',
+    name: 'Thiên Thần Diệt Thế',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 130,
+    def: 110,
+    skillName: 'Diệt Thế Phạt',
+    skillDesc: 'Xả 140 Sát thương, hồi +60 HP & tạo +60 Giáp bảo hộ.',
+    energyCost: 3,
+    color: 'from-fuchsia-600 via-purple-700 to-yellow-500',
+    avatarUrl: getCardImageSvg('c54')
+  },
+  {
+    id: 'c55',
+    name: 'Hoạt Họa Bộc Phá',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 140,
+    def: 45,
+    skillName: 'Cú Đấm Hạt Nhân',
+    skillDesc: 'Tấn công dồn nén giáng 140 Sát thương bộc phát.',
+    energyCost: 3,
+    color: 'from-red-600 via-orange-700 to-black',
+    avatarUrl: getCardImageSvg('c55')
+  },
+  {
+    id: 'c56',
+    name: 'Tường Băng Vô Cực',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 35,
+    def: 135,
+    skillName: 'Băng Giáp Bảo Hộ',
+    skillDesc: 'Nhận +110 Giáp băng giá & hồi +30 HP.',
+    energyCost: 2,
+    color: 'from-sky-600 via-blue-700 to-slate-950',
+    avatarUrl: getCardImageSvg('c56')
+  },
+  {
+    id: 'c57',
+    name: 'Thuật Sĩ Thời Không',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 50,
+    def: 75,
+    skillName: 'Đảo Ngược Dòng Thời Gian',
+    skillDesc: 'Hồi +80 HP & gia tăng +1 Năng Lượng thần tốc.',
+    energyCost: 2,
+    color: 'from-purple-600 via-indigo-700 to-slate-950',
+    avatarUrl: getCardImageSvg('c57')
+  },
+  {
+    id: 'c58',
+    name: 'Bão Vũ Sao Băng',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 100,
+    def: 90,
+    skillName: 'Bão Tố Tinh Hà',
+    skillDesc: 'Oanh kích sao băng gây 100 Sát thương & hồi +40 HP.',
+    energyCost: 2,
+    color: 'from-yellow-500 via-amber-600 to-purple-900',
+    avatarUrl: getCardImageSvg('c58')
+  },
+  {
+    id: 'c59',
+    name: 'Đao Phủ Ma Thần',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 135,
+    def: 40,
+    skillName: 'Trảm Liêm Ma Vương',
+    skillDesc: 'Lưỡi liêm ma sát gây 135 Sát thương & phá 30% Giáp đối thủ.',
+    energyCost: 3,
+    color: 'from-rose-700 via-red-900 to-black',
+    avatarUrl: getCardImageSvg('c59')
+  },
+  {
+    id: 'c60',
+    name: 'Giáp Thạch Anh',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 30,
+    def: 130,
+    skillName: 'Kiên Cố Thạch Anh',
+    skillDesc: 'Kích hoạt giáp thạch anh tăng +105 Giáp bảo vệ.',
+    energyCost: 2,
+    color: 'from-emerald-700 via-teal-800 to-slate-950',
+    avatarUrl: getCardImageSvg('c60')
+  },
+  {
+    id: 'c61',
+    name: 'Huyết Tế Ma Trận',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 55,
+    def: 65,
+    skillName: 'Hút Hồn Tế Điện',
+    skillDesc: 'Hồi +70 HP & trừ 1 Năng Lượng của đối thủ.',
+    energyCost: 2,
+    color: 'from-red-800 via-fuchsia-900 to-black',
+    avatarUrl: getCardImageSvg('c61')
+  },
+  {
+    id: 'c62',
+    name: 'Hào Quang Hoàng Kim',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 95,
+    def: 95,
+    skillName: 'Thánh Quang Bộc Phá',
+    skillDesc: 'Gây 95 Sát thương & gia tăng +50 Giáp hộ thể.',
+    energyCost: 2,
+    color: 'from-amber-400 via-yellow-500 to-stone-900',
+    avatarUrl: getCardImageSvg('c62')
+  },
+  {
+    id: 'c63',
+    name: 'Cú Đấm Hạt Nhân',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 115,
+    def: 45,
+    skillName: 'Nổ Tung Hạt Nhân',
+    skillDesc: 'Đấm bộc phá giáng 115 Sát thương thiêu đốt.',
+    energyCost: 2,
+    color: 'from-amber-600 via-orange-700 to-black',
+    avatarUrl: getCardImageSvg('c63')
+  },
+  {
+    id: 'c64',
+    name: 'Tấm Chắn Vô Hình',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 25,
+    def: 110,
+    skillName: 'Trận Đồ Vô Hình',
+    skillDesc: 'Tạo +90 Giáp bảo vệ & hồi +20 HP.',
+    energyCost: 2,
+    color: 'from-blue-600 via-cyan-700 to-slate-950',
+    avatarUrl: getCardImageSvg('c64')
+  },
+  {
+    id: 'c65',
+    name: 'Linh Dược Hồi Sinh',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 40,
+    def: 60,
+    skillName: 'Uống Thần Dược',
+    skillDesc: 'Hồi +60 HP & nhận +30 Giáp kiên cố.',
+    energyCost: 2,
+    color: 'from-green-600 via-emerald-700 to-black',
+    avatarUrl: getCardImageSvg('c65')
+  },
+  {
+    id: 'c66',
+    name: 'Tia Sét Cực Hạn',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 85,
+    def: 75,
+    skillName: 'Sấm Phạt Ngân Hà',
+    skillDesc: 'Gây 85 Sát thương & hồi +30 HP tức thì.',
+    energyCost: 2,
+    color: 'from-yellow-500 via-amber-600 to-cyan-950',
+    avatarUrl: getCardImageSvg('c66')
+  },
+  {
+    id: 'c67',
+    name: 'Kiếm Thánh Trảm Hồn',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 110,
+    def: 40,
+    skillName: 'Trảm Hồn Nhất Kiếm',
+    skillDesc: 'Vung thánh kiếm giáng 110 Sát thương sắc lẹm.',
+    energyCost: 2,
+    color: 'from-rose-600 via-red-700 to-slate-950',
+    avatarUrl: getCardImageSvg('c67')
+  },
+  {
+    id: 'c68',
+    name: 'Pháo Đài Thép',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 30,
+    def: 115,
+    skillName: 'Dựng Pháo Đài',
+    skillDesc: 'Củng cố hàng phòng thủ tăng +95 Giáp.',
+    energyCost: 2,
+    color: 'from-slate-700 via-zinc-800 to-black',
+    avatarUrl: getCardImageSvg('c68')
+  },
+  {
+    id: 'c69',
+    name: 'Bùa Hộ Mệnh',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 35,
+    def: 65,
+    skillName: 'Bùa Chú Bảo Vệ',
+    skillDesc: 'Hồi +55 HP & nạp +1 Năng Lượng.',
+    energyCost: 2,
+    color: 'from-indigo-600 via-purple-700 to-black',
+    avatarUrl: getCardImageSvg('c69')
+  },
+  {
+    id: 'c70',
+    name: 'Bão Tuyết Âm Hồn',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 80,
+    def: 80,
+    skillName: 'Băng Trảm Bão Phong',
+    skillDesc: 'Gây 80 Sát thương & nhận +40 Giáp bảo hộ.',
+    energyCost: 2,
+    color: 'from-blue-500 via-sky-600 to-indigo-950',
+    avatarUrl: getCardImageSvg('c70')
+  },
+  {
+    id: 'c71',
+    name: 'Cuồng Sấm Bão Tố',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 80,
+    def: 35,
+    skillName: 'Sấm Phạt Cơ Bản',
+    skillDesc: 'Oanh kích sấm giáng 80 Sát thương cơ bản.',
+    energyCost: 1,
+    color: 'from-yellow-600 via-amber-700 to-black',
+    avatarUrl: getCardImageSvg('c71')
+  },
+  {
+    id: 'c72',
+    name: 'Khiên Đá Cổ Đại',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 20,
+    def: 80,
+    skillName: 'Dựng Khiên Đá',
+    skillDesc: 'Dựng tường đá kiên cố nhận +65 Giáp.',
+    energyCost: 1,
+    color: 'from-stone-600 via-zinc-700 to-black',
+    avatarUrl: getCardImageSvg('c72')
+  },
+  {
+    id: 'c73',
+    name: 'Trà Đạo Hồi Phục',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 25,
+    def: 50,
+    skillName: 'Uống Trà Hồi Sinh',
+    skillDesc: 'Hồi +40 HP thần tốc.',
+    energyCost: 1,
+    color: 'from-emerald-600 via-green-700 to-black',
+    avatarUrl: getCardImageSvg('c73')
+  },
+  {
+    id: 'c74',
+    name: 'Đấm Chớp Nhoáng',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 85,
+    def: 30,
+    skillName: 'Quyền Tốc Độ',
+    skillDesc: 'Giáng cú đấm thần tốc 85 Sát thương.',
+    energyCost: 1,
+    color: 'from-orange-600 via-red-700 to-black',
+    avatarUrl: getCardImageSvg('c74')
+  },
+  {
+    id: 'c75',
+    name: 'Giáp Gỗ Thượng Cổ',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 15,
+    def: 85,
+    skillName: 'Giáp Gỗ Kiên Cố',
+    skillDesc: 'Nhận +70 Giáp bảo hộ.',
+    energyCost: 1,
+    color: 'from-amber-800 via-stone-900 to-black',
+    avatarUrl: getCardImageSvg('c75')
+  },
+  {
+    id: 'c76',
+    name: 'Thuốc Tăng Lực',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 30,
+    def: 40,
+    skillName: 'Nạp Năng Lượng',
+    skillDesc: 'Gia tăng +2 Năng Lượng tức thì.',
+    energyCost: 1,
+    color: 'from-cyan-600 via-teal-700 to-black',
+    avatarUrl: getCardImageSvg('c76')
+  },
+  {
+    id: 'c77',
+    name: 'Hỏa Long Cuồng Nộ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 165,
+    def: 35,
+    skillName: 'Long Phún Hỏa Bão',
+    skillDesc: 'Phun lửa ma thuật giáng 165 Sát thương cực lớn.',
+    energyCost: 3,
+    color: 'from-red-600 via-amber-600 to-rose-950',
+    avatarUrl: getCardImageSvg('c77')
+  },
+  {
+    id: 'c78',
+    name: 'Vĩnh Cửu Kim Cang',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 40,
+    def: 155,
+    skillName: 'Kim Cang Bất Hoại',
+    skillDesc: 'Kích hoạt giáp bất tử +135 Giáp & +35 HP.',
+    energyCost: 3,
+    color: 'from-blue-600 via-indigo-800 to-black',
+    avatarUrl: getCardImageSvg('c78')
+  },
+  {
+    id: 'c79',
+    name: 'Thánh Nhẫn Phục Sinh',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 25,
+    def: 90,
+    skillName: 'Thánh Quang Tái Sinh',
+    skillDesc: 'Hồi ngay +115 HP & nạp +2 Năng Lượng.',
+    energyCost: 3,
+    color: 'from-emerald-500 via-teal-700 to-black',
+    avatarUrl: getCardImageSvg('c79')
+  },
+  {
+    id: 'c80',
+    name: 'Thần Thoại Khai Thiên',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 135,
+    def: 105,
+    skillName: 'Khai Thiên Lực',
+    skillDesc: 'Oanh kích 135 Sát thương, hồi +50 HP & +50 Giáp.',
+    energyCost: 3,
+    color: 'from-yellow-400 via-amber-500 to-fuchsia-950',
+    avatarUrl: getCardImageSvg('c80')
+  },
+  {
+    id: 'c81',
+    name: 'Huyết Sát Kiếm',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 138,
+    def: 38,
+    skillName: 'Huyết Trảm Bộc Phá',
+    skillDesc: 'Hút 35 HP & giáng 138 Sát thương sắc lẹm.',
+    energyCost: 3,
+    color: 'from-red-800 via-rose-900 to-black',
+    avatarUrl: getCardImageSvg('c81')
+  },
+  {
+    id: 'c82',
+    name: 'Bức Tường Pha Lê',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 30,
+    def: 128,
+    skillName: 'Khiên Pha Lê Phản Xạ',
+    skillDesc: 'Dựng tường pha lê +105 Giáp & phản 35 Sát thương.',
+    energyCost: 2,
+    color: 'from-purple-600 via-indigo-700 to-black',
+    avatarUrl: getCardImageSvg('c82')
+  },
+  {
+    id: 'c83',
+    name: 'Ảo Ảnh Tráo Đổi',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 48,
+    def: 72,
+    skillName: 'Thuật Hoán Đổi',
+    skillDesc: 'Tráo đổi vai trò, hồi +75 HP & +35 Giáp.',
+    energyCost: 2,
+    color: 'from-fuchsia-700 via-purple-800 to-slate-950',
+    avatarUrl: getCardImageSvg('c83')
+  },
+  {
+    id: 'c84',
+    name: 'Vũ Điệu Bộc Phá',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 105,
+    def: 85,
+    skillName: 'Vũ Điệu Lửa',
+    skillDesc: 'Tấn công 105 Sát thương & tăng +45 Giáp kiên cố.',
+    energyCost: 2,
+    color: 'from-orange-500 via-red-600 to-black',
+    avatarUrl: getCardImageSvg('c84')
+  },
+  {
+    id: 'c85',
+    name: 'Cuồng Pháo Bão Tố',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 112,
+    def: 42,
+    skillName: 'Bắn Pháo Liên Hoàn',
+    skillDesc: 'Bắn 2 đợt pháo gây tổng cộng 112 Sát thương.',
+    energyCost: 2,
+    color: 'from-amber-600 via-red-700 to-black',
+    avatarUrl: getCardImageSvg('c85')
+  },
+  {
+    id: 'c86',
+    name: 'Giáp Nham Thạch',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 28,
+    def: 112,
+    skillName: 'Nham Thạch Hộ Thể',
+    skillDesc: 'Tạo +92 Giáp bảo vệ & hồi +22 HP.',
+    energyCost: 2,
+    color: 'from-amber-800 via-stone-900 to-black',
+    avatarUrl: getCardImageSvg('c86')
+  },
+  {
+    id: 'c87',
+    name: 'Chú Thuật Tăng Tốc',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 38,
+    def: 62,
+    skillName: 'Tăng Tốc Chiến Đấu',
+    skillDesc: 'Hồi +58 HP & tăng +1 Năng Lượng.',
+    energyCost: 2,
+    color: 'from-emerald-600 via-teal-700 to-black',
+    avatarUrl: getCardImageSvg('c87')
+  },
+  {
+    id: 'c88',
+    name: 'Sấm Giội Hoàng Kim',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'B',
+    rarityName: 'Hiếm',
+    atk: 88,
+    def: 78,
+    skillName: 'Oanh Kích Hoàng Kim',
+    skillDesc: 'Gây 88 Sát thương & nhận +35 Giáp.',
+    energyCost: 2,
+    color: 'from-yellow-500 via-amber-600 to-black',
+    avatarUrl: getCardImageSvg('c88')
+  },
+  {
+    id: 'c89',
+    name: 'Quyền Vương Lôi Điện',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 82,
+    def: 32,
+    skillName: 'Đấm Lôi Điện',
+    skillDesc: 'Cú đấm tích điện giáng 82 Sát thương.',
+    energyCost: 1,
+    color: 'from-yellow-600 via-amber-700 to-black',
+    avatarUrl: getCardImageSvg('c89')
+  },
+  {
+    id: 'c90',
+    name: 'Khiên Cắt Sóng',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 22,
+    def: 82,
+    skillName: 'Dựng Khiên Sóng',
+    skillDesc: 'Nhận +68 Giáp phòng thủ.',
+    energyCost: 1,
+    color: 'from-blue-600 via-cyan-700 to-black',
+    avatarUrl: getCardImageSvg('c90')
+  },
+  {
+    id: 'c91',
+    name: 'Bình Máu Tốc Hành',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'C',
+    rarityName: 'Thường',
+    atk: 28,
+    def: 48,
+    skillName: 'Uống Bình Máu',
+    skillDesc: 'Hồi +45 HP thần tốc.',
+    energyCost: 1,
+    color: 'from-red-600 via-rose-700 to-black',
+    avatarUrl: getCardImageSvg('c91')
+  },
+  {
+    id: 'c92',
+    name: 'Lưỡi Liêm Địa Ngục',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 168,
+    def: 32,
+    skillName: 'Chém Địa Ngục',
+    skillDesc: 'Vung liêm địa ngục cực đại gây 168 Sát thương.',
+    energyCost: 3,
+    color: 'from-red-800 via-rose-950 to-black',
+    avatarUrl: getCardImageSvg('c92')
+  },
+  {
+    id: 'c93',
+    name: 'Giáp Thiên Thần',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 42,
+    def: 152,
+    skillName: 'Cánh Thần Bất Tử',
+    skillDesc: 'Kích hoạt cánh thần nhận +130 Giáp & +32 HP.',
+    energyCost: 3,
+    color: 'from-cyan-500 via-blue-700 to-slate-950',
+    avatarUrl: getCardImageSvg('c93')
+  },
+  {
+    id: 'c94',
+    name: 'Thần Dược Đại Phục Sinh',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 28,
+    def: 88,
+    skillName: 'Đại Phục Sinh',
+    skillDesc: 'Hồi +125 HP cực đại & xóa sạch hiệu ứng bất lợi.',
+    energyCost: 3,
+    color: 'from-emerald-500 via-green-700 to-black',
+    avatarUrl: getCardImageSvg('c94')
+  },
+  {
+    id: 'c95',
+    name: 'Bão Tố Ngân Hà',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 142,
+    def: 98,
+    skillName: 'Bão Tố Vũ Trụ',
+    skillDesc: 'Trút mưa ngân hà giáng 142 Sát thương & hồi +45 HP.',
+    energyCost: 3,
+    color: 'from-purple-600 via-pink-600 to-indigo-950',
+    avatarUrl: getCardImageSvg('c95')
+  },
+  {
+    id: 'c96',
+    name: 'Trảm Thần Kiếm',
+    role: 'ATTACK',
+    roleName: 'Tấn Công',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 136,
+    def: 36,
+    skillName: 'Thánh Kiếm Trảm',
+    skillDesc: 'Giáng thánh kiếm gây 136 Sát thương.',
+    energyCost: 3,
+    color: 'from-rose-700 via-red-800 to-black',
+    avatarUrl: getCardImageSvg('c96')
+  },
+  {
+    id: 'c97',
+    name: 'Vạn Lý Bất Hoại',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 32,
+    def: 126,
+    skillName: 'Thành Trì Vạn Lý',
+    skillDesc: 'Củng cố thành trì tăng ngay +102 Giáp.',
+    energyCost: 2,
+    color: 'from-stone-700 via-zinc-800 to-black',
+    avatarUrl: getCardImageSvg('c97')
+  },
+  {
+    id: 'c98',
+    name: 'Phù Thủy Thời Gian',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 46,
+    def: 76,
+    skillName: 'Phù Phép Thời Gian',
+    skillDesc: 'Hồi +72 HP & nhận +32 Giáp.',
+    energyCost: 2,
+    color: 'from-purple-700 via-fuchsia-800 to-black',
+    avatarUrl: getCardImageSvg('c98')
+  },
+  {
+    id: 'c99',
+    name: 'Thiên Biến Vạn Hóa',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'A',
+    rarityName: 'Sử Thi',
+    atk: 102,
+    def: 88,
+    skillName: 'Ảo Mảnh Vô Cực',
+    skillDesc: 'Gây 102 Sát thương & tráo đổi chỉ số.',
+    energyCost: 2,
+    color: 'from-violet-700 via-purple-900 to-black',
+    avatarUrl: getCardImageSvg('c99')
+  },
+  {
+    id: 'c100',
+    name: 'Vô Cực Thánh Phạt',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại',
+    atk: 150,
+    def: 100,
+    skillName: 'Thánh Phạt Vô Cực',
+    skillDesc: 'Bộc phá 150 Sát thương thần thánh, hồi +60 HP & +60 Giáp.',
+    energyCost: 3,
+    color: 'from-yellow-400 via-amber-500 to-rose-950',
+    avatarUrl: getCardImageSvg('c100')
   }
 ];
+
+// 50 BALANCED CARDS ARENA DECK FOR MATCH PLAY
+export const CARD_DECK: CardItem[] = FULL_CARD_POOL.slice(0, 50);
 
 export const drawRandomCard = (): CardItem => {
   const card = CARD_DECK[Math.floor(Math.random() * CARD_DECK.length)];
@@ -916,6 +1669,95 @@ export const getRoleAdvantage = (attackerRoleRaw: string, defenderRoleRaw: strin
   };
 };
 
+// DYNAMIC SKILL ENGINE FOR ALL 100 CARDS WITH ACCURATE ENERGY RECOVERY & EFFECTS
+export const applyCardSkillEffect = (card: CardItem, me: any, opp: any, roleAdv: any) => {
+  const desc = card.skillDesc || '';
+  let logMsg = '';
+  let hpDamage = 0;
+  let newShield = opp?.shield || 0;
+  let selfHeal = 0;
+  let selfShield = me?.shield || 0;
+  let energyRestore = 0;
+
+  // 1. Check Energy Restore (+1 or +2 NL)
+  if (desc.includes('2 Năng') || desc.includes('+2 NL') || desc.includes('+2 Năng')) {
+    energyRestore = 2;
+  } else if (desc.includes('Năng') || desc.includes('NL') || card.id === 'c7' || card.id === 'c12' || card.id === 'c45' || card.id === 'c76') {
+    energyRestore = 1;
+  }
+
+  // 2. Attack Skill Damage
+  if (card.role === 'ATTACK' || desc.includes('Sát thương') || desc.includes('giáng') || desc.includes('chém') || desc.includes('bộc phá')) {
+    let baseDmg = card.atk > 0 ? Math.floor(card.atk * 1.15) : 100;
+    if (card.rarity === 'S') baseDmg += 30;
+    const rawDmg = Math.floor(baseDmg * (roleAdv?.dmgMult || 1));
+    
+    if (newShield > 0) {
+      if (newShield >= rawDmg) {
+        newShield -= rawDmg;
+        hpDamage = 0;
+      } else {
+        hpDamage = rawDmg - newShield;
+        newShield = 0;
+      }
+    } else {
+      hpDamage = rawDmg;
+    }
+    logMsg = `💥 [${me.name}] thi triển tuyệt kỹ [${card.skillName}]! Giáng ${rawDmg} Sát thương bộc phá lên [${opp.name}]!`;
+  }
+
+  // 3. Defense Shield Skill
+  if (card.role === 'DEFENSE' || desc.includes('Giáp')) {
+    const shieldGain = card.def > 0 ? Math.floor(card.def * 0.95) : 80;
+    selfShield += shieldGain;
+    if (!logMsg) {
+      logMsg = `🛡️ [${me.name}] kích hoạt [${card.skillName}]! Tăng ngay +${shieldGain} Giáp kiên cố!`;
+    } else {
+      logMsg += ` (Tăng +${shieldGain} Giáp)`;
+    }
+  }
+
+  // 4. Healing Skill
+  if (desc.includes('HP') || desc.includes('Hồi') || card.role === 'SUPPORT') {
+    if (desc.includes('120 HP') || desc.includes('125 HP') || desc.includes('100 HP')) {
+      selfHeal = 110;
+    } else if (desc.includes('80 HP') || desc.includes('70 HP')) {
+      selfHeal = 75;
+    } else {
+      selfHeal = 45;
+    }
+    if (!logMsg) {
+      logMsg = `✨ [${me.name}] thi triển thần dược [${card.skillName}]! Hồi phục +${selfHeal} HP!`;
+    } else {
+      logMsg += ` (Hồi +${selfHeal} HP)`;
+    }
+  }
+
+  // Add Energy Restore Log
+  if (energyRestore > 0) {
+    logMsg += ` [⚡ Hồi +${energyRestore} Năng Lượng!]`;
+  }
+
+  if (roleAdv?.log) {
+    logMsg += ` ${roleAdv.log}`;
+  }
+
+  const finalOppHp = Math.max(0, (opp?.hp || 300) - hpDamage);
+  const finalSelfHp = Math.min(300, (me?.hp || 300) + selfHeal);
+  const currentEnergyAfterCost = Math.max(0, (me?.energy || 0) - card.energyCost);
+  const finalEnergy = Math.min(5, currentEnergyAfterCost + energyRestore);
+
+  return {
+    logMsg,
+    oppHp: finalOppHp,
+    oppShield: newShield,
+    selfHp: finalSelfHp,
+    selfShield: selfShield,
+    selfEnergy: finalEnergy,
+    isOpponentDead: finalOppHp <= 0
+  };
+};
+
 export default function WorldCardBattleModal({ uid, user, onClose, onShowResult }: WorldCardBattleModalProps) {
   const [roomId, setRoomId] = useState<string>('arena_1');
   const [roomInput, setRoomInput] = useState<string>('arena_1');
@@ -989,7 +1831,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   // Sync Room State from Firebase Realtime DB
   useEffect(() => {
-    const roomRef = ref(db, `games/world_card_battle/${roomId}`);
+    const roomRef = ref(db, `matches/${roomId}`);
     const unsub = onValue(roomRef, (snap) => {
       if (snap.exists()) {
         const val = snap.val();
@@ -1068,6 +1910,114 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     return () => clearInterval(interval);
   }, [isSearching, roomData?.status, roomData?.p2]);
 
+  // --- REALTIME CHAT ROOM HOOK ---
+  const [chatMessages, setChatMessages] = useState<Array<{ id: string; sender: string; text: string; timestamp: number }>>([]);
+  const [chatInput, setChatInput] = useState<string>('');
+
+  useEffect(() => {
+    if (!roomId) return;
+    const msgRef = ref(db, `matches/${roomId}/messages`);
+    const unsub = onValue(msgRef, (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        const list = Object.entries(val).map(([k, v]: [string, any]) => ({
+          id: k,
+          ...v
+        }));
+        list.sort((a, b) => a.timestamp - b.timestamp);
+        setChatMessages(list);
+      } else {
+        setChatMessages([]);
+      }
+    });
+    return () => unsub();
+  }, [roomId]);
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim() || !roomId) return;
+    const msgRef = ref(db, `matches/${roomId}/messages`);
+    await push(msgRef, {
+      sender: user?.name || 'Võ Sĩ Đấu Trường',
+      uid: uid || 'user_anon',
+      text: chatInput.trim(),
+      timestamp: Date.now()
+    });
+    setChatInput('');
+  };
+
+  // --- REALTIME BETTING POOL HOOK ---
+  const [bettingPool, setBettingPool] = useState<{ totalPot: number; userContributions: Record<string, number> }>({
+    totalPot: 0,
+    userContributions: {}
+  });
+
+  useEffect(() => {
+    if (!roomId) return;
+    const potRef = ref(db, `matches/${roomId}/pot`);
+    const unsub = onValue(potRef, (snap) => {
+      if (snap.exists()) {
+        setBettingPool(snap.val());
+      } else {
+        setBettingPool({ totalPot: 0, userContributions: {} });
+      }
+    });
+    return () => unsub();
+  }, [roomId]);
+
+  const handlePlaceBet = async (amount: number) => {
+    if (!roomId || amount <= 0) return;
+    const potRef = ref(db, `matches/${roomId}/pot`);
+    const currentPot = bettingPool.totalPot || 0;
+    const currentContrib = bettingPool.userContributions?.[uid] || 0;
+
+    await update(potRef, {
+      totalPot: currentPot + amount,
+      [`userContributions/${uid}`]: currentContrib + amount
+    });
+
+    // Log in combat logs
+    const roomRef = ref(db, `matches/${roomId}`);
+    const logMsg = `💰 [${user?.name || 'Khán giả'}] vừa đặt cược +${amount.toLocaleString('vi-VN')} Vàng vào Quỹ Trận Đấu! Tổng Quỹ: ${(currentPot + amount).toLocaleString('vi-VN')} Vàng!`;
+    await update(roomRef, {
+      combatLogs: [...(roomData?.combatLogs || []).slice(-15), logMsg]
+    });
+  };
+
+  // --- REALTIME MATCH EVENTS HOOK (SPECIAL CARD ANIMATIONS FOR SPECTATORS & PLAYERS) ---
+  const [activeSpecialEvent, setActiveSpecialEvent] = useState<{ id?: string; cardName: string; playerName: string; role: string } | null>(null);
+
+  useEffect(() => {
+    if (!roomId) return;
+    const eventsRef = ref(db, `matches/${roomId}/events`);
+    const unsub = onValue(eventsRef, (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        const eventsList = Object.entries(val).map(([k, v]: [string, any]) => ({ id: k, ...v }));
+        eventsList.sort((a, b) => b.timestamp - a.timestamp);
+        const latestEvent = eventsList[0];
+        if (latestEvent && (Date.now() - latestEvent.timestamp < 3500)) {
+          setActiveSpecialEvent(latestEvent);
+          playSound('skill');
+          setTimeout(() => {
+            setActiveSpecialEvent(null);
+          }, 2500);
+        }
+      }
+    });
+    return () => unsub();
+  }, [roomId]);
+
+  const triggerMatchEvent = async (cardName: string, role: string, playerName: string) => {
+    if (!roomId) return;
+    const eventsRef = ref(db, `matches/${roomId}/events`);
+    await push(eventsRef, {
+      cardName,
+      role,
+      playerName,
+      timestamp: Date.now()
+    });
+  };
+
   // 20-Second Selection Timer Loop for PvP & AI Matches
   useEffect(() => {
     if (!roomData || roomData.status !== 'PLAYING') return;
@@ -1099,7 +2049,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     const opp = roomData.p1;
     if (!me || !opp) return;
 
-    const roomRef = ref(db, `games/world_card_battle/${roomId}`);
+    const roomRef = ref(db, `matches/${roomId}`);
 
     // AI card selection among available unused cards in hand
     let aiHand = me.hand && me.hand.length > 0 ? me.hand : generateRandomHand(5);
@@ -1116,6 +2066,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
     // Mark AI card as used
     aiHand[aiCardIdx] = { ...aiCard, used: true };
+
+    if (aiCard.role === 'SPECIAL' || aiCard.rarity === 'S') {
+      triggerMatchEvent(aiCard.name, aiCard.role, me.name);
+    }
 
     const oppHand = opp.hand && opp.hand.length > 0 ? opp.hand : CARD_DECK;
     const oppCard = oppHand[opp.activeCardIdx || 0] || CARD_DECK[0];
@@ -1134,42 +2088,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
     if (useSkill) {
       playSound('skill');
-      updates['p2/energy'] = me.energy - aiCard.energyCost;
+      const skillRes = applyCardSkillEffect(aiCard, me, opp, roleAdv);
+      logMsg = skillRes.logMsg;
+      updates['p1/hp'] = skillRes.oppHp;
+      updates['p1/shield'] = skillRes.oppShield;
+      updates['p2/hp'] = skillRes.selfHp;
+      updates['p2/shield'] = skillRes.selfShield;
+      updates['p2/energy'] = skillRes.selfEnergy;
 
-      if (aiCard.id === 'c1' || aiCard.id === 'c10' || aiCard.id === 'c14' || aiCard.id === 'c16' || aiCard.id === 'c19') {
-        const dmg = Math.floor(aiCard.atk * 1.1 * roleAdv.dmgMult);
-        const newHp = Math.max(0, opp.hp - dmg);
-        logMsg = `💥 [🤖 ${me.name}] dùng [${aiCard.skillName}] giáng ${dmg} Sát thương bộc phá lên [${opp.name}]!`;
-        if (roleAdv.log) logMsg += ` ${roleAdv.log}`;
-        updates['p1/hp'] = newHp;
-      } else if (aiCard.id === 'c2' || aiCard.id === 'c4' || aiCard.id === 'c11' || aiCard.id === 'c15' || aiCard.id === 'c20') {
-        logMsg = `🛡️ [🤖 ${me.name}] thi triển [${aiCard.skillName}]! Tăng +80 Giáp phòng thủ kiên cố!`;
-        updates['p2/shield'] = (me.shield || 0) + 80;
-      } else if (aiCard.id === 'c6') {
-        const dmg = Math.floor(150 * roleAdv.dmgMult);
-        let newShield = opp.shield || 0;
-        let finalHpDmg = dmg;
-        if (newShield > 0) {
-          if (newShield >= dmg) {
-            newShield -= dmg;
-            finalHpDmg = 0;
-          } else {
-            finalHpDmg = dmg - newShield;
-            newShield = 0;
-          }
-        }
-        const newHp = Math.max(0, opp.hp - finalHpDmg);
-        logMsg = `💥 [🤖 ${me.name}] giáng [Cú Đấm Năng Lượng] gây ${dmg} SÁT THƯƠNG cực đại!`;
-        if (roleAdv.log) logMsg += ` ${roleAdv.log}`;
-        updates['p1/hp'] = newHp;
-        updates['p1/shield'] = newShield;
-      } else {
-        logMsg = `✨ [🤖 ${me.name}] thi triển tuyệt kỹ [${aiCard.skillName}]! Hồi +40 HP & tăng +40 Giáp!`;
-        updates['p2/hp'] = Math.min(300, me.hp + 40);
-        updates['p2/shield'] = (me.shield || 0) + 40;
-      }
-
-      if (updates['p1/hp'] !== undefined && updates['p1/hp'] <= 0) {
+      if (skillRes.isOpponentDead) {
         updates.status = 'FINISHED';
         updates.winnerId = me.id;
         updates.combatLogs = [...(roomData.combatLogs || []).slice(-15), logMsg, `💀 [🤖 AI Bot Tối Thượng] đã chiến thắng trận đấu!`];
@@ -1270,7 +2197,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       hand: generateRandomHand(5)
     };
 
-    const roomRef = ref(db, `games/world_card_battle/${aiRoomId}`);
+    const roomRef = ref(db, `matches/${aiRoomId}`);
     await set(roomRef, {
       id: aiRoomId,
       p1: player1Obj,
@@ -1290,7 +2217,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   // Add AI Bot into current waiting room
   const handleJoinMatchWithAi = async () => {
     if (!roomData) return;
-    const roomRef = ref(db, `games/world_card_battle/${roomId}`);
+    const roomRef = ref(db, `matches/${roomId}`);
 
     const player1Obj = roomData.p1 || {
       id: uid,
@@ -1334,7 +2261,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     setSearchSeconds(60);
 
     try {
-      const gamesRef = ref(db, 'games/world_card_battle');
+      const gamesRef = ref(db, 'matches');
       const snap = await get(gamesRef);
 
       const playerObj = {
@@ -1365,7 +2292,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
       if (matchedRoomId) {
         // Found active waiting room -> Join as Player 2
-        const roomRef = ref(db, `games/world_card_battle/${matchedRoomId}`);
+        const roomRef = ref(db, `matches/${matchedRoomId}`);
         await update(roomRef, {
           p2: playerObj,
           status: 'PLAYING',
@@ -1380,7 +2307,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       } else {
         // Create new active room waiting for Player 2
         const newPvpRoomId = `pvp_${uid.slice(0, 5)}_${Math.floor(1000 + Math.random() * 9000)}`;
-        const roomRef = ref(db, `games/world_card_battle/${newPvpRoomId}`);
+        const roomRef = ref(db, `matches/${newPvpRoomId}`);
         await set(roomRef, {
           id: newPvpRoomId,
           p1: playerObj,
@@ -1417,7 +2344,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   // Join match as Player 1 or Player 2
   const handleJoinMatch = async () => {
     if (!roomData) return;
-    const roomRef = ref(db, `games/world_card_battle/${roomId}`);
+    const roomRef = ref(db, `matches/${roomId}`);
 
     const playerObj = {
       id: uid,
@@ -1444,7 +2371,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         combatLogs: [...(roomData.combatLogs || []), `⚔️ [${playerObj.name}] gia nhập NGƯỜI CHƠI 2. TRẬN ĐẤU BẮT ĐẦU!`]
       });
     } else {
-      await update(ref(db, `games/world_card_battle/${roomId}/spectators/${uid}`), {
+      await update(ref(db, `matches/${roomId}/spectators/${uid}`), {
         id: uid,
         name: user?.name || 'Khán Giả',
         avatar: user?.avatar || ''
@@ -1454,7 +2381,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   // Reset Match
   const handleResetMatch = async () => {
-    const roomRef = ref(db, `games/world_card_battle/${roomId}`);
+    const roomRef = ref(db, `matches/${roomId}`);
 
     if (roomData?.p2?.isBot || roomId.startsWith('ai_')) {
       const p1Obj = {
@@ -1513,7 +2440,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   // Leave AI Room
   const handleLeaveAiRoom = async () => {
     if (roomId.startsWith('ai_')) {
-      const roomRef = ref(db, `games/world_card_battle/${roomId}`);
+      const roomRef = ref(db, `matches/${roomId}`);
       await remove(roomRef).catch(() => {});
     }
     setRoomId('arena_1');
@@ -1562,6 +2489,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       }
     }
 
+    if (myCard.role === 'SPECIAL' || myCard.rarity === 'S') {
+      triggerMatchEvent(myCard.name, myCard.role, me.name);
+    }
+
     const newOppHp = Math.max(0, opp.hp - actualDmg);
     const newMyEnergy = Math.min(5, me.energy + 1);
 
@@ -1601,7 +2532,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       playSound('victory');
     }
 
-    await update(ref(db, `games/world_card_battle/${roomId}`), updates);
+    await update(ref(db, `matches/${roomId}`), updates);
     setActiveCardIdx(nextUnusedIdx !== -1 ? nextUnusedIdx : 0);
     setIsAttacking(false);
   };
@@ -1628,59 +2559,31 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     // Mark card as used
     myHand[activeCardIdx] = { ...myCard, used: true };
 
+    if (myCard.role === 'SPECIAL' || myCard.rarity === 'S') {
+      triggerMatchEvent(myCard.name, myCard.role, me.name);
+    }
+
     const oppCard = opp.hand[opp.activeCardIdx || 0] || CARD_DECK[0];
     const roleAdv = getRoleAdvantage(myCard.role, oppCard.role);
 
-    let logMsg = '';
+    const skillRes = applyCardSkillEffect(myCard, me, opp, roleAdv);
+    let logMsg = skillRes.logMsg;
+
     const updates: any = {
-      [`${myPlayerKey}/energy`]: me.energy - myCard.energyCost,
+      [`${myPlayerKey}/energy`]: skillRes.selfEnergy,
+      [`${myPlayerKey}/hp`]: skillRes.selfHp,
+      [`${myPlayerKey}/shield`]: skillRes.selfShield,
+      [`${oppPlayerKey}/hp`]: skillRes.oppHp,
+      [`${oppPlayerKey}/shield`]: skillRes.oppShield,
       turn: oppPlayerKey,
       turnCount: (roomData.turnCount || 1) + 1
     };
 
-    if (myCard.id === 'c1' || myCard.id === 'c10' || myCard.id === 'c14' || myCard.id === 'c16' || myCard.id === 'c19') {
-      const dmg = Math.floor(myCard.atk * 1.15 * roleAdv.dmgMult);
-      const newHp = Math.max(0, opp.hp - dmg);
-      logMsg = `💥 [${me.name}] kích hoạt [${myCard.skillName}] giáng ${dmg} Sát thương bộc phá lên [${opp.name}]!`;
-      if (roleAdv.log) logMsg += ` ${roleAdv.log}`;
-      updates[`${oppPlayerKey}/hp`] = newHp;
-      if (newHp <= 0) {
-        updates.status = 'FINISHED';
-        updates.winnerId = me.id;
-        playSound('victory');
-      }
-    } else if (myCard.id === 'c2' || myCard.id === 'c4' || myCard.id === 'c11' || myCard.id === 'c15' || myCard.id === 'c20') {
-      logMsg = `🛡️ [${me.name}] thi triển [${myCard.skillName}]! Tăng +80 Giáp kiên cố bảo vệ!`;
-      updates[`${myPlayerKey}/shield`] = (me.shield || 0) + 80;
-      playSound('heal');
-    } else if (myCard.id === 'c6') {
-      const dmg = Math.floor(150 * roleAdv.dmgMult);
-      let newShield = opp.shield || 0;
-      let finalHpDmg = dmg;
-      if (newShield > 0) {
-        if (newShield >= dmg) {
-          newShield -= dmg;
-          finalHpDmg = 0;
-        } else {
-          finalHpDmg = dmg - newShield;
-          newShield = 0;
-        }
-      }
-      const newHp = Math.max(0, opp.hp - finalHpDmg);
-      logMsg = `💥 [${me.name}] giáng [Cú Đấm Năng Lượng] gây ${dmg} SÁT THƯƠNG cực lớn lên [${opp.name}]!`;
-      if (roleAdv.log) logMsg += ` ${roleAdv.log}`;
-      updates[`${oppPlayerKey}/hp`] = newHp;
-      updates[`${oppPlayerKey}/shield`] = newShield;
-      if (newHp <= 0) {
-        updates.status = 'FINISHED';
-        updates.winnerId = me.id;
-        playSound('victory');
-      }
-    } else {
-      logMsg = `✨ [${me.name}] thi triển [${myCard.skillName}]! Hồi +50 HP & nhận +30 Giáp kiên cố!`;
-      updates[`${myPlayerKey}/hp`] = Math.min(300, me.hp + 50);
-      updates[`${myPlayerKey}/shield`] = (me.shield || 0) + 30;
-      playSound('heal');
+    if (skillRes.isOpponentDead) {
+      updates.status = 'FINISHED';
+      updates.winnerId = me.id;
+      logMsg += ` 🏆 [${me.name}] CHIẾN THẮNG TRẬN ĐẤU!`;
+      playSound('victory');
     }
 
     let nextUnusedIdx = myHand.findIndex((c: any) => !c.used);
@@ -1694,7 +2597,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     updates[`${myPlayerKey}/activeCardIdx`] = nextUnusedIdx !== -1 ? nextUnusedIdx : 0;
     updates.combatLogs = [...(roomData.combatLogs || []).slice(-15), logMsg];
 
-    await update(ref(db, `games/world_card_battle/${roomId}`), updates);
+    await update(ref(db, `matches/${roomId}`), updates);
     setActiveCardIdx(nextUnusedIdx !== -1 ? nextUnusedIdx : 0);
     setIsAttacking(false);
   };
@@ -1706,7 +2609,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     if (myHand[index]?.used) return; // Cannot re-select used card in current round
 
     setActiveCardIdx(index);
-    await update(ref(db, `games/world_card_battle/${roomId}/${myPlayerKey}`), {
+    await update(ref(db, `matches/${roomId}/${myPlayerKey}`), {
       activeCardIdx: index
     });
   };
@@ -1722,9 +2625,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   const handleCloseModal = async () => {
     setIsSearching(false);
     if (roomData?.status === 'WAITING' && roomData?.p1?.id === uid && !roomData?.p2) {
-      await remove(ref(db, `games/world_card_battle/${roomId}`)).catch(() => {});
+      await remove(ref(db, `matches/${roomId}`)).catch(() => {});
     } else if (roomId.startsWith('ai_') || (roomData?.status === 'FINISHED' && roomId.startsWith('pvp_'))) {
-      await remove(ref(db, `games/world_card_battle/${roomId}`)).catch(() => {});
+      await remove(ref(db, `matches/${roomId}`)).catch(() => {});
     }
     onClose();
   };
@@ -1858,6 +2761,37 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
           .animate-result-display {
             animation: resultDisplay 0.4s ease-out 0.75s forwards;
+          }
+
+          @keyframes screenFlashSpecial {
+            0% { opacity: 0; transform: scale(0.95); }
+            25% { opacity: 0.9; transform: scale(1.02); }
+            50% { opacity: 1; transform: scale(1.05); filter: drop-shadow(0 0 35px #facc15); }
+            100% { opacity: 0; transform: scale(1); }
+          }
+
+          @keyframes particleBurstSpecial {
+            0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
+            50% { transform: scale(1.3) rotate(180deg); opacity: 1; filter: drop-shadow(0 0 40px #a855f7); }
+            100% { transform: scale(2.2) rotate(360deg); opacity: 0; }
+          }
+
+          @keyframes glowTrailSpecial {
+            0% { box-shadow: 0 0 20px #00f0ff, 0 0 40px #facc15; }
+            50% { box-shadow: 0 0 55px #a855f7, 0 0 80px #ef4444, 0 0 100px #00f0ff; }
+            100% { box-shadow: 0 0 20px #00f0ff, 0 0 40px #facc15; }
+          }
+
+          .animate-screen-flash {
+            animation: screenFlashSpecial 1s ease-out forwards;
+          }
+
+          .animate-particle-burst {
+            animation: particleBurstSpecial 1.2s ease-out forwards;
+          }
+
+          .animate-glow-trail {
+            animation: glowTrailSpecial 1.8s infinite ease-in-out;
           }
         `}</style>
 
@@ -2327,10 +3261,18 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                               {(card.rarity === 'S' || card.rarity === 'A') && !isUsed && (
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none z-10 rounded-xl">
                                   <div className={`w-1/2 h-full bg-gradient-to-r ${
-                                    card.rarity === 'S' ? 'from-transparent via-amber-300/40 to-transparent' : 'from-transparent via-fuchsia-300/40 to-transparent'
-                                  } animate-[lienQuanShimmer_2.5s_infinite]`} />
+                                    card.rarity === 'S' ? 'from-transparent via-amber-300/50 to-transparent' : 'from-transparent via-fuchsia-300/50 to-transparent'
+                                  } animate-[lienQuanShimmer_2s_infinite]`} />
                                 </div>
                               )}
+
+                              {/* Luxury LIMITED Animated Badge for S & A Cards */}
+                              {(card.rarity === 'S' || card.rarity === 'A') && (
+                                <div className="absolute top-0.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 border border-yellow-200 text-black font-black text-[6px] tracking-tighter uppercase shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse flex items-center gap-0.5">
+                                  <span>✨ LIMITED</span>
+                                </div>
+                              )}
+
                               {/* Card Rarity Badge */}
                               <span className={`absolute top-0.5 right-0.5 z-20 text-[6.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
                                 {card.rarity || 'C'}
@@ -2399,10 +3341,108 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
             </div>
 
+            {/* REAL-TIME MATCH CHAT & LIVE BETTING POOL (Firebase Synced) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/10">
+              
+              {/* 1. Live Betting Pool Box */}
+              <div className="p-3 bg-slate-950/90 border border-yellow-500/40 rounded-xl space-y-2">
+                <div className="flex items-center justify-between text-yellow-400 font-bold text-xs uppercase font-mono">
+                  <span className="flex items-center gap-1">
+                    💰 QUỸ ĐẶT CƯỢC LIVE
+                  </span>
+                  <span className="text-amber-300 font-mono text-xs font-bold">
+                    {(bettingPool.totalPot || 0).toLocaleString('vi-VN')} Vàng
+                  </span>
+                </div>
+
+                <p className="text-[9.5px] text-slate-300 leading-tight font-mono">
+                  Đặt cược vào chiến thắng trận đấu! Tất cả người xem đồng bộ theo thời gian thực.
+                </p>
+
+                <div className="flex gap-1.5 pt-1">
+                  {[100, 500, 1000, 5000].map((amt) => (
+                    <button
+                      key={amt}
+                      onClick={() => handlePlaceBet(amt)}
+                      className="flex-1 py-1.5 bg-gradient-to-r from-yellow-500/20 via-amber-500/30 to-yellow-600/20 hover:bg-yellow-500 hover:text-black border border-yellow-500/50 text-yellow-300 font-bold text-[10px] rounded-lg transition-all cursor-pointer font-mono shadow-[0_0_8px_rgba(250,204,21,0.2)]"
+                    >
+                      +{amt.toLocaleString()}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Real-time Live Chat Room Box */}
+              <div className="p-3 bg-slate-950/90 border border-cyan-500/40 rounded-xl space-y-2 flex flex-col justify-between">
+                <div className="flex items-center justify-between text-cyan-400 font-bold text-xs uppercase font-mono border-b border-cyan-500/20 pb-1">
+                  <span className="flex items-center gap-1">
+                    💬 PHÒNG CHAT TRỰC TIẾP LIVE
+                  </span>
+                  <span className="text-[9px] text-slate-400">
+                    {chatMessages.length} Tin nhắn
+                  </span>
+                </div>
+
+                <div className="h-20 overflow-y-auto space-y-1.5 text-[9.5px] font-mono pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30">
+                  {chatMessages.length === 0 ? (
+                    <p className="text-slate-500 text-center py-3 text-[9px] italic">Chưa có tin nhắn... Hãy bình luận ngay!</p>
+                  ) : (
+                    chatMessages.map((msg) => (
+                      <div key={msg.id} className="p-1 bg-white/5 rounded border border-white/5 flex gap-1">
+                        <span className="text-cyan-300 font-bold truncate max-w-[80px]">{msg.sender}:</span>
+                        <span className="text-slate-200 flex-1 break-words">{msg.text}</span>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                <div className="flex gap-1 pt-1">
+                  <input
+                    type="text"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                    placeholder="Nhập lời nhắn khán giả..."
+                    className="flex-1 bg-black/80 border border-cyan-500/30 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none focus:border-cyan-400 font-mono"
+                  />
+                  <button
+                    onClick={handleSendMessage}
+                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-[10px] rounded-lg transition cursor-pointer font-mono"
+                  >
+                    GỬI
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
           </div>
         )}
 
       </div>
+
+      {/* SPECIAL CARD PARTICLES BURST & SCREEN FLASH OVERLAY FOR ALL Connected SPECTATORS & PLAYERS */}
+      {activeSpecialEvent && (
+        <div className="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm animate-screen-flash">
+          <div className="relative flex flex-col items-center justify-center space-y-3">
+            {/* Burst Glow Keyframe Circle */}
+            <div className="absolute w-72 h-72 rounded-full bg-gradient-to-r from-yellow-400 via-fuchsia-500 to-cyan-400 animate-particle-burst opacity-80 blur-xl" />
+            
+            <div className="relative z-10 bg-slate-950/90 border-2 border-yellow-400 p-6 rounded-3xl text-center space-y-2 shadow-[0_0_80px_rgba(250,204,21,0.8)] animate-glow-trail max-w-sm mx-auto">
+              <div className="text-3xl animate-bounce">⚡💥✨</div>
+              <span className="text-[10px] text-amber-300 font-mono font-bold uppercase tracking-widest block">
+                TUNG THẺ BÀI ĐẶC BIỆT THẦN THOẠI!
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 uppercase drop-shadow">
+                {activeSpecialEvent.cardName}
+              </h2>
+              <p className="text-xs text-cyan-300 font-bold font-mono">
+                [ {activeSpecialEvent.playerName} ] vừa thi triển chiêu thức đặc biệt!
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 50 CARDS DECK COMPENDIUM & SKILLS GALLERY MODAL WITH RARITY FILTER */}
       {showCompendium && (

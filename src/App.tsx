@@ -165,6 +165,53 @@ export default function App() {
     return () => unsubscribe();
   }, [uid]);
 
+  // Offline Mode Detection State
+  const [isOffline, setIsOffline] = useState(false);
+
+  useEffect(() => {
+    const connectedRef = ref(db, '.info/connected');
+    const unsub = onValue(connectedRef, (snap) => {
+      if (snap.exists()) {
+        setIsOffline(!snap.val());
+      } else {
+        setIsOffline(true);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Daily Streak Logic (Updates streak_days field in Firebase)
+  useEffect(() => {
+    if (!uid || !user) return;
+    const updateStreak = async () => {
+      const todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+      const lastLogin = user.lastLoginDate;
+      if (lastLogin === todayStr) return; // Already processed today
+
+      let newStreak = 1;
+      if (lastLogin) {
+        const lastDate = new Date(lastLogin);
+        const todayDate = new Date(todayStr);
+        const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
+
+        if (diffDays === 1) {
+          newStreak = (user.streak_days || 0) + 1;
+        } else if (diffDays === 0) {
+          newStreak = user.streak_days || 1;
+        } else {
+          newStreak = 1;
+        }
+      }
+
+      await update(ref(db, `users/${uid}`), {
+        streak_days: newStreak,
+        lastLoginDate: todayStr
+      });
+    };
+
+    updateStreak();
+  }, [uid, user?.lastLoginDate]);
+
   // 2. Real-time active online indicators ping
   useEffect(() => {
     if (!uid || !user) return;
@@ -252,6 +299,14 @@ export default function App() {
       {/* 10 AI Bots simulation service running in background */}
       <AIBotSimulation />
 
+      {/* OFFLINE MODE TOAST NOTIFICATION BANNER */}
+      {isOffline && (
+        <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 px-4 py-2 bg-rose-950/90 border border-rose-500/80 rounded-full text-rose-300 font-mono text-xs font-bold shadow-[0_0_20px_rgba(244,63,94,0.5)] flex items-center gap-2 animate-bounce">
+          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+          <span>⚠️ Đang ở Chế Độ Ngoại Tuyến (Offline Mode) - Kết nối kém, đồng bộ có thể trễ</span>
+        </div>
+      )}
+
       {/* Mobile Top Navigation Header */}
       <div className="md:hidden fixed top-0 inset-x-0 h-16 bg-[#0a0a0c]/90 backdrop-blur-md border-b border-white/5 px-4 flex items-center justify-between z-40 select-none">
         <div className="flex items-center gap-3">
@@ -266,6 +321,11 @@ export default function App() {
           </span>
         </div>
         <div className="flex items-center gap-2 font-mono">
+          {/* Daily Streak Badge Mobile */}
+          <div className="px-2 py-0.5 rounded-full bg-orange-500/20 border border-orange-500/50 text-orange-400 text-[10px] font-black flex items-center gap-1">
+            <Flame className="w-3 h-3 animate-bounce fill-current" />
+            <span>{user?.streak_days || 1} Ngày</span>
+          </div>
           <div className="text-right">
             <div className="text-[10px] text-yellow-400 font-bold">{(user?.pp || 0).toLocaleString()} PP</div>
             <div className="text-[9px] text-white/50 truncate max-w-[80px]">{user?.name || 'Sinh Viên'}</div>
@@ -294,6 +354,31 @@ export default function App() {
             ? 'mt-[290px] md:mt-0'
             : 'mt-16 md:mt-0'
         }`}>
+          
+          {/* DESKTOP HEADER STATUS & STREAK BAR */}
+          <div className="hidden md:flex items-center justify-between p-3.5 mb-6 bg-slate-950/80 border border-white/10 rounded-2xl backdrop-blur-md shadow-lg font-mono text-xs">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/15 border border-orange-500/40 text-orange-400 font-bold">
+                <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
+                <span>CHUỖI ĐĂNG NHẬP: <strong className="text-white font-black">{user?.streak_days || 1} NGÀY</strong></span>
+              </div>
+              <span className="text-[10px] text-slate-400 font-sans">
+                (Thưởng +100 PP/ngày. Đã điểm danh hôm nay!)
+              </span>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                isOffline ? 'bg-rose-500/20 text-rose-400 border border-rose-500/50' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/50'
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${isOffline ? 'bg-rose-500 animate-ping' : 'bg-emerald-400 animate-pulse'}`} />
+                <span>{isOffline ? 'Ngoại Tuyến (Offline)' : 'Trực Tuyến Realtime'}</span>
+              </div>
+              <span className="text-yellow-400 font-bold bg-yellow-500/10 border border-yellow-500/30 px-3 py-1 rounded-xl">
+                💰 {(user?.pp || 0).toLocaleString('vi-VN')} PP
+              </span>
+            </div>
+          </div>
           
           {currentTab === 'news' && (
             <S88NewsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />

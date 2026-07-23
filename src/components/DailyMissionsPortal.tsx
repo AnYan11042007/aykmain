@@ -283,14 +283,14 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
           <div className="space-y-2">
             <div className="inline-flex items-center gap-2 py-1 px-3 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold rounded-full uppercase tracking-wider">
               <Zap className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
-              Nhiệm Vụ Mỗi Ngày - Ngẫu Nhiên 10 Thách Thức
+              Nhiệm Vụ Mỗi Ngày - Ngẫu Nhiên 20 Thách Thức
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
               <Target className="w-8 h-8 text-[#00f0ff] animate-bounce" />
               NGÂN HÀNG NHIỆM VỤ S88
             </h1>
             <p className="text-slate-400 text-xs font-sans max-w-xl leading-relaxed">
-              Mỗi ngày hệ thống tự động xáo trộn 10 nhiệm vụ ngẫu nhiên. Hoàn thành để tích lũy học bổng Portal Points (PP) và điểm XP nâng cấp Battle Pass!
+              Mỗi ngày hệ thống tự động xáo trộn 20 nhiệm vụ ngẫu nhiên. Hoàn thành để tích lũy học bổng Portal Points (PP) và điểm XP nâng cấp Battle Pass!
             </p>
           </div>
 
@@ -311,10 +311,10 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                 onClick={handleRerandomize}
                 disabled={isRerandomizing}
                 className="py-3 px-4 bg-cyan-950/60 hover:bg-cyan-900 border border-cyan-500/50 text-cyan-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center gap-2"
-                title="Giáo viên / Admin: Tạo lại 10 nhiệm vụ mới cho ngày hôm nay"
+                title="Giáo viên / Admin: Tạo lại 20 nhiệm vụ mới cho ngày hôm nay"
               >
                 <RefreshCw className={`w-4 h-4 ${isRerandomizing ? 'animate-spin' : ''}`} />
-                Random 10 Nhiệm Vụ Mới
+                Random 20 Nhiệm Vụ Mới
               </button>
             )}
           </div>
@@ -579,7 +579,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
           <div className="col-span-full py-16 flex flex-col items-center justify-center space-y-3">
             <div className="w-8 h-8 border-3 border-[#00f0ff]/20 border-t-[#00f0ff] rounded-full animate-spin"></div>
             <span className="text-xs text-slate-400 uppercase tracking-widest animate-pulse">
-              Đang kết nối cơ sở dữ liệu & lấy 10 nhiệm vụ hôm nay...
+              Đang kết nối cơ sở dữ liệu & lấy 20 nhiệm vụ hôm nay...
             </span>
           </div>
         ) : filteredMissions.length === 0 ? (

@@ -178,7 +178,7 @@ export default function DailyMissions({ uid, user, onShowResult }: DailyMissions
             Nhiệm Vụ Hàng Ngày
           </h4>
           <p className="text-[9px] text-[#8b949e] leading-snug mt-1">
-            Cày 10 nhiệm vụ ngẫu nhiên mỗi ngày để nhận PP học bổng miễn phí!
+            Cày 20 nhiệm vụ ngẫu nhiên mỗi ngày để nhận PP học bổng miễn phí!
           </p>
         </div>
       </div>

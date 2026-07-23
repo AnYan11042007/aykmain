@@ -32,42 +32,42 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   {
     id: 'm_taixiu',
     title: 'Thần Tài Gõ Cửa',
-    description: 'Chiến thắng 3 ván Tài Xỉu Thần Thú để nhận thưởng.',
+    description: 'Chiến thắng 2 ván Tài Xỉu Thần Thú để nhận thưởng.',
     type: 'taixiu_wins',
-    target: 3,
-    reward: 1200
+    target: 2,
+    reward: 1000
   },
   {
     id: 'm_crash',
     title: 'Phi Công Trụ Hạng',
-    description: 'Tham gia cất cánh Phi Thuyền Không Chiến 2 lần.',
+    description: 'Tham gia cất cánh Phi Thuyền Không Chiến 1 lần.',
     type: 'crash_rides',
-    target: 2,
-    reward: 800
+    target: 1,
+    reward: 600
   },
   {
     id: 'm_penalty',
     title: 'Vua Sút Phạt Luân Lưu',
-    description: 'Sút tung lưới đối thủ thành công 3 quả Penalty.',
+    description: 'Sút tung lưới đối thủ thành công 2 quả Penalty.',
     type: 'penalty_goals',
-    target: 3,
-    reward: 1000
+    target: 2,
+    reward: 800
   },
   {
     id: 'm_chat',
     title: 'Chiến Hữu Giao Lưu',
-    description: 'Gửi ít nhất 5 tin nhắn thảo luận ở Chat Toàn Trường.',
+    description: 'Gửi ít nhất 3 tin nhắn thảo luận ở Chat Toàn Trường.',
     type: 'chat_messages',
-    target: 5,
-    reward: 600
+    target: 3,
+    reward: 500
   },
   {
     id: 'm_wheel',
     title: 'Vòng Quay Nhân Phẩm',
-    description: 'Quay vòng quay may mắn thần tài 2 lần.',
+    description: 'Quay vòng quay may mắn thần tài 1 lần.',
     type: 'wheel_spins',
-    target: 2,
-    reward: 700
+    target: 1,
+    reward: 500
   },
   {
     id: 'm_bank',
@@ -80,26 +80,106 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   {
     id: 'm_marketplace',
     title: 'Kinh Thương Giao Dịch',
-    description: 'Mua sắm 1 sản phẩm tại Chợ Học Đường hoặc Rương Gacha.',
+    description: 'Mua sắm 1 vật phẩm tại Chợ Học Đường hoặc Rương Gacha.',
     type: 'marketplace_buy',
     target: 1,
-    reward: 800
+    reward: 700
   },
   {
     id: 'm_ai',
     title: 'Hỏi Đáp Gia Sư AI',
-    description: 'Trò chuyện học hỏi với AI Gia Sư S88 3 câu hỏi.',
+    description: 'Trò chuyện học hỏi với AI Gia Sư S88 2 câu hỏi.',
     type: 'ai_chat',
-    target: 3,
+    target: 2,
     reward: 600
   },
   {
     id: 'm_horse',
     title: 'Kỵ Sĩ Đường Đua',
-    description: 'Tham gia đặt cược Đua Ngựa Thần Tốc 2 lần.',
+    description: 'Tham gia đặt cược Đua Ngựa Thần Tốc 1 lần.',
     type: 'horse_rides',
-    target: 2,
-    reward: 900
+    target: 1,
+    reward: 600
+  },
+  {
+    id: 'm_card',
+    title: 'Đấu Thẻ Bài 1v1 Arena',
+    description: 'Tham gia 1 trận Đấu Thẻ Bài 1v1 hoặc Đấu với AI.',
+    type: 'card_battle',
+    target: 1,
+    reward: 1000
+  },
+  {
+    id: 'm_rps',
+    title: 'Oẳn Tù Tì Xanh Chín',
+    description: 'Thi đấu 1 trận Oẳn Tù Tì với sinh viên khác.',
+    type: 'rps_match',
+    target: 1,
+    reward: 600
+  },
+  {
+    id: 'm_bj',
+    title: 'Sòng Bài Xì Dách',
+    description: 'Thi đấu 1 ván Xì Dách Blackjack.',
+    type: 'bj_match',
+    target: 1,
+    reward: 700
+  },
+  {
+    id: 'm_tienlen',
+    title: 'Sát Thủ Tiến Lên',
+    description: 'Thi đấu 1 ván Tiến Lên Miền Nam.',
+    type: 'tienlen_match',
+    target: 1,
+    reward: 800
+  },
+  {
+    id: 'm_rank',
+    title: 'Vinh Danh Bảng Vàng',
+    description: 'Xem Bảng Xếp Hạng Top Đại Gia S88.',
+    type: 'view_leaderboard',
+    target: 1,
+    reward: 400
+  },
+  {
+    id: 'm_news',
+    title: 'Tin Tức Sinh Viên',
+    description: 'Đọc thông báo cập nhật tại S88 News Portal.',
+    type: 'news_read',
+    target: 1,
+    reward: 400
+  },
+  {
+    id: 'm_profile',
+    title: 'Cập Nhật Hồ Sơ',
+    description: 'Kiểm tra thông tin thẻ sinh viên và hồ sơ cá nhân.',
+    type: 'profile_update',
+    target: 1,
+    reward: 400
+  },
+  {
+    id: 'm_bounty',
+    title: 'Thợ Săn Tiền Thưởng',
+    description: 'Vào Đấu Trường Săn Thưởng kiểm tra phần thưởng.',
+    type: 'bounty_check',
+    target: 1,
+    reward: 500
+  },
+  {
+    id: 'm_quiz',
+    title: 'Thử Thách Trí Tuệ',
+    description: 'Trả lời 1 câu hỏi ôn tập từ hệ thống gia sư.',
+    type: 'quiz_answer',
+    target: 1,
+    reward: 600
+  },
+  {
+    id: 'm_gacha',
+    title: 'Sưu Tầm Khung Avatar',
+    description: 'Trải nghiệm mở rương gacha hoặc trang bị khung avatar.',
+    type: 'shop_avatar',
+    target: 1,
+    reward: 500
   }
 ];
 
@@ -147,16 +227,16 @@ export async function deleteMissionFromPool(missionId: string): Promise<void> {
   await set(missionRef, null);
 }
 
-// Re-randomize 10 daily missions for a specific user for today
+// Re-randomize 20 daily missions for a specific user for today
 export async function rerandomizeUserMissions(uid: string): Promise<UserMission[]> {
   const todayStr = getTodayString();
   const userMissionsRef = ref(db, `users/${uid}/daily_missions/${todayStr}/missions_list`);
   
   const pool = await getMissionsPool();
   
-  // Shuffle and pick 10
+  // Shuffle and pick 20
   const shuffled = [...pool].sort(() => 0.5 - Math.random());
-  const selected = shuffled.slice(0, 10);
+  const selected = shuffled.slice(0, 20);
 
   const userMissions: UserMission[] = selected.map((m, index) => ({
     ...m,
@@ -174,7 +254,7 @@ export function getTodayString(): string {
   return new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
 }
 
-// Ensure and retrieve user missions of today (10 random missions)
+// Ensure and retrieve user missions of today (20 random missions)
 export async function getOrInitializeUserMissions(uid: string): Promise<UserMission[]> {
   const todayStr = getTodayString();
   const userMissionsRef = ref(db, `users/${uid}/daily_missions/${todayStr}/missions_list`);
@@ -198,9 +278,9 @@ export async function getOrInitializeUserMissions(uid: string): Promise<UserMiss
     pool = DEFAULT_MISSIONS_POOL;
   }
 
-  // Shuffle and pick exactly 10 (or pool.length if pool is smaller)
+  // Shuffle and pick up to 20
   const shuffled = [...pool].sort(() => 0.5 - Math.random());
-  const selected = shuffled.slice(0, 10);
+  const selected = shuffled.slice(0, 20);
 
   // Map to UserMission structure
   const userMissions: UserMission[] = selected.map((m, index) => ({

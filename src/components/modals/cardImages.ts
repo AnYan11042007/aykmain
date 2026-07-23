@@ -866,33 +866,64 @@ export const getCardImageSvg = (cardId: string): string => {
       `)}`;
 
     default: {
-      const isAttack = cardId.includes('atk') || cardId.startsWith('c32') || cardId.startsWith('c34') || cardId.startsWith('c37') || cardId.startsWith('c38') || cardId.startsWith('c40') || cardId.startsWith('c43') || cardId.startsWith('c46') || cardId.startsWith('c48');
-      const isDefense = cardId.startsWith('c33') || cardId.startsWith('c36') || cardId.startsWith('c41') || cardId.startsWith('c44') || cardId.startsWith('c47');
-      const c1 = isAttack ? '#b91c1c' : isDefense ? '#1d4ed8' : '#7e22ce';
-      const c2 = isAttack ? '#ef4444' : isDefense ? '#3b82f6' : '#a855f7';
-      const bg = isAttack ? '#450a0a' : isDefense ? '#0f172a' : '#3b0764';
-      
+      const num = parseInt(cardId.replace('c', '')) || 1;
+      const hue = (num * 37) % 360;
+      const hue2 = (hue + 45) % 360;
+      const hue3 = (hue + 180) % 360;
+
+      const isAttack = num % 3 === 1;
+      const isDefense = num % 3 === 2;
+      const roleText = isAttack ? 'TẤN CÔNG' : isDefense ? 'PHÒNG THỦ' : 'HỖ TRỢ';
+
+      // Shape variation based on num
+      const shapeType = num % 5; // 0: Star, 1: Diamond Crest, 2: Shield, 3: Fire Flame, 4: Hexagon Core
+
       return `data:image/svg+xml;utf8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 533" width="100%" height="100%">
           <defs>
             <linearGradient id="bg_${cardId}" x1="0%" y1="0%" x2="100%" y2="100%">
-              <stop offset="0%" stop-color="${c1}"/>
-              <stop offset="50%" stop-color="${c2}"/>
-              <stop offset="100%" stop-color="${bg}"/>
+              <stop offset="0%" stop-color="hsl(${hue}, 85%, 25%)"/>
+              <stop offset="50%" stop-color="hsl(${hue2}, 90%, 45%)"/>
+              <stop offset="100%" stop-color="hsl(${hue3}, 95%, 10%)"/>
             </linearGradient>
             <radialGradient id="glow_${cardId}" cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stop-color="#fde047" stop-opacity="0.8"/>
-              <stop offset="70%" stop-color="${c2}" stop-opacity="0.3"/>
+              <stop offset="0%" stop-color="hsl(${hue2}, 100%, 75%)" stop-opacity="0.9"/>
+              <stop offset="60%" stop-color="hsl(${hue}, 80%, 40%)" stop-opacity="0.4"/>
               <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
             </radialGradient>
           </defs>
-          <rect width="400" height="533" rx="16" fill="url(#bg_${cardId})" stroke="${c2}" stroke-width="4"/>
-          <circle cx="200" cy="220" r="140" fill="url(#glow_${cardId})"/>
-          <polygon points="200,100 240,180 320,180 260,230 280,310 200,260 120,310 140,230 80,180 160,180" fill="#facc15" opacity="0.9" stroke="#ffffff" stroke-width="3"/>
-          <rect x="20" y="20" width="360" height="48" rx="10" fill="${c1}" stroke="#fde047" stroke-width="2"/>
-          <text x="200" y="52" font-family="sans-serif" font-weight="900" font-size="20" fill="#ffffff" text-anchor="middle">THẺ HUYỀN THOẠI ${cardId.toUpperCase()}</text>
-          <rect x="110" y="380" width="180" height="32" rx="8" fill="${c2}" stroke="#ffffff" stroke-width="2"/>
-          <text x="200" y="402" font-family="sans-serif" font-weight="800" font-size="15" fill="#ffffff" text-anchor="middle">${isAttack ? 'TẤN CÔNG' : isDefense ? 'PHÒNG THỦ' : 'ĐẶC BIỆT'}</text>
+          
+          <rect width="400" height="533" rx="16" fill="url(#bg_${cardId})" stroke="hsl(${hue2}, 100%, 70%)" stroke-width="5"/>
+          <circle cx="200" cy="220" r="145" fill="url(#glow_${cardId})"/>
+
+          ${
+            shapeType === 0
+              ? `<polygon points="200,80 235,165 320,165 250,215 275,295 200,245 125,295 150,215 80,165 165,165" fill="hsl(${hue2}, 100%, 65%)" stroke="#ffffff" stroke-width="3"/>`
+              : shapeType === 1
+              ? `<polygon points="200,80 310,220 200,340 90,220" fill="hsl(${hue2}, 90%, 60%)" stroke="#ffffff" stroke-width="4"/>`
+              : shapeType === 2
+              ? `<path d="M100,100 L300,100 L320,240 Q200,360 80,240 Z" fill="hsl(${hue2}, 85%, 50%)" stroke="#ffffff" stroke-width="4"/>`
+              : shapeType === 3
+              ? `<path d="M200,80 Q280,180 250,260 Q200,320 150,260 Q120,180 200,80 Z" fill="hsl(${hue2}, 100%, 60%)" stroke="#fde047" stroke-width="4"/>`
+              : `<polygon points="200,90 300,150 300,270 200,330 100,270 100,150" fill="hsl(${hue2}, 95%, 55%)" stroke="#38bdf8" stroke-width="4"/>`
+          }
+
+          <!-- Center Emblem Icon -->
+          <circle cx="200" cy="210" r="45" fill="#090d16" stroke="hsl(${hue2}, 100%, 80%)" stroke-width="3"/>
+          <text x="200" y="222" font-family="sans-serif" font-weight="900" font-size="32" fill="#ffffff" text-anchor="middle">#${num}</text>
+
+          <!-- Top Title Banner -->
+          <rect x="20" y="20" width="360" height="48" rx="10" fill="hsl(${hue}, 80%, 20%)" opacity="0.95" stroke="hsl(${hue2}, 100%, 75%)" stroke-width="2"/>
+          <text x="200" y="52" font-family="sans-serif" font-weight="900" font-size="20" fill="#ffffff" text-anchor="middle">THẺ CHIẾN ĐẤU #${num}</text>
+
+          <!-- Role Badge -->
+          <rect x="110" y="380" width="180" height="32" rx="8" fill="hsl(${hue2}, 90%, 40%)" stroke="#ffffff" stroke-width="2"/>
+          <text x="200" y="402" font-family="sans-serif" font-weight="800" font-size="15" fill="#ffffff" text-anchor="middle">LOẠI: ${roleText}</text>
+
+          <!-- Bottom Footer Stats Bar -->
+          <rect x="15" y="460" width="370" height="58" rx="12" fill="#090d16" stroke="hsl(${hue2}, 80%, 50%)" stroke-width="2"/>
+          <text x="35" y="496" font-family="sans-serif" font-weight="900" font-size="17" fill="#facc15">ATK: ${60 + (num % 80)}</text>
+          <text x="365" y="496" font-family="sans-serif" font-weight="900" font-size="17" fill="#38bdf8" text-anchor="end">DEF: ${30 + ((num * 3) % 70)}</text>
         </svg>
       `)}`;
     }

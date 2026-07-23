@@ -6,6 +6,7 @@
 import React, { useState } from 'react';
 import { User } from '../types';
 import { Sparkles, Send, BookOpen, GraduationCap, RefreshCw } from 'lucide-react';
+import { incrementMissionProgress } from '../utils/missions';
 
 interface AITutorSectionProps {
   uid: string;
@@ -44,6 +45,10 @@ export default function AITutorSection({ uid, user }: AITutorSectionProps) {
 
       const data = await response.json();
       setAnswer(data.text || 'Gia sư đang bận suy nghĩ, vui lòng hỏi lại sau!');
+      if (uid) {
+        incrementMissionProgress(uid, 'ai_chat', 1);
+        incrementMissionProgress(uid, 'quiz_answer', 1);
+      }
     } catch (err) {
       setAnswer('Gặp lỗi khi kết nối với máy chủ AI Gia Sư. Hãy thử lại!');
     } finally {

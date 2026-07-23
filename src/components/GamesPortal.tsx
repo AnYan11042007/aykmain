@@ -8,8 +8,6 @@ import { get, ref, onValue, push, set, update } from 'firebase/database';
 import { db } from '../firebase';
 import { Swords, Play, Trophy, Users, Shield, Plus, ArrowRight } from 'lucide-react';
 import { User, RpsRoom, BlackjackRoom, TienLenRoom } from '../types';
-import DailyMissions from './DailyMissions';
-import GlobalTopWinners from './GlobalTopWinners';
 
 interface GamesPortalProps {
   uid: string;
@@ -357,19 +355,8 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
         </div>
       </div>
 
-      {/* 2-COLUMN LOBBY GRID */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* LEFT COLUMN: DAILY MISSIONS */}
-        <div className="lg:col-span-4 lg:sticky lg:top-5 space-y-6">
-          <DailyMissions 
-            uid={uid}
-            user={user}
-            onShowResult={onShowResult}
-          />
-        </div>
-
-        {/* RIGHT COLUMN: GAMES, ROOMS & WINNERS */}
-        <div className="lg:col-span-8 space-y-8">
+      {/* FULL WIDTH GAME LOBBY */}
+      <div className="w-full space-y-8">
 
           {/* EXCLUSIVE FEATURED: WORLD CARD BATTLE 1V1 ARENA */}
           <div className="relative overflow-hidden rounded-2xl border-2 border-purple-500/60 bg-gradient-to-r from-purple-950/90 via-slate-900 to-indigo-950 p-6 shadow-[0_0_35px_rgba(168,85,247,0.35)] space-y-6">
@@ -475,12 +462,7 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
             </div>
           </div>
 
-        {/* E. GLOBAL TOP WINNERS LEADERBOARD */}
-        <div className="mt-8">
-          <GlobalTopWinners />
-        </div>
       </div>
     </div>
-  </div>
   );
 }
