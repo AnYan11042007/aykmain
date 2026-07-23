@@ -49,8 +49,28 @@ import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
 import { Tv, Maximize2, X, Flame, Sparkles, Menu } from 'lucide-react';
 
+const safeLocalStorageGet = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch (e) {
+    return null;
+  }
+};
+
+const safeLocalStorageSet = (key: string, value: string): void => {
+  try {
+    localStorage.setItem(key, value);
+  } catch (e) {}
+};
+
+const safeLocalStorageRemove = (key: string): void => {
+  try {
+    localStorage.removeItem(key);
+  } catch (e) {}
+};
+
 export default function App() {
-  const [uid, setUid] = useState<string>(() => localStorage.getItem('s88_uid') || '');
+  const [uid, setUid] = useState<string>(() => safeLocalStorageGet('s88_uid') || '');
   const [user, setUser] = useState<User | null>(null);
   const [isCheaterLocked, setIsCheaterLocked] = useState(false);
   const lastVerifiedPPRef = React.useRef<number | null>(null);
@@ -63,10 +83,10 @@ export default function App() {
 
   // Picture-in-Picture global live stream state
   const [isPipActive, setIsPipActive] = useState<boolean>(() => {
-    return localStorage.getItem('s88_live_pip_active') === 'true';
+    return safeLocalStorageGet('s88_live_pip_active') === 'true';
   });
   const [pipGame, setPipGame] = useState<string>(() => {
-    return localStorage.getItem('s88_live_pip_game') || 'taixiu';
+    return safeLocalStorageGet('s88_live_pip_game') || 'taixiu';
   });
 
   // Track dynamic time for synchronized PIP rendering
@@ -78,8 +98,8 @@ export default function App() {
   // Listen to PIP changes across components instantly via custom events
   useEffect(() => {
     const handlePipUpdate = () => {
-      setIsPipActive(localStorage.getItem('s88_live_pip_active') === 'true');
-      setPipGame(localStorage.getItem('s88_live_pip_game') || 'taixiu');
+      setIsPipActive(safeLocalStorageGet('s88_live_pip_active') === 'true');
+      setPipGame(safeLocalStorageGet('s88_live_pip_game') || 'taixiu');
     };
     window.addEventListener('s88_pip_update', handlePipUpdate);
 
@@ -103,8 +123,8 @@ export default function App() {
 
   // Function to close PIP
   const handleClosePip = () => {
-    localStorage.removeItem('s88_live_pip_active');
-    localStorage.removeItem('s88_live_pip_game');
+    safeLocalStorageRemove('s88_live_pip_active');
+    safeLocalStorageRemove('s88_live_pip_game');
     setIsPipActive(false);
     // Notify other windows/elements
     window.dispatchEvent(new Event('s88_pip_update'));
@@ -242,16 +262,16 @@ export default function App() {
   }, [uid, user]);
 
   const handleForceLogout = (msg?: string) => {
-    localStorage.removeItem('s88_uid');
-    localStorage.removeItem('s88_sessionToken');
+    safeLocalStorageRemove('s88_uid');
+    safeLocalStorageRemove('s88_sessionToken');
     setUid('');
     setUser(null);
-    if (msg) alert(msg);
+    if (msg) console.log(msg);
   };
 
   const handleLoginSuccess = (authenticatedUid: string, token: string) => {
-    localStorage.setItem('s88_uid', authenticatedUid);
-    localStorage.setItem('s88_sessionToken', token);
+    safeLocalStorageSet('s88_uid', authenticatedUid);
+    safeLocalStorageSet('s88_sessionToken', token);
     setUid(authenticatedUid);
     setCurrentTab('academic');
   };
