@@ -45,6 +45,7 @@ export default function Sidebar({
   const [musicTitle, setMusicTitle] = useState('SoundHelix Classic EDM');
   const [volume, setVolume] = useState(0.5);
   const [showMusicModal, setShowMusicModal] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [customInputUrl, setCustomInputUrl] = useState('');
 
   // Audio object initialized lazily
@@ -478,12 +479,32 @@ export default function Sidebar({
             <span className="truncate">{musicTitle}</span>
           </div>
 
-          <button
-            onClick={onLogout}
-            className="w-full py-2.5 px-3 bg-red-950/10 border border-red-900/30 text-red-400 hover:bg-[#ff003c] hover:text-white hover:border-[#ff003c] rounded-lg flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest uppercase cursor-pointer transition-all hover:shadow-[0_0_10px_rgba(255,0,60,0.3)]"
-          >
-            <LogOut className="w-3.5 h-3.5" /> [ ĐĂNG XUẤT ]
-          </button>
+          {!showLogoutConfirm ? (
+            <button
+              onClick={() => setShowLogoutConfirm(true)}
+              className="w-full py-2.5 px-3 bg-red-950/10 border border-red-900/30 text-red-400 hover:bg-[#ff003c] hover:text-white hover:border-[#ff003c] rounded-lg flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest uppercase cursor-pointer transition-all hover:shadow-[0_0_10px_rgba(255,0,60,0.3)]"
+            >
+              <LogOut className="w-3.5 h-3.5" /> [ ĐĂNG XUẤT ]
+            </button>
+          ) : (
+            <div className="space-y-1.5 p-2 bg-red-950/40 border border-red-500/50 rounded-lg text-center animate-fadeIn">
+              <p className="text-[10px] text-red-300 font-bold uppercase">Xác nhận thoát tài khoản?</p>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={onLogout}
+                  className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-black text-[10px] rounded uppercase cursor-pointer transition shadow"
+                >
+                  XÁC NHẬN
+                </button>
+                <button
+                  onClick={() => setShowLogoutConfirm(false)}
+                  className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] rounded uppercase cursor-pointer transition"
+                >
+                  HỦY
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* MUSIC SELECTOR & CUSTOM MP3 URL MODAL */}

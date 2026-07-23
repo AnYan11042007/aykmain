@@ -2,6 +2,70 @@
 
 export const getCardImageSvg = (cardId: string): string => {
   switch (cardId) {
+    case 'c_ss1': // SS Tối Thượng Thần Ma (ULTIMATE SS OVERPOWERED CARD)
+      return `data:image/svg+xml;utf8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 533" width="100%" height="100%">
+          <defs>
+            <linearGradient id="bg_css1" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#4c0519"/>
+              <stop offset="25%" stop-color="#881337"/>
+              <stop offset="50%" stop-color="#581c87"/>
+              <stop offset="75%" stop-color="#1e1b4b"/>
+              <stop offset="100%" stop-color="#020617"/>
+            </linearGradient>
+            <radialGradient id="ss_gold_glow" cx="50%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#fde047" stop-opacity="1"/>
+              <stop offset="30%" stop-color="#f43f5e" stop-opacity="0.8"/>
+              <stop offset="70%" stop-color="#a855f7" stop-opacity="0.5"/>
+              <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="ss_sword_grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#ffffff"/>
+              <stop offset="30%" stop-color="#fef08a"/>
+              <stop offset="70%" stop-color="#f43f5e"/>
+              <stop offset="100%" stop-color="#38bdf8"/>
+            </linearGradient>
+          </defs>
+
+          <!-- Background & Cosmic Divine Aura -->
+          <rect width="400" height="533" fill="url(#bg_css1)"/>
+          <circle cx="200" cy="210" r="190" fill="url(#ss_gold_glow)"/>
+
+          <!-- Divine Dragon Wings / Flame Rays -->
+          <path d="M200,210 Q80,50 10,160 Q70,230 200,210 Z" fill="#f43f5e" opacity="0.85"/>
+          <path d="M200,210 Q320,50 390,160 Q330,230 200,210 Z" fill="#f43f5e" opacity="0.85"/>
+          <path d="M200,210 Q100,100 30,230 Q100,270 200,210 Z" fill="#fde047" opacity="0.9"/>
+          <path d="M200,210 Q300,100 370,230 Q300,270 200,210 Z" fill="#fde047" opacity="0.9"/>
+
+          <!-- Golden Crown Halo & Orbs -->
+          <circle cx="200" cy="180" r="110" fill="none" stroke="#fde047" stroke-width="6" stroke-dasharray="12 8"/>
+          <circle cx="200" cy="180" r="125" fill="none" stroke="#a855f7" stroke-width="4"/>
+          <polygon points="200,40 215,80 250,80 220,100 235,140 200,115 165,140 180,100 150,80 185,80" fill="#facc15" stroke="#ffffff" stroke-width="3"/>
+
+          <!-- Ultimate Greatsword of Destruction -->
+          <polygon points="200,60 215,280 200,320 185,280" fill="url(#ss_sword_grad)" stroke="#ffffff" stroke-width="3"/>
+          <line x1="200" y1="60" x2="200" y2="320" stroke="#ffffff" stroke-width="4"/>
+          <!-- Sword Crossguard -->
+          <path d="M140,280 Q200,260 260,280 Q200,300 140,280 Z" fill="#facc15" stroke="#e11d48" stroke-width="3"/>
+          <circle cx="200" cy="280" r="14" fill="#e11d48" stroke="#ffffff" stroke-width="3"/>
+
+          <!-- Floating Energy Runes -->
+          <circle cx="90" cy="120" r="16" fill="#f43f5e" opacity="0.9"/>
+          <circle cx="310" cy="120" r="16" fill="#06b6d4" opacity="0.9"/>
+          <circle cx="70" cy="280" r="20" fill="#a855f7" opacity="0.9"/>
+          <circle cx="330" cy="280" r="20" fill="#facc15" opacity="0.9"/>
+
+          <!-- SS Emblem Banner -->
+          <rect x="70" y="360" width="260" height="50" rx="12" fill="#090d16" stroke="#facc15" stroke-width="3"/>
+          <text x="200" y="394" font-family="sans-serif" font-weight="900" font-size="24" fill="#fde047" text-anchor="middle" letter-spacing="2">SS - TỐI THƯỢNG</text>
+
+          <!-- Bottom Footer Stats Bar -->
+          <rect x="15" y="455" width="370" height="65" rx="14" fill="#020617" stroke="#f43f5e" stroke-width="3"/>
+          <text x="35" y="495" font-family="sans-serif" font-weight="900" font-size="20" fill="#f43f5e">ATK: 250</text>
+          <text x="200" y="495" font-family="sans-serif" font-weight="900" font-size="18" fill="#fde047" text-anchor="middle">CỰC BÁ</text>
+          <text x="365" y="495" font-family="sans-serif" font-weight="900" font-size="20" fill="#38bdf8" text-anchor="end">DEF: 250</text>
+        </svg>
+      `)}`;
     case 'c1': // Chiến Binh Gào Thét (ATTACK)
       return `data:image/svg+xml;utf8,${encodeURIComponent(`
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 533" width="100%" height="100%">

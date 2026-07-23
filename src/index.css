@@ -308,13 +308,53 @@ body {
   100% { border-color: #00f0ff; box-shadow: 0 0 25px #00ff80; }
 }
 
-.dragon-ring {
-  border: 3px double #ffd700;
-  box-shadow: 0 0 25px #ff003c, inset 0 0 15px #ffd700;
-  animation: dragonPulse 2s infinite alternate;
+/* SS Rarity Card Custom Gold Shimmer & Pulsing Shadow Animations for WorldCardBattleModal */
+@keyframes shimmerGold {
+  0% {
+    transform: translateX(-150%) translateY(-150%) rotate(45deg);
+  }
+  100% {
+    transform: translateX(150%) translateY(150%) rotate(45deg);
+  }
 }
-@keyframes dragonPulse {
-  0% { border-color: #ffd700; filter: drop-shadow(0 0 5px #ff003c); }
-  100% { border-color: #ff003c; filter: drop-shadow(0 0 15px #ffd700); }
+
+.animate-shimmer-gold {
+  animation: shimmerGold 1.8s infinite linear;
 }
+
+@keyframes ssShadowGlow {
+  0%, 100% {
+    box-shadow: 0 0 18px rgba(251, 191, 36, 0.9), 0 0 35px rgba(244, 63, 94, 0.85), inset 0 0 15px rgba(251, 191, 36, 0.6);
+    border-color: #fbbf24;
+  }
+  50% {
+    box-shadow: 0 0 35px rgba(251, 191, 36, 1), 0 0 55px rgba(217, 70, 239, 1), 0 0 75px rgba(6, 182, 212, 1), inset 0 0 25px rgba(255, 255, 255, 0.9);
+    border-color: #f43f5e;
+  }
+}
+
+.ss-card-glow {
+  animation: ssShadowGlow 1.5s infinite ease-in-out !important;
+}
+
+/* SS Card Diagonal Golden Beam Overlay Sweep */
+.ss-shimmer-overlay {
+  position: absolute;
+  top: -100%;
+  left: -100%;
+  width: 300%;
+  height: 300%;
+  pointer-events: none;
+  z-index: 25;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 215, 0, 0.2) 35%,
+    rgba(255, 255, 255, 0.9) 50%,
+    rgba(255, 215, 0, 0.2) 65%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: shimmerGold 2s infinite cubic-bezier(0.4, 0, 0.2, 1);
+}
+
 

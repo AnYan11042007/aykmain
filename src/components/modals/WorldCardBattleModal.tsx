@@ -17,7 +17,7 @@ export interface CardItem {
   name: string;
   role: 'ATTACK' | 'DEFENSE' | 'SPECIAL' | 'SUPPORT';
   roleName: string;
-  rarity: 'C' | 'B' | 'A' | 'S';
+  rarity: 'C' | 'B' | 'A' | 'S' | 'SS';
   rarityName: string;
   atk: number;
   def: number;
@@ -30,8 +30,23 @@ export interface CardItem {
   used?: boolean;
 }
 
-// 100 UNIQUE CARDS FULL POOL
+// FULL CARD POOL WITH ULTIMATE SS CARD
 export const FULL_CARD_POOL: CardItem[] = [
+  {
+    id: 'c_ss1',
+    name: 'S88 VƯƠNG GIẢ TỐI THƯỢNG',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Cực Bá',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 250,
+    def: 250,
+    skillName: 'VÔ CỰC DIỆT THẾ & TÁI TẠO',
+    skillDesc: 'CỰC BÁ SS! Hồi +200 HP, nhận +200 Giáp, hồi +3 Năng Lượng & giáng 250 Sát Thương Bộc Phá Xuyên Giáp đối thủ!',
+    energyCost: 2,
+    color: 'from-amber-400 via-rose-500 via-fuchsia-600 to-cyan-500',
+    avatarUrl: 'https://i.pinimg.com/736x/8f/c1/9d/8fc19d4b005612c6a0c20165b6f3796d.jpg'
+  },
   {
     id: 'c1',
     name: 'Chiến Binh Gào Thét',
@@ -1549,7 +1564,7 @@ export const drawRandomCard = (): CardItem => {
 // STAT POWER BALANCE CALCULATOR
 export const calculateCardPower = (card: CardItem): number => {
   const base = card.atk + card.def + (card.energyCost * 15);
-  const rarityBonus = card.rarity === 'S' ? 35 : card.rarity === 'A' ? 22 : card.rarity === 'B' ? 12 : 5;
+  const rarityBonus = card.rarity === 'SS' ? 80 : card.rarity === 'S' ? 35 : card.rarity === 'A' ? 22 : card.rarity === 'B' ? 12 : 5;
   return base + rarityBonus;
 };
 
@@ -1567,7 +1582,7 @@ export const generateRandomHand = (count = 5): CardItem[] => {
     const attackCards = CARD_DECK.filter((c) => c.role === 'ATTACK');
     const defenseCards = CARD_DECK.filter((c) => c.role === 'DEFENSE');
     const supportCards = CARD_DECK.filter((c) => c.role === 'SUPPORT' || c.role === 'SPECIAL');
-    const highRarityCards = CARD_DECK.filter((c) => c.rarity === 'S' || c.rarity === 'A');
+    const highRarityCards = CARD_DECK.filter((c) => c.rarity === 'SS' || c.rarity === 'S' || c.rarity === 'A');
 
     const pickedAttack = attackCards[Math.floor(Math.random() * attackCards.length)];
     const pickedDefense = defenseCards[Math.floor(Math.random() * defenseCards.length)];
@@ -1669,7 +1684,7 @@ export const getRoleAdvantage = (attackerRoleRaw: string, defenderRoleRaw: strin
   };
 };
 
-// DYNAMIC SKILL ENGINE FOR ALL 100 CARDS WITH ACCURATE ENERGY RECOVERY & EFFECTS
+// DYNAMIC SKILL ENGINE FOR ALL CARDS INCLUDING ULTIMATE SS CARD
 export const applyCardSkillEffect = (card: CardItem, me: any, opp: any, roleAdv: any) => {
   const desc = card.skillDesc || '';
   let logMsg = '';
@@ -1678,6 +1693,32 @@ export const applyCardSkillEffect = (card: CardItem, me: any, opp: any, roleAdv:
   let selfHeal = 0;
   let selfShield = me?.shield || 0;
   let energyRestore = 0;
+
+  // EXTREME OVERPOWERED SS CARD LOGIC
+  if (card.rarity === 'SS' || card.id === 'c_ss1') {
+    energyRestore = 3;
+    selfHeal = 200;
+    selfShield = (me?.shield || 0) + 200;
+    // Massive piercing damage ignoring shield!
+    hpDamage = 250;
+    logMsg = `👑 [CỰC BÁ SS - ${me.name}] BỘC PHÁ THẦN THOẠI [${card.skillName}]! Hồi +200 HP, +200 Giáp, +3 Năng Lượng & giáng 250 Sát thương Xuyên Giáp!`;
+    if (roleAdv?.log) logMsg += ` ${roleAdv.log}`;
+
+    const finalOppHp = Math.max(0, (opp?.hp || 300) - hpDamage);
+    const finalSelfHp = Math.min(500, (me?.hp || 300) + selfHeal);
+    const currentEnergyAfterCost = Math.max(0, (me?.energy || 0) - card.energyCost);
+    const finalEnergy = Math.min(5, currentEnergyAfterCost + energyRestore);
+
+    return {
+      logMsg,
+      oppHp: finalOppHp,
+      oppShield: newShield,
+      selfHp: finalSelfHp,
+      selfShield: selfShield,
+      selfEnergy: finalEnergy,
+      isOpponentDead: finalOppHp <= 0
+    };
+  }
 
   // 1. Check Energy Restore (+1 or +2 NL)
   if (desc.includes('2 Năng') || desc.includes('+2 NL') || desc.includes('+2 Năng')) {
@@ -2651,12 +2692,14 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     if (compendiumFilter === 'ALL') return true;
     if (compendiumFilter === 'SUPPORT') return c.role === 'SUPPORT' || c.role === 'SPECIAL';
     if (compendiumFilter === 'ATTACK' || compendiumFilter === 'DEFENSE') return c.role === compendiumFilter;
-    if (['S', 'A', 'B', 'C'].includes(compendiumFilter)) return c.rarity === compendiumFilter;
+    if (['SS', 'S', 'A', 'B', 'C'].includes(compendiumFilter)) return c.rarity === compendiumFilter;
     return true;
   });
 
-  const getRarityBadgeStyle = (rarity: 'C' | 'B' | 'A' | 'S' | string) => {
+  const getRarityBadgeStyle = (rarity: 'C' | 'B' | 'A' | 'S' | 'SS' | string) => {
     switch (rarity) {
+      case 'SS':
+        return 'bg-gradient-to-r from-amber-300 via-rose-500 via-fuchsia-500 to-cyan-300 text-black border-amber-200 font-black shadow-[0_0_15px_rgba(251,191,36,0.9)] animate-pulse ring-1 ring-amber-300';
       case 'S':
         return 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 text-black border-yellow-200 font-black shadow-[0_0_8px_rgba(250,204,21,0.8)]';
       case 'A':
@@ -2688,6 +2731,17 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           }
           .rotate-y-180 {
             transform: rotateY(180deg);
+          }
+
+          @keyframes lienQuanAuraSS {
+            0% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.9), 0 0 35px rgba(251, 191, 36, 0.9), inset 0 0 15px rgba(244, 63, 94, 0.6); border-color: #f43f5e; }
+            33% { box-shadow: 0 0 25px rgba(251, 191, 36, 1), 0 0 45px rgba(217, 70, 239, 1), inset 0 0 25px rgba(251, 191, 36, 0.8); border-color: #fbbf24; }
+            66% { box-shadow: 0 0 25px rgba(168, 85, 247, 1), 0 0 45px rgba(6, 182, 212, 1), inset 0 0 25px rgba(168, 85, 247, 0.8); border-color: #a855f7; }
+            100% { box-shadow: 0 0 15px rgba(244, 63, 94, 0.9), 0 0 35px rgba(251, 191, 36, 0.9), inset 0 0 15px rgba(244, 63, 94, 0.6); border-color: #f43f5e; }
+          }
+
+          .animate-aura-ss {
+            animation: lienQuanAuraSS 1.8s infinite ease-in-out;
           }
 
           @keyframes lienQuanAuraGold {
@@ -2987,9 +3041,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                     
                     {/* Player 1 Card (Your / P1 Active Card) */}
                     <div className={`p-2 rounded-xl border bg-black/70 relative overflow-hidden flex flex-col items-center justify-between space-y-1 transition-all ${
-                      roomData?.turn === 'p1' && isAttacking ? 'animate-attack-slash ring-2 ring-cyan-400' : 'border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                      p1Card?.rarity === 'SS'
+                        ? 'ss-card-glow text-white ring-2 ring-amber-300'
+                        : roomData?.turn === 'p1' && isAttacking
+                        ? 'animate-attack-slash ring-2 ring-cyan-400'
+                        : 'border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
                     }`}>
-                      <div className="flex items-center justify-between w-full">
+                      {p1Card?.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
+
+                      <div className="flex items-center justify-between w-full relative z-10">
                         <span className="text-[8px] font-mono font-bold bg-cyan-950 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.2 rounded uppercase truncate">
                           {p1Card?.role === 'ATTACK' ? '🔴 TẤN CÔNG' : p1Card?.role === 'DEFENSE' ? '🔵 PHÒNG THỦ' : '🟢 CHỨC NĂNG'}
                         </span>
@@ -2998,15 +3058,18 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                         </span>
                       </div>
 
-                      <div className="aspect-[3/4] h-32 sm:h-36 lg:h-40 w-full rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/30 flex items-center justify-center relative">
+                      <div className="aspect-[3/4] h-32 sm:h-36 lg:h-40 w-full rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/30 flex items-center justify-center relative z-10">
                         <img
                           src={p1Card?.avatarUrl}
                           alt={p1Card?.name}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = getCardImageSvg(p1Card?.id || 'c1');
+                          }}
                           className="w-full h-full object-contain"
                         />
                       </div>
 
-                      <div className="w-full text-center">
+                      <div className="w-full text-center relative z-10">
                         <strong className="block text-[10px] uppercase font-bold text-white truncate">{p1Card?.name}</strong>
                         <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p1Card?.atk} | DEF: {p1Card?.def}</span>
                       </div>
@@ -3014,9 +3077,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
                     {/* Player 2 Card (Opponent / P2 Active Card) */}
                     <div className={`p-2 rounded-xl border bg-black/70 relative overflow-hidden flex flex-col items-center justify-between space-y-1 transition-all ${
-                      roomData?.turn === 'p2' && isAttacking ? 'animate-attack-slash ring-2 ring-rose-400' : 'border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.2)]'
+                      p2Card?.rarity === 'SS'
+                        ? 'ss-card-glow text-white ring-2 ring-amber-300'
+                        : roomData?.turn === 'p2' && isAttacking
+                        ? 'animate-attack-slash ring-2 ring-rose-400'
+                        : 'border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.2)]'
                     }`}>
-                      <div className="flex items-center justify-between w-full">
+                      {p2Card?.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
+
+                      <div className="flex items-center justify-between w-full relative z-10">
                         <span className="text-[8px] font-mono font-bold bg-rose-950 border border-rose-500/40 text-rose-300 px-1.5 py-0.2 rounded uppercase truncate">
                           {p2Card?.role === 'ATTACK' ? '🔴 TẤN CÔNG' : p2Card?.role === 'DEFENSE' ? '🔵 PHÒNG THỦ' : '🟢 CHỨC NĂNG'}
                         </span>
@@ -3025,15 +3094,18 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                         </span>
                       </div>
 
-                      <div className="aspect-[3/4] h-32 sm:h-36 lg:h-40 w-full rounded-lg overflow-hidden bg-slate-950 border border-rose-500/30 flex items-center justify-center relative">
+                      <div className="aspect-[3/4] h-32 sm:h-36 lg:h-40 w-full rounded-lg overflow-hidden bg-slate-950 border border-rose-500/30 flex items-center justify-center relative z-10">
                         <img
                           src={p2Card?.avatarUrl}
                           alt={p2Card?.name}
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = getCardImageSvg(p2Card?.id || 'c1');
+                          }}
                           className="w-full h-full object-contain"
                         />
                       </div>
 
-                      <div className="w-full text-center">
+                      <div className="w-full text-center relative z-10">
                         <strong className="block text-[10px] uppercase font-bold text-white truncate">{p2Card?.name}</strong>
                         <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p2Card?.atk} | DEF: {p2Card?.def}</span>
                       </div>
@@ -3250,6 +3322,8 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                                   ? 'opacity-30 grayscale border-slate-800 bg-slate-950 pointer-events-none'
                                   : isSelected
                                   ? 'bg-gradient-to-b from-purple-900/60 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-[1.03]'
+                                  : card.rarity === 'SS'
+                                  ? 'bg-gradient-to-b from-rose-950/80 via-purple-950/80 to-black ss-card-glow text-white ring-1 ring-amber-300'
                                   : card.rarity === 'S'
                                   ? 'bg-gradient-to-b from-amber-950/60 to-black animate-lq-gold text-white'
                                   : card.rarity === 'A'
@@ -3257,19 +3331,28 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                                   : 'bg-black/80 border-white/10 text-slate-400 hover:border-cyan-400/50'
                               }`}
                             >
+                              {/* SS Card Golden Diagonal Shimmer Sweep */}
+                              {card.rarity === 'SS' && !isUsed && (
+                                <div className="ss-shimmer-overlay" />
+                              )}
+
                               {/* Lien Quan Mobile Shiny Shimmer Effect Overlay */}
                               {(card.rarity === 'S' || card.rarity === 'A') && !isUsed && (
                                 <div className="absolute inset-0 overflow-hidden pointer-events-none z-10 rounded-xl">
                                   <div className={`w-1/2 h-full bg-gradient-to-r ${
-                                    card.rarity === 'S' ? 'from-transparent via-amber-300/50 to-transparent' : 'from-transparent via-fuchsia-300/50 to-transparent'
-                                  } animate-[lienQuanShimmer_2s_infinite]`} />
+                                    card.rarity === 'SS' ? 'from-transparent via-amber-300/70 to-transparent' : card.rarity === 'S' ? 'from-transparent via-amber-300/50 to-transparent' : 'from-transparent via-fuchsia-300/50 to-transparent'
+                                  } animate-[lienQuanShimmer_1.8s_infinite]`} />
                                 </div>
                               )}
 
-                              {/* Luxury LIMITED Animated Badge for S & A Cards */}
-                              {(card.rarity === 'S' || card.rarity === 'A') && (
-                                <div className="absolute top-0.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.2 rounded-full bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 border border-yellow-200 text-black font-black text-[6px] tracking-tighter uppercase shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse flex items-center gap-0.5">
-                                  <span>✨ LIMITED</span>
+                              {/* Luxury LIMITED Animated Badge for SS, S & A Cards */}
+                              {(card.rarity === 'SS' || card.rarity === 'S' || card.rarity === 'A') && (
+                                <div className={`absolute top-0.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.2 rounded-full border text-black font-black text-[6px] tracking-tighter uppercase flex items-center gap-0.5 ${
+                                  card.rarity === 'SS'
+                                    ? 'bg-gradient-to-r from-amber-300 via-rose-400 to-cyan-300 border-amber-200 shadow-[0_0_10px_rgba(251,191,36,1)] animate-bounce'
+                                    : 'bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 border-yellow-200 shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse'
+                                }`}>
+                                  <span>{card.rarity === 'SS' ? '👑 SS CỰC BÁ' : '✨ LIMITED'}</span>
                                 </div>
                               )}
 
@@ -3296,6 +3379,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                                 <img
                                   src={card.avatarUrl}
                                   alt={card.name}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = getCardImageSvg(card.id);
+                                  }}
                                   className={`w-full h-full object-contain transition-transform duration-500 ${
                                     isSelected ? 'scale-105' : ''
                                   }`}
@@ -3476,7 +3562,8 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             {/* Filter Tabs by Role and Rarity */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
               {[
-                { key: 'ALL', label: 'TẤT CẢ (50)' },
+                { key: 'ALL', label: `TẤT CẢ (${FULL_CARD_POOL.length})` },
+                { key: 'SS', label: '👑 SS - TỐI THƯỢNG CỰC BÁ' },
                 { key: 'S', label: '💎 S - HUYỀN THOẠI' },
                 { key: 'A', label: '💜 A - SỬ THI' },
                 { key: 'B', label: '🔷 B - HIẾM' },
@@ -3505,15 +3592,28 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                 <div
                   key={card.id}
                   onClick={() => setInspectedCard(card)}
-                  className="p-2.5 bg-slate-950 border border-white/10 hover:border-cyan-400/60 rounded-xl space-y-2 transition-all flex flex-col justify-between group hover:shadow-[0_0_15px_rgba(0,240,255,0.2)] relative cursor-pointer"
+                  className={`p-2.5 rounded-xl space-y-2 transition-all flex flex-col justify-between group relative cursor-pointer overflow-hidden ${
+                    card.rarity === 'SS'
+                      ? 'bg-slate-950 ss-card-glow text-white ring-1 ring-amber-300'
+                      : 'bg-slate-950 border border-white/10 hover:border-cyan-400/60 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                  }`}
                 >
+                  {card.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
+
                   {/* Rarity Badge */}
                   <span className={`absolute top-3 right-3 z-10 text-[8px] px-1.5 py-0.5 rounded uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
                     {card.rarityName || card.rarity}
                   </span>
 
                   <div className="aspect-[3/4] h-32 w-full rounded-lg overflow-hidden bg-black/60 border border-white/5 flex items-center justify-center relative">
-                    <img src={card.avatarUrl} alt={card.name} className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300" />
+                    <img
+                      src={card.avatarUrl}
+                      alt={card.name}
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = getCardImageSvg(card.id);
+                      }}
+                      className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
+                    />
                     <span className="absolute bottom-1 left-1 text-[8px] font-mono font-bold bg-amber-500 text-black px-1.5 py-0.5 rounded shadow">
                       {card.energyCost} NL
                     </span>
@@ -3574,8 +3674,21 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             </button>
 
             {/* Card Large Portrait */}
-            <div className="aspect-[3/4] h-48 sm:h-56 w-full mx-auto rounded-xl overflow-hidden bg-slate-950 border border-cyan-500/40 relative shadow-inner flex items-center justify-center">
-              <img src={inspectedCard.avatarUrl} alt={inspectedCard.name} className="w-full h-full object-contain" />
+            <div className={`aspect-[3/4] h-48 sm:h-56 w-full mx-auto rounded-xl overflow-hidden bg-slate-950 relative shadow-inner flex items-center justify-center ${
+              inspectedCard.rarity === 'SS'
+                ? 'ss-card-glow ring-2 ring-amber-300 border-amber-200'
+                : 'border border-cyan-500/40'
+            }`}>
+              {inspectedCard.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
+
+              <img
+                src={inspectedCard.avatarUrl}
+                alt={inspectedCard.name}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = getCardImageSvg(inspectedCard.id);
+                }}
+                className="w-full h-full object-contain"
+              />
               <span className={`absolute top-2 right-2 text-xs font-mono font-bold px-2 py-0.5 rounded uppercase border ${getRarityBadgeStyle(inspectedCard.rarity || 'C')}`}>
                 {inspectedCard.rarityName || inspectedCard.rarity}
               </span>

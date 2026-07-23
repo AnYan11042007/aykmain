@@ -92,8 +92,10 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
             timestamp: timestamp
           });
 
-          localStorage.setItem('s88_uid', u);
-          localStorage.setItem('s88_sessionToken', randToken);
+          try { localStorage.setItem('s88_uid', u); } catch (e) {}
+          try { sessionStorage.setItem('s88_uid', u); } catch (e) {}
+          try { localStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
+          try { sessionStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
 
           onLoginSuccess(u, randToken);
         } else {
@@ -188,8 +190,10 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       });
 
       // Auto login newly registered student directly!
-      localStorage.setItem('s88_uid', numericId);
-      localStorage.setItem('s88_sessionToken', randToken);
+      try { localStorage.setItem('s88_uid', numericId); } catch (e) {}
+      try { sessionStorage.setItem('s88_uid', numericId); } catch (e) {}
+      try { localStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
+      try { sessionStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
 
       onLoginSuccess(numericId, randToken);
     } catch (err) {
