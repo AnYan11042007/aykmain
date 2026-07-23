@@ -1,0 +1,6 @@
+{
+  "name": "AYK MAIN 8686",
+  "description": "Secure, high-performance, and gamified student portal AYK MAIN 8686 with real-time activities and news.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
