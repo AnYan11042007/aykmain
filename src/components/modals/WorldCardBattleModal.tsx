@@ -4,6 +4,7 @@ import confetti from 'canvas-confetti';
 import { db } from '../../firebase';
 import { ref, onValue, set, update, push, remove, get } from 'firebase/database';
 import { getCardImageSvg, getCardBackSvg } from './cardImages';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface WorldCardBattleModalProps {
   uid: string;
@@ -34,6 +35,36 @@ export interface CardItem {
 export const FULL_CARD_POOL: CardItem[] = [
   {
     id: 'c_ss1',
+    name: 'S88 THẦN RỒNG TỐI THƯỢNG',
+    role: 'SUPPORT',
+    roleName: 'Thần Thoại Cực Bá',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 260,
+    def: 260,
+    skillName: 'THẦN RỒNG DIỆT THẾ & TÁI TẠO',
+    skillDesc: 'CỰC BÁ SS! Hồi +200 HP, nhận +200 Giáp, hồi +3 Năng Lượng & giáng 260 Sát Thương Bộc Phá Xuyên Giáp đối thủ!',
+    energyCost: 2,
+    color: 'from-amber-400 via-rose-500 via-fuchsia-600 to-cyan-500',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSBTqMdNY-6PzCO9PpB4Sgx-mu5GaxCwMKK6Dm7Xs9WfQ&s=10'
+  },
+  {
+    id: 'c_ss2',
+    name: 'S88 CỬU THIÊN BÁ CHỦ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Cực Bá',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 280,
+    def: 240,
+    skillName: 'CỬU THIÊN GIÁNG THẾ & VÔ ĐỊCH',
+    skillDesc: 'CỰC BÁ SS! Hồi +200 HP, nhận +200 Giáp, hồi +3 Năng Lượng & giáng 280 Sát Thương Xuyên Giáp!',
+    energyCost: 1,
+    color: 'from-amber-300 via-yellow-400 via-rose-500 to-cyan-400',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQYX4qYBWybNjFwM_0Y-GjhujHU_gmw5z4RztzuZE3d3Q&s=10'
+  },
+  {
+    id: 'c_ss3',
     name: 'S88 VƯƠNG GIẢ TỐI THƯỢNG',
     role: 'SUPPORT',
     roleName: 'Chức Năng Cực Bá',
@@ -48,7 +79,7 @@ export const FULL_CARD_POOL: CardItem[] = [
     avatarUrl: 'https://i.pinimg.com/736x/8f/c1/9d/8fc19d4b005612c6a0c20165b6f3796d.jpg'
   },
   {
-    id: 'c_ss2',
+    id: 'c_ss4',
     name: 'S88 THẦN MA BÁ CHỦ',
     role: 'ATTACK',
     roleName: 'Tấn Công Cực Bá',
@@ -63,79 +94,94 @@ export const FULL_CARD_POOL: CardItem[] = [
     avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ80tdgZOlw_GNH-QOddy5LJk7sAc9OsOOcRMaUnNn8KQ&s=10'
   },
   {
-    id: 'c_new1',
-    name: 'Rồng Thần Cuồng Nổ',
+    id: 'c_s1',
+    name: 'HỎA RỒNG HUYỀN THOẠI',
     role: 'ATTACK',
     roleName: 'Tấn Công Bá Đạo',
     rarity: 'S',
     rarityName: 'Huyền Thoại (S)',
     atk: 210,
-    def: 120,
-    skillName: 'Pháo Hồng Liên Vô Tận',
-    skillDesc: 'Phẩm Cấp S! Xuyên 60% giáp & bộc phát +150 sát thương chấn động!',
+    def: 150,
+    skillName: 'HỒNG LIÊN NỔ TUNG',
+    skillDesc: 'Phẩm Cấp S! Thiêu đốt đối thủ 180 sát thương & bộc phá giáp!',
     energyCost: 2,
     color: 'from-amber-500 via-rose-600 to-red-950',
-    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTURoWwgIVorOhqsOgjOGlrLMMX35rUhTsDmNx6WUWqCg&s=10'
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSnWg9fl7FMqHc1uxJ4tp2B014PtgRWBS1wNhhnySE4cA&s=10'
   },
   {
-    id: 'c_new2',
-    name: 'Nữ Thần Ánh Sáng',
-    role: 'SUPPORT',
-    roleName: 'Chức Năng Cao Cấp',
+    id: 'c_s2',
+    name: 'THẦN THÚ BẢO VỆ',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Cực Cao',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 180,
+    def: 210,
+    skillName: 'THÁNH QUANG HOÀNG GIA',
+    skillDesc: 'Phẩm Cấp S! Tạo +150 Giáp thánh bảo vệ & hồi 100 HP!',
+    energyCost: 2,
+    color: 'from-yellow-400 via-amber-600 to-purple-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRVkq_5-tH5HMD06C6E7RP9mZz4Nut98p4EW9MgXU8eDg&s=10'
+  },
+  {
+    id: 'c_a1',
+    name: 'CHIẾN THẦN KIM CƯƠNG',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Cực Nhanh',
     rarity: 'A',
     rarityName: 'Sử Thi (A)',
-    atk: 110,
-    def: 160,
-    skillName: 'Thánh Quang Phục Sinh',
-    skillDesc: 'Phẩm Cấp A! Hồi +100 HP, nhận +100 Giáp Bảo Hộ & hồi +1 Năng Lượng!',
+    atk: 160,
+    def: 120,
+    skillName: 'KIM CƯƠNG TRUY HỒN',
+    skillDesc: 'Phẩm Cấp A! Tung 3 cú chém liên hoàn gây 160 sát thương!',
     energyCost: 2,
     color: 'from-cyan-400 via-sky-500 to-indigo-950',
-    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6RaCPmYXp5nJ-OSq83mE7mY6JISjtMOjKkWt1MxbtiQ&s=10'
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTIFJFU1gWSEusIfMbCAgLZBPli74dEJVHBZCVES6UpMQ&s=10'
   },
   {
-    id: 'c_new3',
-    name: 'Ma Kiếm Hắc Ảo',
+    id: 'c_b1',
+    name: 'MA KIẾM BĂNG GIÁ',
     role: 'ATTACK',
     roleName: 'Tấn Công Sắc Lẻm',
     rarity: 'B',
     rarityName: 'Hiếm (B)',
-    atk: 140,
-    def: 70,
-    skillName: 'Truy Hồn Xạ Kích',
-    skillDesc: 'Phẩm Cấp B! Chém liên hoàn 3 nhát gây sát thương bộc phá lớn!',
+    atk: 120,
+    def: 90,
+    skillName: 'BĂNG PHONG TIỂU VŨ',
+    skillDesc: 'Phẩm Cấp B! Đóng băng 120 sát thương & hồi 30 Giáp!',
     energyCost: 1,
     color: 'from-purple-500 via-fuchsia-700 to-slate-950',
-    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMPotmGn9MXFT9fLr7Qu0Oqa3XCiLhS7lv0C_rgehb3A&s=10'
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQjNY3Ofk3SiCyxrGrLDpwvBX6eiS2NXILKnxnMO40vSg&s=10'
   },
   {
-    id: 'c_new4',
-    name: 'Khiên Băng Cổ Đại',
-    role: 'DEFENSE',
-    roleName: 'Phòng Thủ Kiên Cố',
-    rarity: 'C',
-    rarityName: 'Thường (C)',
-    atk: 40,
-    def: 150,
-    skillName: 'Băng Phong Giáp',
-    skillDesc: 'Phẩm Cấp C! Tạo lớp giáp băng +80 Giáp & hồi +30 HP kiên cố!',
+    id: 'c_b2',
+    name: 'MÃNH HỔ TỐC ĐỘ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Tốc Độ',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 130,
+    def: 80,
+    skillName: 'MÃNH HỔ TRUY KÍCH',
+    skillDesc: 'Phẩm Cấp B! Tăng tốc độ tấn công, gây 130 sát thương bộc phát!',
     energyCost: 1,
     color: 'from-blue-500 via-cyan-700 to-stone-900',
-    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8qVl0mOE1g3IaeaXSAUg19djoSDu-Lykhjp_9gEMpGA&s=10'
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ0Kxz7o94WZ6QXy4k48nv7SP5T7F2bd04Buw5u0zYQGQ&s=10'
   },
   {
-    id: 'c_new5',
-    name: 'Đế Vương Vũ Trụ',
-    role: 'ATTACK',
-    roleName: 'Tấn Công Siêu Cấp',
-    rarity: 'S',
-    rarityName: 'Huyền Thoại (S)',
-    atk: 220,
-    def: 190,
-    skillName: 'Vũ Trụ Huỷ Diệt',
-    skillDesc: 'Phẩm Cấp S! Tăng +150 ATK & tước đoạt -2 Năng Lượng của đối thủ!',
-    energyCost: 2,
-    color: 'from-yellow-400 via-amber-600 to-purple-950',
-    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTKnB0hDOxKbPPAnc9fFor9uQtQky32E9fQFhb8xuOv-Q&s=10'
+    id: 'c_c1',
+    name: 'DỆT MỘT KHIÊN ĐỒNG',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Cơ Bản',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 70,
+    def: 100,
+    skillName: 'KHIÊN ĐỒNG BẬT PHẢN',
+    skillDesc: 'Phẩm Cấp C! Nhận +70 Giáp đồng & phản đòn 50 sát thương!',
+    energyCost: 1,
+    color: 'from-slate-600 via-emerald-600 to-slate-600',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSp2ywZ_mNGplQnT00GDzt8OUA9iBGbiheETDhzklOweg&s=10'
   },
   {
     id: 'c1',
@@ -1981,6 +2027,51 @@ export const applyCardSkillEffect = (card: CardItem, me: any, opp: any, roleAdv:
   };
 };
 
+const RenderRarityParticles = ({ rarity }: { rarity?: string }) => {
+  if (rarity === 'SS') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-20">
+        {/* SS Electric Discharge Arcs & Plasma Shockwave */}
+        <div className="absolute inset-0 bg-gradient-to-t from-yellow-500/10 via-cyan-500/10 to-purple-500/10 animate-pulse" />
+        <div className="absolute -inset-1 border border-amber-300/60 rounded-xl animate-electric-discharge opacity-80" />
+        {/* High-Voltage Electric Sparks */}
+        <div className="absolute top-1 left-2 w-1.5 h-1.5 bg-yellow-300 rounded-full animate-electric-spark-1 shadow-[0_0_8px_#facc15]" />
+        <div className="absolute bottom-2 right-2 w-2 h-2 bg-cyan-300 rounded-full animate-electric-spark-2 shadow-[0_0_10px_#22d3ee]" />
+        <div className="absolute top-1/2 left-1 w-1 h-2 bg-fuchsia-400 animate-electric-spark-3 shadow-[0_0_8px_#e879f9]" />
+        <div className="absolute top-1/3 right-1 w-2 h-1 bg-amber-400 animate-electric-spark-1 shadow-[0_0_8px_#fbbf24]" />
+      </div>
+    );
+  }
+
+  if (rarity === 'S') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-20">
+        {/* S Fire Sparks / Fiery Embers */}
+        <div className="absolute inset-0 bg-gradient-to-t from-orange-600/15 via-rose-500/10 to-transparent" />
+        {/* Rising Fiery Embers */}
+        <div className="absolute bottom-1 left-3 w-1.5 h-1.5 bg-orange-400 rounded-full animate-fire-spark-1 shadow-[0_0_6px_#fb923c]" />
+        <div className="absolute bottom-2 left-2/3 w-1 h-1 bg-yellow-400 rounded-full animate-fire-spark-2 shadow-[0_0_6px_#facc15]" />
+        <div className="absolute bottom-3 right-3 w-1.5 h-1.5 bg-rose-500 rounded-full animate-fire-spark-3 shadow-[0_0_8px_#f43f5e]" />
+        <div className="absolute bottom-1 left-1/2 w-1 h-1 bg-amber-300 rounded-full animate-fire-spark-1 shadow-[0_0_6px_#fde047]" />
+      </div>
+    );
+  }
+
+  if (rarity === 'A') {
+    return (
+      <div className="absolute inset-0 pointer-events-none overflow-hidden rounded-xl z-20">
+        {/* A Subtle Sparkles & Starbursts */}
+        <div className="absolute inset-0 bg-gradient-to-t from-purple-600/10 via-fuchsia-500/5 to-transparent" />
+        <div className="absolute top-2 right-2 text-[10px] text-fuchsia-300 animate-a-sparkle-1 opacity-80">✨</div>
+        <div className="absolute bottom-3 left-2 text-[9px] text-purple-300 animate-a-sparkle-2 opacity-75">✦</div>
+        <div className="absolute top-1/2 right-1 text-[8px] text-cyan-200 animate-a-sparkle-3 opacity-70">⭐</div>
+      </div>
+    );
+  }
+
+  return null;
+};
+
 export default function WorldCardBattleModal({ uid, user, onClose, onShowResult }: WorldCardBattleModalProps) {
   const [roomId, setRoomId] = useState<string>('arena_1');
   const [roomInput, setRoomInput] = useState<string>('arena_1');
@@ -2002,7 +2093,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         const data = snap.val();
         const list = Object.entries(data)
           .map(([id, room]: [string, any]) => ({ id, ...room }))
-          .filter(r => r && r.p1 && (r.status === 'WAITING' || r.status === 'BETTING' || r.status === 'PLAYING'))
+          .filter(r => r && r.p1 && !r.p2?.isBot && !r.id?.startsWith('ai_') && (r.status === 'WAITING' || r.status === 'BETTING' || r.status === 'PLAYING'))
           .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
         setActiveRoomsList(list);
       } else {
@@ -2068,7 +2159,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   const [showCompendium, setShowCompendium] = useState<boolean>(false);
   const [compendiumFilter, setCompendiumFilter] = useState<'ALL' | 'ATTACK' | 'DEFENSE' | 'SUPPORT'>('ALL');
-  const [turnSeconds, setTurnSeconds] = useState<number>(15);
+  const [turnSeconds, setTurnSeconds] = useState<number>(50);
   const [inspectedCard, setInspectedCard] = useState<CardItem | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchSeconds, setSearchSeconds] = useState<number>(60);
@@ -2152,6 +2243,49 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       console.warn('Web Audio error:', e);
     }
   };
+
+  // Reset and clean up room state on modal mount
+  useEffect(() => {
+    setRoomId('arena_1');
+    setRoomInput('arena_1');
+    setRoomData(null);
+    setIsSearching(false);
+
+    // Ensure arena_1 default room is cleanly reset to WAITING state
+    set(ref(db, 'matches/arena_1'), {
+      id: 'arena_1',
+      p1: null,
+      p2: null,
+      spectators: {},
+      turn: 'p1',
+      turnCount: 1,
+      status: 'WAITING',
+      combatLogs: ['🏠 Sảnh phòng chờ Đấu Trường Thẻ 1v1 đã sẵn sàng!'],
+      createdAt: Date.now()
+    }).catch(() => {});
+
+    // Thoroughly clean up any stale AI or temporary rooms for this user
+    const matchesRef = ref(db, 'matches');
+    get(matchesRef).then((snap) => {
+      if (snap.exists()) {
+        const rooms = snap.val();
+        Object.keys(rooms).forEach((rId) => {
+          const room = rooms[rId];
+          if (!room || rId === 'arena_1') return;
+          // Delete any finished or active AI room belonging to this user
+          if (
+            rId.startsWith('ai_') ||
+            room.p2?.isBot ||
+            room.p1?.id === uid ||
+            room.p2?.id === uid ||
+            room.status === 'FINISHED'
+          ) {
+            remove(ref(db, `matches/${rId}`)).catch(() => {});
+          }
+        });
+      }
+    }).catch(() => {});
+  }, [uid]);
 
   // Sync Room State from Firebase Realtime DB
   useEffect(() => {
@@ -2243,9 +2377,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         }).catch(() => {});
       }
 
-      const winnerId = roomData.winnerId;
-      const p1Obj = roomData.p1;
-      const p2Obj = roomData.p2;
+      const winnerId = roomData?.winnerId;
+      const p1Obj = roomData?.p1;
+      const p2Obj = roomData?.p2;
 
       const betAmt = p1Obj?.bet || p2Obj?.bet || (roomData.totalPot ? Math.floor(roomData.totalPot / 2) : 5000);
 
@@ -2259,6 +2393,16 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             const newPP = isWin ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
             update(userRef, { pp: newPP }).catch(() => {});
           }
+        }).catch(() => {});
+
+        // Log transaction history to user's financial ledger
+        push(ref(db, `transactions/${uid}`), {
+          id: `tx_card_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+          type: isWin ? 'INCOME' : 'EXPENSE',
+          title: isWin ? 'Thắng Đấu Thẻ 1v1' : 'Thua / Đầu Hàng Đấu Thẻ 1v1',
+          amount: isWin ? +betAmt : -betAmt,
+          unit: 'PP',
+          timestamp: Date.now()
         }).catch(() => {});
 
         if (onShowResult) {
@@ -2513,11 +2657,11 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     });
   };
 
-  // 15-Second Selection Timer Loop for Fast 30-60s Gameplay (Auto AI response in 800ms)
+  // 50-Second Selection Timer Loop for Turn Play (Auto AI response in 800ms)
   useEffect(() => {
     if (!roomData || roomData.status !== 'PLAYING') return;
 
-    setTurnSeconds(15);
+    setTurnSeconds(50);
 
     // Fast AI Bot Response in 800ms for fast action
     if (roomData.turn === 'p2' && roomData.p2?.isBot) {
@@ -2728,12 +2872,11 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     });
   };
 
-  // Add AI Bot into current waiting room
+  // Add AI Bot into dedicated AI room
   const handleJoinMatchWithAi = async () => {
-    if (!roomData) return;
-    const roomRef = ref(db, `matches/${roomId}`);
+    const aiRoomId = `ai_${uid || 'user'}_${Date.now()}`;
 
-    const player1Obj = roomData.p1 || {
+    const player1Obj = {
       id: uid,
       name: user?.name || 'Võ Sĩ Thẻ',
       avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
@@ -2762,15 +2905,23 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       hand: generateRandomHand(5)
     };
 
-    await update(roomRef, {
+    const roomRef = ref(db, `matches/${aiRoomId}`);
+    await set(roomRef, {
+      id: aiRoomId,
       p1: player1Obj,
       p2: aiBotObj,
+      spectators: {},
+      turn: 'p1',
+      turnCount: 1,
       status: 'BETTING',
       combatLogs: [
-        ...(roomData.combatLogs || []),
-        `🤖 [AI BOT] đã gia nhập Đấu Trường! Bắt đầu giai đoạn chốt mức cược 30s!`
-      ]
+        '🤖 [AI BOT] đã gia nhập Đấu Trường AI! Bắt đầu giai đoạn chốt mức cược 30s!'
+      ],
+      createdAt: Date.now()
     });
+
+    setRoomId(aiRoomId);
+    setRoomInput(aiRoomId);
   };
 
   // Find Real Player Solo 1v1 Matchmaking
@@ -2803,7 +2954,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         for (const rId of Object.keys(rooms)) {
           const room = rooms[rId];
           // Look for an active WAITING room with Player 1, no Player 2, and not created by current user
-          if (room && room.status === 'WAITING' && room.p1 && room.p1.id !== uid && !room.p2) {
+          if (room && room.status === 'WAITING' && room.p1 && room.p1?.id !== uid && !room.p2) {
             matchedRoomId = rId;
             break;
           }
@@ -2878,17 +3029,17 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       hand: generateRandomHand(5)
     };
 
-    if (!roomData.p1) {
+    if (!roomData?.p1) {
       await update(roomRef, {
         p1: playerObj,
-        status: roomData.p2 ? 'PLAYING' : 'WAITING',
-        combatLogs: [...(roomData.combatLogs || []), `🔥 [${playerObj.name}] gia nhập NGƯỜI CHƠI 1 với 5 thẻ bài ngẫu nhiên!`]
+        status: roomData?.p2 ? 'PLAYING' : 'WAITING',
+        combatLogs: [...(roomData?.combatLogs || []), `🔥 [${playerObj.name}] gia nhập NGƯỜI CHƠI 1 với 5 thẻ bài ngẫu nhiên!`]
       });
-    } else if (!roomData.p2 && roomData.p1.id !== uid) {
+    } else if (!roomData?.p2 && roomData?.p1?.id !== uid) {
       await update(roomRef, {
         p2: playerObj,
         status: 'PLAYING',
-        combatLogs: [...(roomData.combatLogs || []), `⚔️ [${playerObj.name}] gia nhập NGƯỜI CHƠI 2. TRẬN ĐẤU BẮT ĐẦU!`]
+        combatLogs: [...(roomData?.combatLogs || []), `⚔️ [${playerObj.name}] gia nhập NGƯỜI CHƠI 2. TRẬN ĐẤU BẮT ĐẦU!`]
       });
     } else {
       await update(ref(db, `matches/${roomId}/spectators/${uid}`), {
@@ -2989,7 +3140,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         hand: generateRandomHand(5)
       };
 
-      if (!room.p2 && room.p1?.id !== uid) {
+      if (!room?.p2 && room?.p1?.id !== uid) {
         await update(roomRef, {
           p2: playerObj,
           status: 'BETTING',
@@ -3035,25 +3186,22 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     }
     setRoomId('arena_1');
     setRoomInput('arena_1');
+    setRoomData(null);
     setIsSearching(false);
     playSound('victory');
   };
 
-  // Surrender / Forfeit Match (Fixed & Guaranteed Instant Firebase Sync)
+  // Surrender / Forfeit Match (Guaranteed Instant Sync & Auto Return)
   const handleSurrender = async () => {
     if (!roomData) return;
     if (roomData.status !== 'PLAYING' && roomData.status !== 'BETTING') {
-      alert('Chỉ có thể đầu hàng khi trận đấu đang diễn ra!');
       return;
     }
 
-    const confirmSurrender = window.confirm('Bạn có chắc chắn muốn Đầu Hàng? Đối thủ sẽ thắng và nhận tiền cược trận đấu này.');
-    if (!confirmSurrender) return;
-
-    const currentMyKey = roomData.p2?.id === uid ? 'p2' : 'p1';
+    const currentMyKey = roomData?.p2?.id === uid ? 'p2' : 'p1';
     const currentOppKey = currentMyKey === 'p1' ? 'p2' : 'p1';
-    const oppObj = roomData[currentOppKey];
-    const meObj = roomData[currentMyKey];
+    const oppObj = roomData?.[currentOppKey];
+    const meObj = roomData?.[currentMyKey];
 
     const winnerId = oppObj?.id || (currentOppKey === 'p2' ? 'bot_ai_master' : 'opponent');
 
@@ -3068,6 +3216,11 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       ]
     });
     playSound('victory');
+
+    // Auto return to clean lobby after surrender
+    setTimeout(() => {
+      handleReturnToLobby();
+    }, 1000);
   };
 
   // Swap / Switch Active Card in Hand
@@ -3106,16 +3259,36 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     playSound('turn');
   };
 
-  // Clean all lobby rooms on Firebase DB
+  // Clean all lobby rooms on Firebase DB & reset arena_1
   const handleCleanAllRooms = async () => {
-    if (window.confirm('Bạn có chắc chắn muốn làm sạch tất cả phòng chờ hiện tại để bắt đầu thử nghiệm mới?')) {
-      try {
-        await remove(ref(db, 'matches'));
-        setActiveRoomsList([]);
-        playSound('victory');
-      } catch (e) {
-        console.warn('Clear rooms error:', e);
+    try {
+      await remove(ref(db, 'matches'));
+      await set(ref(db, 'matches/arena_1'), {
+        id: 'arena_1',
+        p1: null,
+        p2: null,
+        spectators: {},
+        turn: 'p1',
+        turnCount: 1,
+        status: 'WAITING',
+        combatLogs: ['🧹 Tất cả phòng chờ và trận AI đã được làm sạch hoàn toàn! Sẵn sàng thách đấu mới.'],
+        createdAt: Date.now()
+      });
+      setActiveRoomsList([]);
+      setRoomId('arena_1');
+      setRoomInput('arena_1');
+      setRoomData(null);
+      setIsSearching(false);
+      playSound('victory');
+      if (onShowResult) {
+        onShowResult(
+          '🧹 ĐÃ LÀM SẠCH PHÒNG CHỜ',
+          'Tất cả phòng chờ và trận đấu cũ đã được dọn dẹp hoàn toàn!',
+          true
+        );
       }
+    } catch (e) {
+      console.warn('Clear rooms error:', e);
     }
   };
 
@@ -3305,6 +3478,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     const myHand = roomData[myPlayerKey]?.hand || [];
     if (myHand[index]?.used) return; // Cannot re-select used card in current round
 
+    incrementMissionProgress(uid, 'card_battle');
     setActiveCardIdx(index);
     await update(ref(db, `matches/${roomId}/${myPlayerKey}`), {
       activeCardIdx: index
@@ -3324,47 +3498,52 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     if (roomId) {
       try {
         const roomRef = ref(db, `matches/${roomId}`);
-        if (roomData?.status === 'PLAYING') {
-          const currentMyKey = roomData.p2?.id === uid ? 'p2' : 'p1';
+        if (roomData?.status === 'PLAYING' || roomData?.status === 'BETTING') {
+          const currentMyKey = roomData?.p2?.id === uid ? 'p2' : 'p1';
           const currentOppKey = currentMyKey === 'p1' ? 'p2' : 'p1';
-          const oppObj = roomData[currentOppKey];
+          const oppObj = roomData?.[currentOppKey];
           const winnerId = oppObj?.id || 'bot_ai_master';
 
           await update(roomRef, {
             status: 'FINISHED',
             winnerId: winnerId,
+            surrenderedBy: uid,
             combatLogs: [
               ...(roomData.combatLogs || []),
-              `🚪 [${user?.name || 'Người chơi'}] đã thoát khỏi trận đấu!`
+              `🚪 [${user?.name || 'Người chơi'}] đã thoát khỏi trận đấu (tính thua cuộc)!`
             ]
           });
         }
         
         if (roomId === 'arena_1') {
-          if (roomData?.status === 'FINISHED' || roomData?.status === 'WAITING') {
-            await set(ref(db, `matches/arena_1`), {
-              id: 'arena_1',
-              p1: null,
-              p2: null,
-              spectators: {},
-              turn: 'p1',
-              turnCount: 1,
-              status: 'WAITING',
-              combatLogs: ['🏠 Phòng chờ arena_1 đã được làm sạch!']
-            }).catch(() => {});
-          }
+          await set(ref(db, `matches/arena_1`), {
+            id: 'arena_1',
+            p1: null,
+            p2: null,
+            spectators: {},
+            turn: 'p1',
+            turnCount: 1,
+            status: 'WAITING',
+            combatLogs: ['🏠 Sảnh phòng chờ Đấu Trường Thẻ 1v1 đã sẵn sàng!']
+          }).catch(() => {});
         } else if (
-          roomData?.status === 'WAITING' ||
-          roomData?.status === 'FINISHED' ||
           roomId.startsWith('ai_') ||
-          roomId.startsWith('pvp_')
+          roomId.startsWith('pvp_') ||
+          roomData?.status === 'WAITING' ||
+          roomData?.status === 'FINISHED'
         ) {
-          await remove(roomRef).catch(() => {});
+          // Delay deletion slightly so outcome listener finishes settlement
+          setTimeout(() => {
+            remove(roomRef).catch(() => {});
+          }, 800);
         }
       } catch (e) {
         console.warn('Error deleting room on modal exit:', e);
       }
     }
+    setRoomId('arena_1');
+    setRoomInput('arena_1');
+    setRoomData(null);
     onClose();
   };
 
@@ -3378,6 +3557,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   const myHand = isP1 ? p1Hand : isP2 ? p2Hand : CARD_DECK.slice(0, 5);
   const oppHand = isP1 ? p2Hand : isP2 ? p1Hand : CARD_DECK.slice(5, 10);
+
+  const myActiveCard = isP1 ? p1Card : p2Card;
+  const oppActiveCard = isP1 ? p2Card : p1Card;
 
   const currentSelectedCard = myHand[activeCardIdx] || myHand[0];
   const myPlayerObj = roomData?.[myPlayerKey || 'p1'];
@@ -3430,6 +3612,103 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           .rotate-y-180 {
             transform: rotateY(180deg);
           }
+
+          /* 3D Interactive Card Tilt, Rotation & Hover Effects */
+          .card-3d-hover {
+            transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease, filter 0.3s ease;
+            transform-style: preserve-3d;
+            will-change: transform;
+            perspective: 1000px;
+          }
+          .card-3d-hover:hover {
+            transform: perspective(1000px) rotateX(12deg) rotateY(-10deg) rotate(2.5deg) translateZ(20px) scale(1.08);
+            box-shadow: 0 20px 35px -5px rgba(0, 240, 255, 0.6), 0 0 25px rgba(234, 179, 8, 0.4);
+            filter: brightness(1.18) contrast(1.08);
+            z-index: 35;
+          }
+
+          .ss-card-3d-hover {
+            transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s ease, filter 0.35s ease;
+            transform-style: preserve-3d;
+            will-change: transform;
+            perspective: 1000px;
+          }
+          .ss-card-3d-hover:hover {
+            transform: perspective(1000px) rotateX(15deg) rotateY(-12deg) rotate(-3deg) translateZ(30px) scale(1.12);
+            box-shadow: 0 25px 50px -5px rgba(250, 204, 21, 0.9), 0 0 40px rgba(236, 72, 153, 0.7);
+            filter: brightness(1.28) contrast(1.12);
+            z-index: 45;
+          }
+
+          /* --- RARITY DISTINCT PARTICLE ANIMATIONS & AURAS --- */
+          /* Rarity A Sparkles */
+          @keyframes aSparkleFloat1 {
+            0%, 100% { transform: translateY(0) scale(0.8); opacity: 0.4; }
+            50% { transform: translateY(-6px) scale(1.2); opacity: 1; filter: drop-shadow(0 0 4px #e879f9); }
+          }
+          @keyframes aSparkleFloat2 {
+            0%, 100% { transform: translateY(0) scale(1); opacity: 0.5; }
+            50% { transform: translateY(-8px) scale(1.3); opacity: 1; filter: drop-shadow(0 0 6px #a855f7); }
+          }
+          @keyframes aSparkleFloat3 {
+            0%, 100% { transform: translateY(0) scale(0.9); opacity: 0.3; }
+            50% { transform: translateY(-5px) scale(1.1); opacity: 0.9; filter: drop-shadow(0 0 5px #38bdf8); }
+          }
+          .animate-a-sparkle-1 { animation: aSparkleFloat1 2.2s ease-in-out infinite; }
+          .animate-a-sparkle-2 { animation: aSparkleFloat2 2.8s ease-in-out infinite 0.5s; }
+          .animate-a-sparkle-3 { animation: aSparkleFloat3 2.5s ease-in-out infinite 1.1s; }
+
+          /* Rarity S Fire Sparks */
+          @keyframes fireSparkRise1 {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            50% { transform: translateY(-12px) scale(1.2); opacity: 1; filter: drop-shadow(0 0 6px #fb923c); }
+            100% { transform: translateY(-25px) scale(0.3); opacity: 0; }
+          }
+          @keyframes fireSparkRise2 {
+            0% { transform: translateY(0) scale(0.6); opacity: 0; }
+            50% { transform: translateY(-16px) scale(1.3); opacity: 1; filter: drop-shadow(0 0 8px #ef4444); }
+            100% { transform: translateY(-30px) scale(0.2); opacity: 0; }
+          }
+          @keyframes fireSparkRise3 {
+            0% { transform: translateY(0) scale(0.4); opacity: 0; }
+            50% { transform: translateY(-10px) scale(1.1); opacity: 0.9; filter: drop-shadow(0 0 6px #eab308); }
+            100% { transform: translateY(-20px) scale(0.2); opacity: 0; }
+          }
+          .animate-fire-spark-1 { animation: fireSparkRise1 1.6s ease-out infinite; }
+          .animate-fire-spark-2 { animation: fireSparkRise2 2.1s ease-out infinite 0.4s; }
+          .animate-fire-spark-3 { animation: fireSparkRise3 1.8s ease-out infinite 0.8s; }
+
+          /* Rarity SS Electric Discharge */
+          @keyframes ssElectricDischarge {
+            0% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.8), inset 0 0 10px rgba(34, 211, 238, 0.6); border-color: #facc15; }
+            25% { box-shadow: 0 0 30px rgba(34, 211, 238, 0.9), inset 0 0 20px rgba(236, 72, 153, 0.8); border-color: #38bdf8; }
+            50% { box-shadow: 0 0 45px rgba(250, 204, 21, 1), 0 0 15px rgba(168, 85, 247, 0.9), inset 0 0 25px rgba(250, 204, 21, 0.9); border-color: #f43f5e; }
+            75% { box-shadow: 0 0 25px rgba(236, 72, 153, 0.8), inset 0 0 15px rgba(34, 211, 238, 0.7); border-color: #c084fc; }
+            100% { box-shadow: 0 0 15px rgba(250, 204, 21, 0.8), inset 0 0 10px rgba(34, 211, 238, 0.6); border-color: #facc15; }
+          }
+
+          @keyframes electricSparkPulse1 {
+            0%, 100% { opacity: 0.2; transform: scale(0.8) translate(0, 0); }
+            20% { opacity: 1; transform: scale(1.5) translate(2px, -3px); filter: drop-shadow(0 0 8px #facc15); }
+            40% { opacity: 0.3; transform: scale(0.9) translate(-1px, 2px); }
+            70% { opacity: 1; transform: scale(1.6) translate(-2px, -2px); filter: drop-shadow(0 0 10px #22d3ee); }
+          }
+          @keyframes electricSparkPulse2 {
+            0%, 100% { opacity: 0.3; transform: scale(0.9); }
+            30% { opacity: 1; transform: scale(1.7) translate(-3px, 1px); filter: drop-shadow(0 0 10px #e879f9); }
+            60% { opacity: 0.2; transform: scale(0.7); }
+            85% { opacity: 1; transform: scale(1.4) translate(2px, 3px); filter: drop-shadow(0 0 8px #facc15); }
+          }
+
+          .animate-electric-discharge { animation: ssElectricDischarge 1.2s ease-in-out infinite; }
+          .animate-electric-spark-1 { animation: electricSparkPulse1 0.8s ease-in-out infinite; }
+          .animate-electric-spark-2 { animation: electricSparkPulse2 1.1s ease-in-out infinite 0.2s; }
+          .animate-electric-spark-3 { animation: electricSparkPulse1 0.9s ease-in-out infinite 0.4s; }
+
+          /* Glow classes for cards */
+          .ss-card-glow { animation: ssElectricDischarge 1.5s ease-in-out infinite; }
+          .s-card-glow { box-shadow: 0 0 18px rgba(249, 115, 22, 0.7), inset 0 0 10px rgba(245, 158, 11, 0.4); border-color: #f97316; }
+          .a-card-glow { box-shadow: 0 0 14px rgba(168, 85, 247, 0.6), inset 0 0 8px rgba(217, 70, 239, 0.3); border-color: #c084fc; }
 
           @keyframes screenShake {
             0%, 100% { transform: translate(0, 0) rotate(0deg); }
@@ -3656,6 +3935,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
               <div className="flex items-center gap-2 text-[9px] text-cyan-400 font-mono">
                 <span>Phòng: <strong className="text-yellow-300">#{roomId}</strong></span>
                 <span>• Lượt #{roomData?.turnCount || 1}</span>
+                {roomData?.status === 'PLAYING' && (
+                  <span className={`px-2 py-0.5 rounded-full border font-bold flex items-center gap-1 ${
+                    turnSeconds <= 10
+                      ? 'bg-red-500/30 border-red-400 text-red-300 animate-bounce'
+                      : 'bg-cyan-950/80 border-cyan-400/50 text-yellow-300'
+                  }`}>
+                    ⏱️ {turnSeconds}s
+                  </span>
+                )}
               </div>
             </div>
           </div>
@@ -4156,15 +4444,20 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                     <Swords className="w-3 h-3 text-rose-500" /> THẺ ĐỐI THỦ (Active Card)
                   </span>
                   
-                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all ${
-                    p2Card?.rarity === 'SS'
-                      ? 'ss-card-glow text-white ring-2 ring-amber-300'
-                      : roomData?.turn === 'p2' && isAttacking
-                      ? 'animate-attack-slash ring-2 ring-rose-400'
-                      : 'border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all cursor-pointer ${
+                    oppActiveCard?.rarity === 'SS'
+                      ? 'ss-card-glow ss-card-3d-hover text-white ring-2 ring-amber-300'
+                      : oppActiveCard?.rarity === 'S'
+                      ? 's-card-glow card-3d-hover text-white ring-1 ring-orange-400'
+                      : oppActiveCard?.rarity === 'A'
+                      ? 'a-card-glow card-3d-hover text-white ring-1 ring-purple-400'
+                      : roomData?.turn === oppPlayerKey && isAttacking
+                      ? 'animate-attack-slash card-3d-hover ring-2 ring-rose-400'
+                      : 'card-3d-hover border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
                   }`}>
-                    {/* Floating Damage Overlay for P2 */}
-                    {damageFloats.filter((f) => f.target === 'p2').map((f) => (
+                    <RenderRarityParticles rarity={oppActiveCard?.rarity} />
+                    {/* Floating Damage Overlay for Opponent */}
+                    {damageFloats.filter((f) => f.target === oppPlayerKey).map((f) => (
                       <div
                         key={f.id}
                         className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
@@ -4176,25 +4469,25 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
                     <div className="flex items-center justify-between w-full relative z-10 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-500/30">
                       <span className="text-[8px] font-bold text-rose-300 uppercase truncate">
-                        {p2Card?.name || 'Thẻ Đối Thủ'}
+                        {oppActiveCard?.name || 'Thẻ Đối Thủ'}
                       </span>
-                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(p2Card?.rarity || 'C')}`}>
-                        {p2Card?.rarity || 'C'}
+                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(oppActiveCard?.rarity || 'C')}`}>
+                        {oppActiveCard?.rarity || 'C'}
                       </span>
                     </div>
 
                     <div className="aspect-[3/4] h-24 sm:h-28 w-full rounded-lg overflow-hidden bg-slate-950 border border-rose-500/30 flex items-center justify-center relative z-10">
                       <img
-                        src={p2Card?.avatarUrl}
-                        alt={p2Card?.name}
+                        src={oppActiveCard?.avatarUrl}
+                        alt={oppActiveCard?.name}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = getCardImageSvg(p2Card?.id || 'c1');
+                          (e.target as HTMLImageElement).src = getCardImageSvg(oppActiveCard?.id || 'c1');
                         }}
                         className="w-full h-full object-contain"
                       />
                     </div>
 
-                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p2Card?.atk} | DEF: {p2Card?.def}</span>
+                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {oppActiveCard?.atk} | DEF: {oppActiveCard?.def}</span>
                   </div>
                 </div>
 
@@ -4224,15 +4517,20 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                     <Sparkles className="w-3 h-3 text-cyan-400" /> THẺ CỦA BẠN (Active Card)
                   </span>
 
-                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all ${
-                    p1Card?.rarity === 'SS'
-                      ? 'ss-card-glow text-white ring-2 ring-amber-300'
-                      : roomData?.turn === 'p1' && isAttacking
-                      ? 'animate-attack-slash ring-2 ring-cyan-400'
-                      : 'border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all cursor-pointer ${
+                    myActiveCard?.rarity === 'SS'
+                      ? 'ss-card-glow ss-card-3d-hover text-white ring-2 ring-amber-300'
+                      : myActiveCard?.rarity === 'S'
+                      ? 's-card-glow card-3d-hover text-white ring-1 ring-orange-400'
+                      : myActiveCard?.rarity === 'A'
+                      ? 'a-card-glow card-3d-hover text-white ring-1 ring-purple-400'
+                      : roomData?.turn === myPlayerKey && isAttacking
+                      ? 'animate-attack-slash card-3d-hover ring-2 ring-cyan-400'
+                      : 'card-3d-hover border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
                   }`}>
-                    {/* Floating Damage Overlay for P1 */}
-                    {damageFloats.filter((f) => f.target === 'p1').map((f) => (
+                    <RenderRarityParticles rarity={myActiveCard?.rarity} />
+                    {/* Floating Damage Overlay for Player */}
+                    {damageFloats.filter((f) => f.target === myPlayerKey).map((f) => (
                       <div
                         key={f.id}
                         className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
@@ -4244,25 +4542,25 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
                     <div className="flex items-center justify-between w-full relative z-10 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30">
                       <span className="text-[8px] font-bold text-cyan-300 uppercase truncate">
-                        {p1Card?.name || 'Thẻ Của Bạn'}
+                        {myActiveCard?.name || 'Thẻ Của Bạn'}
                       </span>
-                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(p1Card?.rarity || 'C')}`}>
-                        {p1Card?.rarity || 'C'}
+                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(myActiveCard?.rarity || 'C')}`}>
+                        {myActiveCard?.rarity || 'C'}
                       </span>
                     </div>
 
                     <div className="aspect-[3/4] h-24 sm:h-28 w-full rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/30 flex items-center justify-center relative z-10">
                       <img
-                        src={p1Card?.avatarUrl}
-                        alt={p1Card?.name}
+                        src={myActiveCard?.avatarUrl}
+                        alt={myActiveCard?.name}
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = getCardImageSvg(p1Card?.id || 'c1');
+                          (e.target as HTMLImageElement).src = getCardImageSvg(myActiveCard?.id || 'c1');
                         }}
                         className="w-full h-full object-contain"
                       />
                     </div>
 
-                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p1Card?.atk} | DEF: {p1Card?.def}</span>
+                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {myActiveCard?.atk} | DEF: {myActiveCard?.def}</span>
                   </div>
                 </div>
 
@@ -4323,10 +4621,17 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                               isUsed
                                 ? 'opacity-30 grayscale border-slate-800 bg-slate-950 pointer-events-none'
                                 : isSelected
-                                ? 'bg-gradient-to-b from-purple-900/60 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-[1.03]'
-                                : 'bg-black/80 border-white/10 text-slate-400 hover:border-cyan-400/50'
+                                ? 'bg-gradient-to-b from-purple-900/60 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-[1.03] card-3d-hover'
+                                : card.rarity === 'SS'
+                                ? 'ss-card-glow ss-card-3d-hover bg-slate-950 text-white ring-1 ring-amber-300'
+                                : card.rarity === 'S'
+                                ? 's-card-glow card-3d-hover bg-slate-950 text-white ring-1 ring-orange-400'
+                                : card.rarity === 'A'
+                                ? 'a-card-glow card-3d-hover bg-slate-950 text-white ring-1 ring-purple-400'
+                                : 'bg-black/80 border-white/10 text-slate-400 hover:border-cyan-400/50 card-3d-hover'
                             }`}
                           >
+                            <RenderRarityParticles rarity={card.rarity} />
                             <span className={`absolute top-0.5 right-0.5 z-20 text-[6.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
                               {card.rarity || 'C'}
                             </span>
@@ -4658,10 +4963,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   onClick={() => setInspectedCard(card)}
                   className={`p-2.5 rounded-xl space-y-2 transition-all flex flex-col justify-between group relative cursor-pointer overflow-hidden ${
                     card.rarity === 'SS'
-                      ? 'bg-slate-950 ss-card-glow text-white ring-1 ring-amber-300'
-                      : 'bg-slate-950 border border-white/10 hover:border-cyan-400/60 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]'
+                      ? 'bg-slate-950 ss-card-glow ss-card-3d-hover text-white ring-1 ring-amber-300'
+                      : card.rarity === 'S'
+                      ? 'bg-slate-950 s-card-glow card-3d-hover text-white ring-1 ring-orange-400'
+                      : card.rarity === 'A'
+                      ? 'bg-slate-950 a-card-glow card-3d-hover text-white ring-1 ring-purple-400'
+                      : 'bg-slate-950 border border-white/10 card-3d-hover hover:border-cyan-400/60 hover:shadow-[0_0_15px_rgba(0,240,255,0.2)]'
                   }`}
                 >
+                  <RenderRarityParticles rarity={card.rarity} />
                   {card.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
 
                   {/* Rarity Badge */}
@@ -4741,8 +5051,13 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             <div className={`aspect-[3/4] h-48 sm:h-56 w-full mx-auto rounded-xl overflow-hidden bg-slate-950 relative shadow-inner flex items-center justify-center ${
               inspectedCard.rarity === 'SS'
                 ? 'ss-card-glow ring-2 ring-amber-300 border-amber-200'
+                : inspectedCard.rarity === 'S'
+                ? 's-card-glow ring-2 ring-orange-400 border-orange-300'
+                : inspectedCard.rarity === 'A'
+                ? 'a-card-glow ring-2 ring-purple-400 border-purple-300'
                 : 'border border-cyan-500/40'
             }`}>
+              <RenderRarityParticles rarity={inspectedCard.rarity} />
               {inspectedCard.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
 
               <img

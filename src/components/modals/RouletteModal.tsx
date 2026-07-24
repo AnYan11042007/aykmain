@@ -10,6 +10,7 @@ import { X, Sparkles, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react
 import { User } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface RouletteModalProps {
   uid: string;
@@ -101,6 +102,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
 
   const handleSpinWheel = async () => {
     if (isSpinning) return;
+    incrementMissionProgress(uid, 'roulette_spin');
     if (currentBets.length === 0) {
       alert('Vui lòng đặt cược trước khi quay!');
       return;

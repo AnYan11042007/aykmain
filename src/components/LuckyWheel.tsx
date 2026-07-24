@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { User } from '../types';
 import { Sparkles, Compass, AlertCircle, Clock, Trophy, Award, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { incrementMissionProgress } from '../utils/missions';
 
 interface LuckyWheelProps {
   uid: string;
@@ -98,6 +99,7 @@ export default function LuckyWheel({ uid, user, onShowResult }: LuckyWheelProps)
     }
 
     setIsSpinning(true);
+    incrementMissionProgress(uid, 'wheel_spins');
 
     // Randomize winning slice
     const winningIndex = Math.floor(Math.random() * SEGMENTS.length);

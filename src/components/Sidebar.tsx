@@ -20,6 +20,7 @@ interface SidebarProps {
   isMobileOpen?: boolean;
   setIsMobileOpen?: (open: boolean) => void;
   onOpenProfile?: () => void;
+  onOpenIdeas?: () => void;
 }
 
 export default function Sidebar({
@@ -33,6 +34,7 @@ export default function Sidebar({
   isMobileOpen = false,
   setIsMobileOpen,
   onOpenProfile,
+  onOpenIdeas,
 }: SidebarProps) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [onlineNames, setOnlineNames] = useState<string[]>([]);
@@ -478,6 +480,15 @@ export default function Sidebar({
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block shrink-0" />
             <span className="truncate">{musicTitle}</span>
           </div>
+
+          {onOpenIdeas && (
+            <button
+              onClick={onOpenIdeas}
+              className="w-full py-2.5 px-3 bg-cyan-950/30 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500 hover:text-black rounded-lg flex items-center justify-center gap-2 text-[11px] font-black tracking-wider uppercase cursor-pointer transition-all hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]"
+            >
+              <Sparkles className="w-3.5 h-3.5 animate-pulse" /> 💡 [ 50 Ý TƯỞNG S88 ]
+            </button>
+          )}
 
           {!showLogoutConfirm ? (
             <button

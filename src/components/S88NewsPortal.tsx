@@ -24,7 +24,11 @@ import {
   X,
   Flame,
   Award,
-  BookOpen
+  BookOpen,
+  MessageSquare,
+  Heart,
+  Trash2,
+  Smile
 } from 'lucide-react';
 
 interface NewsItem {
@@ -39,6 +43,17 @@ interface NewsItem {
   pinned?: boolean;
   bannerUrl?: string;
   likedBy?: Record<string, boolean>;
+}
+
+interface CommentItem {
+  id: string;
+  authorId: string;
+  authorName: string;
+  authorAvatar: string;
+  text: string;
+  timestamp: number;
+  hearts?: number;
+  heartedBy?: Record<string, boolean>;
 }
 
 interface S88NewsPortalProps {
@@ -94,6 +109,106 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
 
   // Full article view modal state
   const [selectedArticle, setSelectedArticle] = useState<NewsItem | null>(null);
+
+  // Live comments state
+  const [comments, setComments] = useState<CommentItem[]>([]);
+  const [newCommentText, setNewCommentText] = useState('');
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
+
+  // Realtime comments count listener across all news items
+  useEffect(() => {
+    const commentsRootRef = ref(db, 's88_news_comments');
+    const unsub = onValue(commentsRootRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const counts: Record<string, number> = {};
+        Object.keys(data).forEach((newsId) => {
+          counts[newsId] = Object.keys(data[newsId] || {}).length;
+        });
+        setCommentCounts(counts);
+      } else {
+        setCommentCounts({});
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  // Realtime comments listener for active selected article
+  useEffect(() => {
+    if (!selectedArticle) {
+      setComments([]);
+      return;
+    }
+    const commentsRef = ref(db, `s88_news_comments/${selectedArticle.id}`);
+    const unsub = onValue(commentsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list: CommentItem[] = Object.keys(data).map((key) => ({
+          id: key,
+          ...data[key]
+        }));
+        list.sort((a, b) => b.timestamp - a.timestamp);
+        setComments(list);
+      } else {
+        setComments([]);
+      }
+    });
+
+    return () => unsub();
+  }, [selectedArticle]);
+
+  // Add a new comment
+  const handleAddComment = async (e?: React.FormEvent, customText?: string) => {
+    if (e) e.preventDefault();
+    const textToSend = customText || newCommentText;
+    if (!selectedArticle || !textToSend.trim()) return;
+
+    const commentId = `cmt_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    const commentObj: CommentItem = {
+      id: commentId,
+      authorId: uid,
+      authorName: user?.name || 'Sinh viên S88',
+      authorAvatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+      text: textToSend.trim(),
+      timestamp: Date.now(),
+      hearts: 0
+    };
+
+    try {
+      await set(ref(db, `s88_news_comments/${selectedArticle.id}/${commentId}`), commentObj);
+      if (!customText) setNewCommentText('');
+    } catch (err) {
+      console.error('Error adding comment:', err);
+    }
+  };
+
+  // Heart/like a comment
+  const handleHeartComment = async (comment: CommentItem) => {
+    if (!selectedArticle) return;
+    const isHearted = comment.heartedBy?.[uid];
+    const newHearts = isHearted ? Math.max(0, (comment.hearts || 1) - 1) : (comment.hearts || 0) + 1;
+
+    try {
+      await update(ref(db, `s88_news_comments/${selectedArticle.id}/${comment.id}`), {
+        hearts: newHearts,
+        [`heartedBy/${uid}`]: !isHearted
+      });
+    } catch (err) {
+      console.error('Error hearting comment:', err);
+    }
+  };
+
+  // Delete comment
+  const handleDeleteComment = async (commentId: string) => {
+    if (!selectedArticle) return;
+    if (window.confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
+      try {
+        await set(ref(db, `s88_news_comments/${selectedArticle.id}/${commentId}`), null);
+      } catch (err) {
+        console.error('Error deleting comment:', err);
+      }
+    }
+  };
 
   // Modal create news state for admin/teacher
   const [isPublishing, setIsPublishing] = useState(false);
@@ -387,8 +502,11 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
                         <span>{item.likes}</span>
                       </button>
 
-                      <div className="text-slate-500 flex items-center gap-1">
-                        👁️ {item.views} Lượt xem
+                      <div className="text-slate-500 flex items-center gap-2.5">
+                        <span>👁️ {item.views} Lượt xem</span>
+                        <span className="flex items-center gap-1 text-cyan-400 font-bold">
+                          <MessageSquare className="w-3 h-3" /> {commentCounts[item.id] || 0}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -445,6 +563,133 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
 
               <div className="text-sm md:text-base text-slate-200 leading-relaxed font-sans whitespace-pre-line space-y-4">
                 {selectedArticle.content}
+              </div>
+
+              {/* Live Comments & Heart Reactions Section */}
+              <div className="pt-6 border-t border-white/10 space-y-4 font-mono">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-extrabold text-cyan-300 uppercase tracking-wider flex items-center gap-2">
+                    <MessageSquare className="w-4 h-4 text-[#00f0ff]" />
+                    BÌNH LUẬN TRỰC TIẾP ({comments.length})
+                  </h3>
+                  <span className="text-[10px] text-slate-400">
+                    Bản tin game live real-time
+                  </span>
+                </div>
+
+                {/* Quick Emoji Reaction Row */}
+                <div className="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+                  <span className="text-[10px] text-slate-400 font-bold uppercase shrink-0">Thả nhanh:</span>
+                  <button
+                    type="button"
+                    onClick={() => handleAddComment(undefined, '❤️ Siêu phẩm cập nhật!')}
+                    className="px-2.5 py-1 bg-rose-500/10 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 rounded-lg font-bold transition shrink-0 cursor-pointer text-[11px]"
+                  >
+                    ❤️ Siêu phẩm!
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddComment(undefined, '🔥 Game mượt quá!')}
+                    className="px-2.5 py-1 bg-amber-500/10 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 rounded-lg font-bold transition shrink-0 cursor-pointer text-[11px]"
+                  >
+                    🔥 Game mượt!
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddComment(undefined, '🎉 Hóng sự kiện mới!')}
+                    className="px-2.5 py-1 bg-purple-500/10 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 rounded-lg font-bold transition shrink-0 cursor-pointer text-[11px]"
+                  >
+                    🎉 Hóng sự kiện!
+                  </button>
+                </div>
+
+                {/* Add Comment Form */}
+                <form onSubmit={handleAddComment} className="flex gap-2">
+                  <img
+                    src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                    alt=""
+                    className="w-8 h-8 rounded-full border border-cyan-400 object-cover shrink-0"
+                  />
+                  <div className="flex-1 flex gap-2">
+                    <input
+                      type="text"
+                      placeholder="Để lại phản hồi hoặc cảm nghĩ của bạn..."
+                      className="flex-1 bg-black/60 border border-white/20 focus:border-[#00f0ff] rounded-xl px-3 py-2 text-xs text-white outline-none font-sans"
+                      value={newCommentText}
+                      onChange={(e) => setNewCommentText(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newCommentText.trim()}
+                      className="px-4 py-2 bg-gradient-to-r from-cyan-400 to-emerald-400 disabled:opacity-40 text-black font-black text-xs uppercase rounded-xl transition cursor-pointer flex items-center gap-1 shrink-0 active:scale-95"
+                    >
+                      <Send className="w-3.5 h-3.5" /> Gửi
+                    </button>
+                  </div>
+                </form>
+
+                {/* Comments List */}
+                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+                  {comments.length === 0 ? (
+                    <div className="p-4 bg-black/40 rounded-xl border border-white/5 text-center text-xs text-slate-400 font-sans">
+                      Chưa có bình luận nào. Hãy là người đầu tiên để lại phản hồi!
+                    </div>
+                  ) : (
+                    comments.map((cmt) => {
+                      const isHearted = cmt.heartedBy?.[uid];
+                      const isOwnerOrAdmin = cmt.authorId === uid || user?.role === 'ADMIN';
+
+                      return (
+                        <div
+                          key={cmt.id}
+                          className="p-3 bg-black/60 rounded-xl border border-white/10 flex items-start gap-3 transition hover:border-cyan-500/30"
+                        >
+                          <img
+                            src={cmt.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                            alt=""
+                            className="w-7 h-7 rounded-full border border-slate-700 object-cover shrink-0 mt-0.5"
+                          />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between text-[10px]">
+                              <div className="font-bold text-cyan-300 truncate">
+                                {cmt.authorName}
+                              </div>
+                              <div className="text-slate-500 flex items-center gap-2">
+                                <span>{new Date(cmt.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</span>
+                                {isOwnerOrAdmin && (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleDeleteComment(cmt.id)}
+                                    className="text-rose-400 hover:text-rose-300 transition cursor-pointer p-0.5"
+                                    title="Xóa bình luận"
+                                  >
+                                    <Trash2 className="w-3 h-3" />
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                            <p className="text-xs text-slate-200 mt-1 font-sans break-words leading-relaxed">
+                              {cmt.text}
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => handleHeartComment(cmt)}
+                            className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold border transition cursor-pointer shrink-0 ${
+                              isHearted
+                                ? 'bg-rose-500/20 border-rose-400 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.4)]'
+                                : 'bg-white/5 border-white/10 text-slate-400 hover:text-rose-300'
+                            }`}
+                            title="Thả tim bình luận"
+                          >
+                            <Heart className={`w-3 h-3 ${isHearted ? 'fill-rose-400 text-rose-400' : ''}`} />
+                            <span>{cmt.hearts || 0}</span>
+                          </button>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
 
               {/* Bottom Actions */}

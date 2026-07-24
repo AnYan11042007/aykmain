@@ -9,6 +9,7 @@ import { db } from '../../firebase';
 import { X, Award, HelpCircle, ShieldCheck } from 'lucide-react';
 import { User } from '../../types';
 import { motion } from 'motion/react';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface HorseModalProps {
   uid: string;
@@ -78,6 +79,7 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
     try {
       // Deduct PP initially
       await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
+      await incrementMissionProgress(uid, 'horse_rides');
 
       // Record transaction log for the deduction
       await push(ref(db, 'transactions'), {

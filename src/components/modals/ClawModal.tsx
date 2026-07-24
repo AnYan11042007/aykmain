@@ -9,6 +9,7 @@ import { db } from '../../firebase';
 import { X, Sparkles, HelpCircle } from 'lucide-react';
 import { User } from '../../types';
 import { motion } from 'motion/react';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface ClawModalProps {
   uid: string;
@@ -80,6 +81,7 @@ export default function ClawModal({ uid, user, onClose, onShowResult }: ClawModa
 
   const handleClawAction = async () => {
     if (isClawDropping) return;
+    incrementMissionProgress(uid, 'claw_machine');
 
     const amt = parseInt(betAmount);
     if (isNaN(amt) || amt <= 0) {

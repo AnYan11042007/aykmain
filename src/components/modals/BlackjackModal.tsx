@@ -8,6 +8,7 @@ import { get, ref, onValue, update, remove, push } from 'firebase/database';
 import { db } from '../../firebase';
 import { X, Trophy, AlertTriangle, Layers } from 'lucide-react';
 import { User, BlackjackRoom, BlackjackPlayer } from '../../types';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface BlackjackModalProps {
   uid: string;
@@ -217,6 +218,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
   const handleHit = async () => {
     if (isProcessingAction || !room || !room.activePlayers || room.turnIdx === undefined) return;
     setIsProcessingAction(true);
+    incrementMissionProgress(uid, 'bj_match');
 
     const activeUids = room.activePlayers;
     const currentTurnUid = activeUids[room.turnIdx];

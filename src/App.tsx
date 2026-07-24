@@ -26,6 +26,8 @@ import S88NewsPortal from './components/S88NewsPortal';
 import WorldHuntingPortal from './components/WorldHuntingPortal';
 import TransactionHistoryPortal from './components/TransactionHistoryPortal';
 import ProfileModal from './components/modals/ProfileModal';
+import BackgroundMusic from './components/BackgroundMusic';
+import ExclusiveIdeasModal from './components/modals/ExclusiveIdeasModal';
 
 // Game Modals list
 import TaiXiuModal from './components/modals/TaiXiuModal';
@@ -90,6 +92,7 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<string>('academic');
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [isExclusiveIdeasOpen, setIsExclusiveIdeasOpen] = useState(false);
 
   // Picture-in-Picture global live stream state
   const [isPipActive, setIsPipActive] = useState<boolean>(() => {
@@ -403,6 +406,7 @@ export default function App() {
         isMobileOpen={isMobileOpen}
         setIsMobileOpen={setIsMobileOpen}
         onOpenProfile={() => setIsProfileOpen(true)}
+        onOpenIdeas={() => setIsExclusiveIdeasOpen(true)}
       />
 
       {/* Main viewport panels */}
@@ -420,9 +424,9 @@ export default function App() {
                 <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
                 <span>CHUỖI ĐĂNG NHẬP: <strong className="text-white font-black">{user?.streak_days || 1} NGÀY</strong></span>
               </div>
-              <span className="text-[10px] text-slate-400 font-sans">
-                (Thưởng +100 PP/ngày. Đã điểm danh hôm nay!)
-              </span>
+              
+              {/* Background Music Player in Header */}
+              <BackgroundMusic />
             </div>
 
             <div className="flex items-center gap-3">
@@ -972,6 +976,13 @@ export default function App() {
           user={user}
           onClose={() => setIsProfileOpen(false)}
           onShowResult={handleShowGameResult}
+        />
+      )}
+
+      {/* 50 Exclusive Ideas Modal */}
+      {isExclusiveIdeasOpen && (
+        <ExclusiveIdeasModal
+          onClose={() => setIsExclusiveIdeasOpen(false)}
         />
       )}
 

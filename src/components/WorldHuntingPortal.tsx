@@ -8,6 +8,7 @@ import confetti from 'canvas-confetti';
 import { get, ref, update, push, onValue } from 'firebase/database';
 import { db } from '../firebase';
 import { User } from '../types';
+import { incrementMissionProgress } from '../utils/missions';
 import { 
   Crosshair, 
   Flame, 
@@ -1206,6 +1207,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
       alert('Năng lượng săn bắn đã cạn! Vui lòng chờ 2-3 giây để năng lượng tự phục hồi.');
       return;
     }
+    incrementMissionProgress(uid, 'world_hunting');
     fireShotInternal(false);
   };
 

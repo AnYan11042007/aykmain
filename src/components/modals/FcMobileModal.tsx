@@ -9,6 +9,7 @@ import { db } from '../../firebase';
 import { X, Trophy, Activity, MessageSquare, Play, HelpCircle, Users, Coins } from 'lucide-react';
 import { User } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface FcMobileModalProps {
   uid: string;
@@ -124,6 +125,7 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
 
   const handleStartMatch = async (choice: 'BLUE' | 'RED') => {
     if (isMatchActive) return;
+    incrementMissionProgress(uid, 'fcmobile_match');
 
     const amt = parseInt(betAmount);
     if (isNaN(amt) || amt <= 0) {

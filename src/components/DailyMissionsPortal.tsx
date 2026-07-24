@@ -30,6 +30,7 @@ import {
   Gift
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import confetti from 'canvas-confetti';
 import { 
   getOrInitializeUserMissions, 
   claimMissionReward, 
@@ -42,6 +43,17 @@ import {
   Mission
 } from '../utils/missions';
 
+interface DailyAchiever {
+  uid: string;
+  name: string;
+  avatar: string;
+  completedCount: number;
+  totalMissions: number;
+  earnedPP: number;
+  level: number;
+  role?: string;
+}
+
 interface DailyMissionsPortalProps {
   uid: string;
   user: User | null;
@@ -53,7 +65,26 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
   const [pool, setPool] = useState<Mission[]>([]);
   const [loading, setLoading] = useState(true);
   const [claimingId, setClaimingId] = useState<string | null>(null);
+  const [justClaimedId, setJustClaimedId] = useState<string | null>(null);
+  const [claimedRewardAmount, setClaimedRewardAmount] = useState<number | null>(null);
   const [filter, setFilter] = useState<'ALL' | 'IN_PROGRESS' | 'READY' | 'CLAIMED'>('ALL');
+  const [dailyAchievers, setDailyAchievers] = useState<DailyAchiever[]>([]);
+
+  const getMissionUnitLabel = (type: string) => {
+    switch (type) {
+      case 'chat_messages': return 'tin nhắn';
+      case 'taixiu_wins': return 'trận thắng';
+      case 'crash_rides': return 'chuyến bay';
+      case 'penalty_goals': return 'bàn thắng';
+      case 'wheel_spins': return 'lượt quay';
+      case 'bank_deposit': return 'giao dịch';
+      case 'marketplace_buy': return 'lượt mua';
+      case 'ai_chat': return 'câu hỏi AI';
+      case 'horse_rides': return 'chặng đua';
+      case 'check_in': return 'ngày điểm danh';
+      case 'general_study': default: return 'lượt hoàn thành';
+    }
+  };
   const [showAdminPanel, setShowAdminPanel] = useState(false);
   const [isRerandomizing, setIsRerandomizing] = useState(false);
 
@@ -99,6 +130,60 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
     return () => unsubscribeUser();
   }, [uid, todayStr]);
 
+  // Load real-time Top 5 Daily Achievers
+  useEffect(() => {
+    const usersRef = ref(db, 'users');
+    const unsubscribeAchievers = onValue(usersRef, (snap) => {
+      if (!snap.exists()) return;
+      const usersData = snap.val();
+      const list: DailyAchiever[] = [];
+
+      Object.keys(usersData).forEach((uId) => {
+        const u = usersData[uId];
+        if (!u) return;
+
+        const userDailyList = u.daily_missions?.[todayStr]?.missions_list;
+        let completedCount = 0;
+        let totalMissions = 20;
+        let earnedPP = 0;
+
+        if (userDailyList) {
+          const mList: UserMission[] = Array.isArray(userDailyList) ? userDailyList : Object.values(userDailyList);
+          totalMissions = mList.length || 20;
+          mList.forEach((m) => {
+            if (m.claimed || (m.current >= m.target && m.target > 0)) {
+              completedCount++;
+              if (m.claimed) earnedPP += (m.reward || 0);
+            }
+          });
+        }
+
+        list.push({
+          uid: uId,
+          name: u.fullName || u.displayName || u.username || 'Sinh Viên S88',
+          avatar: u.avatarUrl || u.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+          completedCount,
+          totalMissions,
+          earnedPP,
+          level: u.level || 1,
+          role: u.role
+        });
+      });
+
+      // Sort descending by completed count, then earned PP
+      list.sort((a, b) => {
+        if (b.completedCount !== a.completedCount) {
+          return b.completedCount - a.completedCount;
+        }
+        return b.earnedPP - a.earnedPP;
+      });
+
+      setDailyAchievers(list.slice(0, 5));
+    });
+
+    return () => unsubscribeAchievers();
+  }, [todayStr]);
+
   const loadPool = async () => {
     try {
       const poolList = await getMissionsPool();
@@ -115,6 +200,25 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
     try {
       const res = await claimMissionReward(uid, missionId);
       if (res.success) {
+        // Trigger gold spark confetti animation
+        try {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 },
+            colors: ['#ffd700', '#00f0ff', '#ffb700', '#38ef7d']
+          });
+        } catch (e) {
+          // ignore if confetti fails
+        }
+
+        setJustClaimedId(missionId);
+        setClaimedRewardAmount(res.reward);
+        setTimeout(() => {
+          setJustClaimedId(null);
+          setClaimedRewardAmount(null);
+        }, 3000);
+
         onShowResult(
           'NHẬN THƯỞNG THÀNH CÔNG 🎉',
           `Bạn đã hoàn thành nhiệm vụ:\n"${title}"\nPhần thưởng: +${res.reward.toLocaleString()} PP và +40 XP Battle Pass!${
@@ -154,6 +258,15 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
     }
 
     if (count > 0) {
+      try {
+        confetti({
+          particleCount: 120,
+          spread: 90,
+          origin: { y: 0.5 },
+          colors: ['#ffd700', '#00f0ff', '#ffaa00', '#10b981']
+        });
+      } catch (e) {}
+
       onShowResult(
         'NHẬN TOÀN BỘ PHẦN THƯỞNG 🎉',
         `Bạn đã nhận thành công ${count} phần thưởng nhiệm vụ!\nTổng cộng cộng vào tài khoản: +${totalEarnedPP.toLocaleString()} PP!`,
@@ -349,6 +462,118 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
               +{totalRewardToday.toLocaleString()} PP
             </span>
           </div>
+        </div>
+      </div>
+
+      {/* 🏆 DAILY ACHIEVER LEADERBOARD — TOP 5 CAO THỦ CÀY NHIỆM VỤ */}
+      <div className="bg-gradient-to-r from-amber-950/40 via-slate-900 to-cyan-950/40 border border-amber-500/30 rounded-2xl p-4 shadow-[0_0_20px_rgba(245,158,11,0.15)] relative overflow-hidden space-y-3">
+        {/* Leaderboard Header */}
+        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-gradient-to-br from-amber-400 to-yellow-500 text-black rounded-xl shadow-[0_0_12px_rgba(250,204,21,0.6)]">
+              <Trophy className="w-5 h-5 text-black fill-current animate-bounce" />
+            </div>
+            <div>
+              <h3 className="font-black text-sm text-yellow-300 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                BẢNG VÀNG CAO THỦ CÀY NHIỆM VỤ (DAILY ACHIEVER LEADERBOARD)
+              </h3>
+              <p className="text-[11px] text-slate-400 font-sans">
+                Vinh danh Top 5 sinh viên xuất sắc nhất cày nhiều nhiệm vụ hằng ngày hôm nay ({todayStr})
+              </p>
+            </div>
+          </div>
+
+          <span className="px-2.5 py-1 bg-amber-500/20 border border-amber-400/40 text-amber-300 rounded-full font-mono font-bold text-[10px] uppercase flex items-center gap-1">
+            <Sparkles className="w-3 h-3 text-amber-300 animate-spin" /> LIVE TOP 5
+          </span>
+        </div>
+
+        {/* Top 5 Cards Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          {dailyAchievers.length === 0 ? (
+            <div className="col-span-full py-4 text-center text-xs text-slate-400 uppercase font-mono">
+              Chưa có sinh viên nào nhận thưởng nhiệm vụ hôm nay. Hãy là người đầu tiên! 🚀
+            </div>
+          ) : (
+            dailyAchievers.map((achiever, index) => {
+              const isTop1 = index === 0;
+              const isTop2 = index === 1;
+              const isTop3 = index === 2;
+
+              return (
+                <div
+                  key={achiever.uid}
+                  className={`p-3 rounded-xl border flex flex-col justify-between relative overflow-hidden transition-all duration-300 ${
+                    isTop1
+                      ? 'bg-gradient-to-b from-yellow-950/60 via-amber-900/30 to-black border-yellow-400 shadow-[0_0_20px_rgba(250,204,21,0.4)] ring-1 ring-yellow-400/60'
+                      : isTop2
+                        ? 'bg-gradient-to-b from-slate-800/80 to-black border-slate-300 shadow-[0_0_12px_rgba(203,213,225,0.3)]'
+                        : isTop3
+                          ? 'bg-gradient-to-b from-amber-950/40 to-black border-amber-700 shadow-[0_0_10px_rgba(180,83,9,0.3)]'
+                          : 'bg-black/60 border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  {/* Rank Crown/Badge */}
+                  <div className="flex items-center justify-between mb-2">
+                    <span className={`px-2 py-0.5 rounded-full font-mono font-black text-[10px] uppercase flex items-center gap-1 ${
+                      isTop1
+                        ? 'bg-yellow-400 text-black shadow-[0_0_10px_rgba(250,204,21,0.8)]'
+                        : isTop2
+                          ? 'bg-slate-300 text-black'
+                          : isTop3
+                            ? 'bg-amber-700 text-white'
+                            : 'bg-white/10 text-slate-300'
+                    }`}>
+                      {isTop1 ? '🥇 TOP 1' : isTop2 ? '🥈 TOP 2' : isTop3 ? '🥉 TOP 3' : `#${index + 1}`}
+                    </span>
+
+                    <span className="text-[10px] text-yellow-400 font-mono font-bold">
+                      +{achiever.earnedPP.toLocaleString()} PP
+                    </span>
+                  </div>
+
+                  {/* Avatar & Name */}
+                  <div className="flex items-center gap-2 my-1">
+                    <img
+                      src={achiever.avatar}
+                      alt={achiever.name}
+                      className={`w-9 h-9 rounded-full object-cover border-2 shrink-0 ${
+                        isTop1 ? 'border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'border-cyan-400/60'
+                      }`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <span className="font-bold text-xs text-white truncate block font-sans">
+                        {achiever.name}
+                      </span>
+                      <span className="text-[10px] text-cyan-300 font-mono block">
+                        Cấp {achiever.level}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Completion Bar */}
+                  <div className="mt-2 pt-2 border-t border-white/5 space-y-1">
+                    <div className="flex justify-between text-[10px] font-mono">
+                      <span className="text-slate-400 uppercase">Đã xong:</span>
+                      <span className="font-bold text-emerald-400">
+                        {achiever.completedCount}/{achiever.totalMissions}
+                      </span>
+                    </div>
+                    <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-white/10">
+                      <div
+                        className={`h-full rounded-full ${
+                          isTop1
+                            ? 'bg-gradient-to-r from-yellow-400 to-amber-300'
+                            : 'bg-gradient-to-r from-emerald-400 to-cyan-400'
+                        }`}
+                        style={{ width: `${Math.min((achiever.completedCount / (achiever.totalMissions || 20)) * 100, 100)}%` }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -591,6 +816,8 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
             {filteredMissions.map((m) => {
               const isCompleted = m.current >= m.target;
               const progressPct = Math.min((m.current / m.target) * 100, 100);
+              const isJustClaimed = justClaimedId === m.id;
+              const unitLabel = getMissionUnitLabel(m.type);
 
               return (
                 <motion.div
@@ -598,14 +825,41 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className={`p-4 rounded-2xl border transition-all relative flex flex-col justify-between gap-4 ${
-                    m.claimed
-                      ? 'bg-slate-950/40 border-white/5 opacity-60'
-                      : isCompleted
-                        ? 'bg-gradient-to-br from-emerald-950/20 to-slate-900 border-emerald-500/40 shadow-[0_0_15px_rgba(16,185,129,0.15)]'
-                        : 'bg-slate-900/60 border-white/10 hover:border-white/20'
+                  className={`p-4.5 rounded-2xl border transition-all duration-300 relative flex flex-col justify-between gap-4 ${
+                    isJustClaimed
+                      ? 'bg-gradient-to-br from-yellow-950/50 via-slate-900 to-amber-950/40 border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.6)] ring-2 ring-yellow-400/80 animate-pulse'
+                      : m.claimed
+                        ? 'bg-slate-950/40 border-white/5 opacity-60'
+                        : isCompleted
+                          ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-emerald-900/20 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
+                          : 'bg-slate-900/70 border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-[0_0_15px_rgba(0,240,255,0.1)]'
                   }`}
                 >
+                  {/* Floating Gold Reward Burst Badge on Claim Success */}
+                  <AnimatePresence>
+                    {isJustClaimed && (
+                      <motion.div
+                        initial={{ opacity: 0, scale: 0.5, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: -14 }}
+                        exit={{ opacity: 0, scale: 0.8, y: -25 }}
+                        className="absolute -top-4 right-4 z-20 px-3.5 py-1.5 bg-gradient-to-r from-yellow-400 via-amber-300 to-yellow-500 text-black font-mono font-black text-xs rounded-full shadow-[0_0_25px_rgba(234,179,8,1)] flex items-center gap-1.5 border border-yellow-200 uppercase tracking-wide"
+                      >
+                        <Sparkles className="w-4 h-4 text-black animate-spin" />
+                        +{claimedRewardAmount?.toLocaleString() || m.reward.toLocaleString()} PP ĐÃ CỘNG!
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+
+                  {/* Gold Screen Spark Halo Wave Effect */}
+                  {isJustClaimed && (
+                    <motion.div
+                      initial={{ opacity: 0.8, scale: 0.98 }}
+                      animate={{ opacity: 0, scale: 1.05 }}
+                      transition={{ duration: 1.2, repeat: Infinity }}
+                      className="absolute inset-0 rounded-2xl bg-yellow-400/10 pointer-events-none border border-yellow-400/60"
+                    />
+                  )}
+
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="shrink-0 p-2.5 bg-white/5 rounded-xl border border-white/10 shadow-inner">
@@ -631,33 +885,69 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                     </div>
                   </div>
 
-                  {/* Progress Bar & Status Action */}
-                  <div className="space-y-2 pt-2 border-t border-white/5">
+                  {/* Enhanced Visual Progress Bar Section */}
+                  <div className="space-y-2 pt-2.5 border-t border-white/5">
                     <div className="flex items-center justify-between text-xs font-mono">
-                      <span className="text-slate-400 text-[10px] uppercase">
-                        {m.claimed ? 'Đã thu hoạch' : isCompleted ? 'Đã đủ điều kiện!' : 'Tiến độ hoàn thành:'}
-                      </span>
-                      <span className="font-bold text-white">
-                        {m.current} / {m.target}
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        {m.claimed ? (
+                          <span className="text-slate-400 text-[10px] uppercase font-bold flex items-center gap-1">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            Đã thu hoạch quà
+                          </span>
+                        ) : isCompleted ? (
+                          <span className="text-emerald-400 text-[10px] uppercase font-bold flex items-center gap-1">
+                            <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
+                            Đã đủ điều kiện nhận thưởng!
+                          </span>
+                        ) : (
+                          <span className="text-cyan-300 text-[10px] uppercase font-bold flex items-center gap-1">
+                            <Target className="w-3.5 h-3.5 text-cyan-400" />
+                            Tiến độ: <strong className="text-white font-mono">{m.current}/{m.target}</strong> {unitLabel}
+                          </span>
+                        )}
+                      </div>
+
+                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                        m.claimed
+                          ? 'bg-slate-800 border-slate-700 text-slate-400'
+                          : isCompleted
+                            ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
+                            : 'bg-cyan-500/20 border-cyan-500/40 text-cyan-300'
+                      }`}>
+                        {Math.round(progressPct)}%
                       </span>
                     </div>
 
-                    <div className="w-full bg-black/60 rounded-full h-2 overflow-hidden border border-white/5">
+                    {/* Progress Track & Bar */}
+                    <div className="w-full bg-slate-950 border border-white/10 rounded-full h-3 p-0.5 overflow-hidden shadow-inner relative">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${progressPct}%` }}
-                        transition={{ duration: 0.6 }}
-                        className={`h-full rounded-full ${
+                        transition={{ duration: 0.6, ease: 'easeOut' }}
+                        className={`h-full rounded-full relative transition-all ${
                           m.claimed
                             ? 'bg-slate-600'
                             : isCompleted
-                              ? 'bg-gradient-to-r from-emerald-400 to-green-300 shadow-[0_0_8px_rgba(16,185,129,0.8)]'
-                              : 'bg-gradient-to-r from-cyan-500 to-blue-400'
+                              ? 'bg-gradient-to-r from-emerald-500 via-emerald-400 to-green-300 shadow-[0_0_12px_rgba(16,185,129,0.8)]'
+                              : 'bg-gradient-to-r from-[#00f0ff] via-cyan-400 to-blue-500 shadow-[0_0_12px_rgba(0,240,255,0.7)]'
                         }`}
-                      />
+                      >
+                        {/* Shimmer Light Strip for Active Progress */}
+                        {!m.claimed && (
+                          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
+                        )}
+                      </motion.div>
                     </div>
 
-                    <div className="pt-1 flex items-center justify-end">
+                    {/* Helper status footnote for incomplete missions */}
+                    {!isCompleted && !m.claimed && (
+                      <div className="text-[10px] text-slate-400 font-sans flex items-center justify-between">
+                        <span>Còn thiếu <strong className="text-cyan-300 font-mono font-bold">{m.target - m.current}</strong> {unitLabel}</span>
+                        <span className="text-amber-400/90 font-mono">Thưởng +{m.reward.toLocaleString()} PP</span>
+                      </div>
+                    )}
+
+                    <div className="pt-1.5 flex items-center justify-end">
                       {m.claimed ? (
                         <span className="py-1 px-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 font-bold text-xs uppercase rounded-lg flex items-center gap-1.5">
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
@@ -667,10 +957,10 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                         <button
                           onClick={() => handleClaimReward(m.id, m.title)}
                           disabled={claimingId !== null}
-                          className="py-2 px-5 bg-gradient-to-r from-yellow-400 to-amber-500 hover:from-yellow-300 hover:to-amber-400 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_15px_rgba(234,179,8,0.5)] transition-all cursor-pointer animate-pulse active:scale-95 flex items-center gap-1.5"
+                          className="py-2.5 px-6 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:from-yellow-300 hover:to-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.6)] transition-all cursor-pointer animate-bounce active:scale-95 flex items-center gap-2 border border-yellow-200"
                         >
-                          <Coins className="w-4 h-4 text-black" />
-                          {claimingId === m.id ? 'Đang Xử Lý...' : 'Nhận Thưởng Ngay'}
+                          <Coins className="w-4 h-4 text-black fill-current animate-spin" />
+                          {claimingId === m.id ? 'Đang Xử Lý...' : 'Nhận Thưởng Ngay 🎉'}
                         </button>
                       ) : (
                         <span className="py-1 px-3 bg-white/5 border border-white/5 text-slate-500 font-bold text-xs uppercase rounded-lg">

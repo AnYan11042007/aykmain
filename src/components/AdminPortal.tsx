@@ -10,6 +10,7 @@ import { User, Quest, Report } from '../types';
 import { Shield, Users, Ticket, Plus, Check, Play, Square, Ban, Trash2, Award, Zap, AlertTriangle, Settings, Coins, LayoutGrid, RefreshCw, Sparkles } from 'lucide-react';
 import AdminUserManage from './AdminUserManage';
 import { BALANCED_BP_TIERS, BPTier } from './BattlePassPortal';
+import { broadcastDailyMissionsToAllUsers } from '../utils/missions';
 
 interface AdminPortalProps {
   uid: string;
@@ -295,21 +296,14 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
       alert('Bể nhiệm vụ đang rỗng, vui lòng thêm ít nhất 1 nhiệm vụ!');
       return;
     }
-    if (!confirm('Bạn có chắc muốn trộn ngẫu nhiên và ban hành 10 nhiệm vụ mới cho ngày hôm nay không?')) return;
+    if (!confirm('Bạn có chắc muốn xáo trộn và ban hành nhiệm vụ hằng ngày mới cho toàn bộ sinh viên không?')) return;
     setIsLoading(true);
     try {
-      // Pick 10 random missions
-      const shuffled = [...missionsPool].sort(() => 0.5 - Math.random());
-      const selected = shuffled.slice(0, 10);
-      
-      // Seed these to a special global path if desired, or let users fetch individually.
-      // Since users fetch from their own path, they can get the refreshed pool instantly on next reload or login.
-      // To force-reset active missions for current players today, we can delete the todayStr node for all active users OR set a global flag to refresh!
-      // Actually, updating the global daily_missions_pool is already awesome, and we can reset all active user missions today!
-      // But let's keep it simple: any player who hasn't cleared their today missions or on reset will fetch the fresh random pool.
-      // We can also wipe the current today's list of missions in DB under daily_missions_pool to let admins customize exactly what today's 10 missions are!
+      const count = await broadcastDailyMissionsToAllUsers(missionsPool);
       if (onShowResult) {
-        onShowResult('ĐÃ BAN HÀNH', `Hệ thống đã xáo trộn và kích hoạt ngẫu nhiên các nhiệm vụ mới từ bể ${missionsPool.length} nhiệm vụ!`, true);
+        onShowResult('ĐÃ BAN HÀNH NHIỆM VỤ 🎉', `Hệ thống đã ban hành bộ nhiệm vụ mới từ bể cho ${count} tài khoản sinh viên!`, true);
+      } else {
+        alert(`Đã ban hành nhiệm vụ cho ${count} sinh viên thành công!`);
       }
     } catch (err) {
       alert('Lỗi trộn nhiệm vụ!');

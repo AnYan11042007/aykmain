@@ -8,6 +8,7 @@ import { get, ref, onValue, update, remove, push } from 'firebase/database';
 import { db } from '../../firebase';
 import { X, Trophy, Swords, Zap } from 'lucide-react';
 import { User, TienLenRoom } from '../../types';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface TienLenModalProps {
   uid: string;
@@ -272,6 +273,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
 
   const handlePlayCards = async () => {
     if (!room || room.status !== 'PLAYING' || room.turnIdx === undefined || !room.activePlayers) return;
+    incrementMissionProgress(uid, 'tienlen_match');
 
     const activeUids = room.activePlayers;
     const currentTurnUid = activeUids[room.turnIdx];

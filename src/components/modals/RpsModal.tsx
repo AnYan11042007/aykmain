@@ -8,6 +8,7 @@ import { get, ref, onValue, update, remove, push } from 'firebase/database';
 import { db } from '../../firebase';
 import { X, Trophy, Swords, Zap } from 'lucide-react';
 import { User, RpsRoom } from '../../types';
+import { incrementMissionProgress } from '../../utils/missions';
 
 interface RpsModalProps {
   uid: string;
@@ -56,6 +57,7 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
 
   const handleMakeChoice = async (choice: 'KEO' | 'BUA' | 'BAO') => {
     if (!room || room.status !== 'PLAYING') return;
+    incrementMissionProgress(uid, 'rps_match');
 
     const isP1 = uid === room.p1;
     const isP2 = uid === room.p2;
