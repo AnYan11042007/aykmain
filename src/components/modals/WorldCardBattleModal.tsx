@@ -2075,7 +2075,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const playSound = (type: 'attack' | 'skill' | 'heal' | 'stun' | 'victory' | 'critical') => {
+  const playSound = (type: 'attack' | 'skill' | 'heal' | 'stun' | 'victory' | 'critical' | 'card' | 'turn') => {
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -2098,6 +2098,22 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
         osc.start(now);
         osc.stop(now + 0.35);
+      } else if (type === 'card') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(400, now);
+        osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.1);
+        osc.start(now);
+        osc.stop(now + 0.1);
+      } else if (type === 'turn') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(300, now);
+        osc.frequency.setValueAtTime(500, now + 0.1);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.2);
+        osc.start(now);
+        osc.stop(now + 0.2);
       } else if (type === 'attack') {
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(350, now);
