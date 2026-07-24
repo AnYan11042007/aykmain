@@ -372,7 +372,7 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
                   <span className="text-xs bg-red-600 text-white font-mono px-2.5 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(239,68,68,0.5)]">ARENA LIVE</span>
                 </h3>
                 <p className="text-xs text-purple-200/90 max-w-xl leading-relaxed font-sans">
-                  Giao tranh thẻ bài Công / Thủ / Đặc biệt đỉnh cao thời gian thực. Tạo phòng thách đấu 1v1, cược PP, thi triển tuyệt kỹ thẻ bài hoặc tham gia khán đài xem trực tiếp cổ vũ!
+                  Giao tranh thẻ bài Công / Thủ / Đặc biệt đỉnh cao thời gian thực. Tạo phòng thách đấu 1v1, cược PP, thi triển tuyệt kỹ thẻ bài và xưng vương Đấu Trường!
                 </p>
               </div>
 
@@ -382,12 +382,6 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
                   className="px-6 py-3.5 bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 hover:from-purple-500 hover:to-indigo-500 text-white font-mono font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-[0_0_25px_rgba(168,85,247,0.6)] hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
                 >
                   <Swords className="w-4 h-4 animate-bounce text-yellow-300" /> TẠO PHÒNG / THÁCH ĐẤU 1V1
-                </button>
-                <button
-                  onClick={() => onOpenGame('world_card_battle')}
-                  className="px-5 py-3.5 bg-black/60 hover:bg-purple-900/40 border border-purple-400/40 text-purple-200 font-mono font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-2"
-                >
-                  <Users className="w-4 h-4 text-purple-400" /> VÀO KHÁN ĐÀI LIVE
                 </button>
               </div>
             </div>

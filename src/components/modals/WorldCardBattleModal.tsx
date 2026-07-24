@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Shield, Zap, Swords, Heart, Sparkles, Eye, Trophy, RefreshCw, Send, Volume2, Users, Bot, BarChart2, Layers, Clock, Info } from 'lucide-react';
+import { X, Shield, Zap, Swords, Heart, Sparkles, Eye, Trophy, RefreshCw, Send, Volume2, Users, Bot, BarChart2, Layers, Clock, Info, History, Flag } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { db } from '../../firebase';
 import { ref, onValue, set, update, push, remove, get } from 'firebase/database';
@@ -46,6 +46,96 @@ export const FULL_CARD_POOL: CardItem[] = [
     energyCost: 2,
     color: 'from-amber-400 via-rose-500 via-fuchsia-600 to-cyan-500',
     avatarUrl: 'https://i.pinimg.com/736x/8f/c1/9d/8fc19d4b005612c6a0c20165b6f3796d.jpg'
+  },
+  {
+    id: 'c_ss2',
+    name: 'S88 THẦN MA BÁ CHỦ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Cực Bá',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 300,
+    def: 280,
+    skillName: 'THẦN MA GIÁNG THẾ & VÔ ĐỊCH',
+    skillDesc: 'CỰC BÁ SS! Hồi +200 HP, nhận +200 Giáp, hồi +3 Năng Lượng & giáng 250 Sát Thương Bộc Phá Xuyên Giáp đối thủ!',
+    energyCost: 1,
+    color: 'from-amber-300 via-yellow-400 via-rose-500 to-cyan-400',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQ80tdgZOlw_GNH-QOddy5LJk7sAc9OsOOcRMaUnNn8KQ&s=10'
+  },
+  {
+    id: 'c_new1',
+    name: 'Rồng Thần Cuồng Nổ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Bá Đạo',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 210,
+    def: 120,
+    skillName: 'Pháo Hồng Liên Vô Tận',
+    skillDesc: 'Phẩm Cấp S! Xuyên 60% giáp & bộc phát +150 sát thương chấn động!',
+    energyCost: 2,
+    color: 'from-amber-500 via-rose-600 to-red-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTURoWwgIVorOhqsOgjOGlrLMMX35rUhTsDmNx6WUWqCg&s=10'
+  },
+  {
+    id: 'c_new2',
+    name: 'Nữ Thần Ánh Sáng',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Cao Cấp',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 110,
+    def: 160,
+    skillName: 'Thánh Quang Phục Sinh',
+    skillDesc: 'Phẩm Cấp A! Hồi +100 HP, nhận +100 Giáp Bảo Hộ & hồi +1 Năng Lượng!',
+    energyCost: 2,
+    color: 'from-cyan-400 via-sky-500 to-indigo-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT6RaCPmYXp5nJ-OSq83mE7mY6JISjtMOjKkWt1MxbtiQ&s=10'
+  },
+  {
+    id: 'c_new3',
+    name: 'Ma Kiếm Hắc Ảo',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Sắc Lẻm',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 140,
+    def: 70,
+    skillName: 'Truy Hồn Xạ Kích',
+    skillDesc: 'Phẩm Cấp B! Chém liên hoàn 3 nhát gây sát thương bộc phá lớn!',
+    energyCost: 1,
+    color: 'from-purple-500 via-fuchsia-700 to-slate-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQMPotmGn9MXFT9fLr7Qu0Oqa3XCiLhS7lv0C_rgehb3A&s=10'
+  },
+  {
+    id: 'c_new4',
+    name: 'Khiên Băng Cổ Đại',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Kiên Cố',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 40,
+    def: 150,
+    skillName: 'Băng Phong Giáp',
+    skillDesc: 'Phẩm Cấp C! Tạo lớp giáp băng +80 Giáp & hồi +30 HP kiên cố!',
+    energyCost: 1,
+    color: 'from-blue-500 via-cyan-700 to-stone-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR8qVl0mOE1g3IaeaXSAUg19djoSDu-Lykhjp_9gEMpGA&s=10'
+  },
+  {
+    id: 'c_new5',
+    name: 'Đế Vương Vũ Trụ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Siêu Cấp',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 220,
+    def: 190,
+    skillName: 'Vũ Trụ Huỷ Diệt',
+    skillDesc: 'Phẩm Cấp S! Tăng +150 ATK & tước đoạt -2 Năng Lượng của đối thủ!',
+    energyCost: 2,
+    color: 'from-yellow-400 via-amber-600 to-purple-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTKnB0hDOxKbPPAnc9fFor9uQtQky32E9fQFhb8xuOv-Q&s=10'
   },
   {
     id: 'c1',
@@ -1549,8 +1639,8 @@ export const FULL_CARD_POOL: CardItem[] = [
   }
 ];
 
-// 50 BALANCED CARDS ARENA DECK FOR MATCH PLAY
-export const CARD_DECK: CardItem[] = FULL_CARD_POOL.slice(0, 50);
+// 100+ BALANCED CARDS ARENA DECK FOR MATCH PLAY
+export const CARD_DECK: CardItem[] = FULL_CARD_POOL;
 
 export const drawRandomCard = (): CardItem => {
   const card = CARD_DECK[Math.floor(Math.random() * CARD_DECK.length)];
@@ -1559,6 +1649,98 @@ export const drawRandomCard = (): CardItem => {
     instanceId: `${card.id}_${Math.random().toString(36).substring(2, 8)}`,
     used: false
   };
+};
+
+export const getCardElement = (card?: CardItem): { key: string; name: string; icon: string; color: string } => {
+  if (!card) return { key: 'PHYSICAL', name: 'Vật Lý', icon: '⚔️', color: 'text-amber-400' };
+  const str = (card.name + ' ' + card.skillName + ' ' + card.skillDesc).toLowerCase();
+  if (str.includes('lửa') || str.includes('hỏa') || str.includes('rồng') || str.includes('hồng liên') || str.includes('nổ')) {
+    return { key: 'FIRE', name: 'Hỏa (Lửa)', icon: '🔥', color: 'text-red-400' };
+  }
+  if (str.includes('gió') || str.includes('phong') || str.includes('vũ') || str.includes('bão')) {
+    return { key: 'WIND', name: 'Phong (Gió)', icon: '🌪️', color: 'text-teal-300' };
+  }
+  if (str.includes('sét') || str.includes('lôi') || str.includes('điện') || str.includes('sốc')) {
+    return { key: 'LIGHTNING', name: 'Lôi (Sét)', icon: '⚡', color: 'text-yellow-300' };
+  }
+  if (str.includes('băng') || str.includes('tuyết') || str.includes('thủy') || str.includes('nước')) {
+    return { key: 'ICE', name: 'Băng Thủy', icon: '❄️', color: 'text-cyan-300' };
+  }
+  if (str.includes('độc') || str.includes('hắc') || str.includes('ma') || str.includes('quỷ') || str.includes('âm')) {
+    return { key: 'DARK', name: 'Hắc Âm', icon: '☠️', color: 'text-purple-400' };
+  }
+  if (str.includes('thánh') || str.includes('quang') || str.includes('thần') || str.includes('vương') || str.includes('dương')) {
+    return { key: 'LIGHT', name: 'Thần Quang', icon: '👑', color: 'text-amber-300' };
+  }
+  return { key: 'PHYSICAL', name: 'Vật Lý', icon: '⚔️', color: 'text-amber-400' };
+};
+
+export const getComboEffect = (myCard?: CardItem, myHand: CardItem[] = []) => {
+  if (!myCard) return null;
+  const myElem = getCardElement(myCard);
+  const handElements = myHand.map(c => getCardElement(c).key);
+
+  if (myElem.key === 'FIRE' && (handElements.includes('WIND') || myCard.role === 'ATTACK')) {
+    return {
+      id: 'combo_fire_wind',
+      title: '🔥🌪️ COMBO PHONG HỎA LIÊN THÀNH',
+      subtitle: 'Bộc phá Sát Thương x1.40 & Xuyên 30% Giáp!',
+      badge: '🔥🌪️ PHONG HỎA LIÊN THÀNH',
+      color: 'from-orange-500 via-red-600 to-amber-500',
+      dmgMult: 1.4,
+      flash: 'GOLD' as const
+    };
+  }
+
+  if (myElem.key === 'LIGHTNING' || handElements.includes('DARK')) {
+    return {
+      id: 'combo_elec_dark',
+      title: '⚡☠️ COMBO L雷 ĐỘC BẠO KÍCH',
+      subtitle: 'Sát Thương Bộc Phá x1.35 & Giảm -50% Giáp!',
+      badge: '⚡☠️ L雷 ĐỘC BẠO KÍCH',
+      color: 'from-yellow-400 via-purple-600 to-fuchsia-600',
+      dmgMult: 1.35,
+      flash: 'CYAN' as const
+    };
+  }
+
+  if (myElem.key === 'ICE' || handElements.includes('ICE')) {
+    return {
+      id: 'combo_ice_water',
+      title: '💧❄️ COMBO BĂNG PHONG TUYỆT ĐỐI',
+      subtitle: 'Tăng +25% Sát Thương & Hồi +40 HP!',
+      badge: '💧❄️ BĂNG PHONG TUYỆT ĐỐI',
+      color: 'from-cyan-400 via-blue-600 to-indigo-600',
+      dmgMult: 1.25,
+      flash: 'CYAN' as const
+    };
+  }
+
+  if (myElem.key === 'LIGHT' && myCard.rarity === 'SS') {
+    return {
+      id: 'combo_yin_yang',
+      title: '☯️👑 COMBO ÂM DƯƠNG VƯƠNG GIẢ',
+      subtitle: 'Sát Thương Tối Thượng x1.60 Xuyên Giáp Tuyệt Đối!',
+      badge: '☯️👑 ÂM DƯƠNG VƯƠNG GIẢ',
+      color: 'from-amber-300 via-rose-500 to-cyan-400',
+      dmgMult: 1.6,
+      flash: 'GOLD' as const
+    };
+  }
+
+  if (myCard.role === 'ATTACK' && myHand.filter(c => c.role === 'ATTACK').length >= 2) {
+    return {
+      id: 'combo_double_strike',
+      title: '⚔️⚔️ COMBO TRẢM LIÊN HOÀN',
+      subtitle: 'Liên Hoàn Tấn Công: +25% Sát Thương Bộc Phá!',
+      badge: '⚔️⚔️ TRẢM LIÊN HOÀN',
+      color: 'from-rose-600 via-red-600 to-amber-600',
+      dmgMult: 1.25,
+      flash: 'RED' as const
+    };
+  }
+
+  return null;
 };
 
 // STAT POWER BALANCE CALCULATOR
@@ -1807,16 +1989,93 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   const [isAttacking, setIsAttacking] = useState<boolean>(false);
   const [cardRevealed, setCardRevealed] = useState<boolean>(false);
   const [floatingEffects, setFloatingEffects] = useState<Array<{ id: string; text: string; emoji: string }>>([]);
+  const [damageFloats, setDamageFloats] = useState<Array<{ id: string; damage: number; target: 'p1' | 'p2'; isCritical?: boolean }>>([]);
+  const [matchHistory, setMatchHistory] = useState<Array<{ id: string; opponentName: string; opponentAvatar: string; result: 'WIN' | 'LOSS'; timestamp: number }>>([]);
+  const [activeRoomsList, setActiveRoomsList] = useState<any[]>([]);
+  const recordedMatchIdsRef = useRef<Set<string>>(new Set());
+
+  // Fetch all active rooms list from Firebase DB for Lobby
+  useEffect(() => {
+    const matchesRef = ref(db, 'matches');
+    const unsub = onValue(matchesRef, (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        const list = Object.entries(data)
+          .map(([id, room]: [string, any]) => ({ id, ...room }))
+          .filter(r => r && r.p1 && (r.status === 'WAITING' || r.status === 'BETTING' || r.status === 'PLAYING'))
+          .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+        setActiveRoomsList(list);
+      } else {
+        setActiveRoomsList([]);
+      }
+    });
+
+    return () => unsub();
+  }, []);
+
+  // --- FAST & SATISFYING VISUAL IMPACT EFFECTS (SHAKE, FLASH, ZOOM, COMBO POPUP) ---
+  const [battleTab, setBattleTab] = useState<'log' | 'combo' | 'buff' | 'chat'>('log');
+  const [isScreenShaking, setIsScreenShaking] = useState<boolean>(false);
+  const [criticalFlashType, setCriticalFlashType] = useState<'RED' | 'GOLD' | 'CYAN' | null>(null);
+  const [impactZoom, setImpactZoom] = useState<boolean>(false);
+  const [comboPopup, setComboPopup] = useState<{ title: string; subtitle: string; damage: number; rarity?: string } | null>(null);
+
+  const triggerDamageFloat = (target: 'p1' | 'p2', damage: number, isCritical: boolean = false) => {
+    if (damage <= 0) return;
+    const id = `dmg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`;
+    setDamageFloats((prev) => [...prev, { id, damage, target, isCritical }]);
+    setTimeout(() => {
+      setDamageFloats((prev) => prev.filter((item) => item.id !== id));
+    }, 1600);
+  };
+
+  const triggerImpactEffects = (damage: number, isCritical: boolean = false, cardRarity: string = 'C', cardName: string = '') => {
+    // 1. Screen Shake
+    setIsScreenShaking(true);
+    setTimeout(() => setIsScreenShaking(false), 450);
+
+    // 2. Zoom Impact
+    setImpactZoom(true);
+    setTimeout(() => setImpactZoom(false), 450);
+
+    // 3. Screen Flash & Combo Popup
+    if (isCritical || damage >= 70 || cardRarity === 'S' || cardRarity === 'SS') {
+      const flashColor = cardRarity === 'SS' ? 'CYAN' : isCritical ? 'RED' : 'GOLD';
+      setCriticalFlashType(flashColor);
+      setTimeout(() => setCriticalFlashType(null), 550);
+
+      playSound('critical');
+
+      let title = '💥 CRITICAL HIT!';
+      let subtitle = `SÁT THƯƠNG CHÍ MẠNG -${damage} HP!`;
+      if (cardRarity === 'SS') {
+        title = '👑 SIÊU COMBO SS-RANK!';
+        subtitle = `TUYỆT KỸ TỐI THƯỢNG [${cardName}] -${damage} HP!`;
+      } else if (cardRarity === 'S') {
+        title = '🔥 COMBO S-RANK HUYỀN THOẠI!';
+        subtitle = `BỘC PHÁ [${cardName}] -${damage} HP!`;
+      } else if (damage >= 100) {
+        title = '⚡ SÁT THƯƠNG SIÊU CẤP!';
+        subtitle = `TRUY HỒN ĐOẠT MỆNH -${damage} HP!`;
+      }
+
+      setComboPopup({ title, subtitle, damage, rarity: cardRarity });
+      setTimeout(() => setComboPopup(null), 1300);
+    } else {
+      playSound('attack');
+    }
+  };
+
   const [showCompendium, setShowCompendium] = useState<boolean>(false);
   const [compendiumFilter, setCompendiumFilter] = useState<'ALL' | 'ATTACK' | 'DEFENSE' | 'SUPPORT'>('ALL');
-  const [turnSeconds, setTurnSeconds] = useState<number>(20);
+  const [turnSeconds, setTurnSeconds] = useState<number>(15);
   const [inspectedCard, setInspectedCard] = useState<CardItem | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [searchSeconds, setSearchSeconds] = useState<number>(60);
 
   const audioCtxRef = useRef<AudioContext | null>(null);
 
-  const playSound = (type: 'attack' | 'skill' | 'heal' | 'stun' | 'victory') => {
+  const playSound = (type: 'attack' | 'skill' | 'heal' | 'stun' | 'victory' | 'critical') => {
     try {
       if (!audioCtxRef.current) {
         audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
@@ -1831,7 +2090,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
       const now = ctx.currentTime;
 
-      if (type === 'attack') {
+      if (type === 'critical') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(60, now + 0.35);
+        gain.gain.setValueAtTime(0.5, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+        osc.start(now);
+        osc.stop(now + 0.35);
+      } else if (type === 'attack') {
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(350, now);
         osc.frequency.exponentialRampToValueAtTime(80, now + 0.2);
@@ -1904,7 +2171,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     if (roomData.turn === 'p2' && roomData.p2?.isBot) {
       const timer = setTimeout(() => {
         executeAiTurn();
-      }, 1200);
+      }, 600);
       return () => clearTimeout(timer);
     }
   }, [roomData?.turn, roomData?.status, roomData?.p2?.isBot]);
@@ -1925,6 +2192,94 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       }, 350);
     }
   }, [roomData?.status, roomData?.winnerId]);
+
+  // Sync Match History from Firebase for Current User
+  useEffect(() => {
+    if (!uid) return;
+    const histRef = ref(db, `match_history/${uid}`);
+    const unsub = onValue(histRef, (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        const list = Object.entries(val).map(([k, v]: [string, any]) => ({
+          id: k,
+          ...v
+        }));
+        list.sort((a, b) => b.timestamp - a.timestamp);
+        setMatchHistory(list.slice(0, 5));
+      } else {
+        setMatchHistory([]);
+      }
+    });
+    return () => unsub();
+  }, [uid]);
+
+  // Record Match Outcome to Firebase & Update User PP (+ for Win, - for Loss)
+  useEffect(() => {
+    if (roomData?.status === 'FINISHED' && roomData?.winnerId && roomData?.id) {
+      if (uid && roomData.processedUsers?.[uid]) return;
+      const recordKey = `${roomData.id}_${uid}`;
+      if (recordedMatchIdsRef.current.has(recordKey)) return;
+      recordedMatchIdsRef.current.add(recordKey);
+
+      if (uid) {
+        update(ref(db, `matches/${roomData.id}/processedUsers`), {
+          [uid]: true
+        }).catch(() => {});
+      }
+
+      const winnerId = roomData.winnerId;
+      const p1Obj = roomData.p1;
+      const p2Obj = roomData.p2;
+
+      const betAmt = p1Obj?.bet || p2Obj?.bet || (roomData.totalPot ? Math.floor(roomData.totalPot / 2) : 5000);
+
+      // Update local user's PP in Firebase
+      if (uid) {
+        const isWin = winnerId === uid;
+        const userRef = ref(db, `users/${uid}`);
+        get(userRef).then((snap) => {
+          if (snap.exists()) {
+            const currentPP = snap.val().pp || 0;
+            const newPP = isWin ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
+            update(userRef, { pp: newPP }).catch(() => {});
+          }
+        }).catch(() => {});
+
+        if (onShowResult) {
+          onShowResult(
+            isWin ? '🏆 BẠN THẮNG TRẬN ĐẤU THẺ!' : '💀 BẠN THẤT BẠI ĐẤU THẺ!',
+            isWin ? `Thưởng chiến thắng: +${betAmt.toLocaleString('vi-VN')} PP!` : `Tiền cược đã mất: -${betAmt.toLocaleString('vi-VN')} PP!`,
+            isWin
+          );
+        }
+      }
+
+      if (p1Obj && p2Obj) {
+        if (p1Obj.id && !p1Obj.isBot) {
+          const isP1Win = winnerId === p1Obj.id;
+          push(ref(db, `match_history/${p1Obj.id}`), {
+            matchId: roomData.id,
+            opponentName: p2Obj.name || 'Đối Thủ',
+            opponentAvatar: p2Obj.avatar || '',
+            result: isP1Win ? 'WIN' : 'LOSS',
+            ppChange: isP1Win ? +betAmt : -betAmt,
+            timestamp: Date.now()
+          }).catch(() => {});
+        }
+        if (p2Obj.id && !p2Obj.isBot) {
+          const isP2Win = winnerId === p2Obj.id;
+          push(ref(db, `match_history/${p2Obj.id}`), {
+            matchId: roomData.id,
+            opponentName: p1Obj.name || 'Đối Thủ',
+            opponentAvatar: p1Obj.avatar || '',
+            result: isP2Win ? 'WIN' : 'LOSS',
+            ppChange: isP2Win ? +betAmt : -betAmt,
+            timestamp: Date.now()
+          }).catch(() => {});
+        }
+      }
+    }
+  }, [roomData?.status, roomData?.winnerId, roomData?.id, roomData?.processedUsers, uid]);
 
   // 60-Second Solo Matchmaking Countdown Hook with Auto AI Fallback
   useEffect(() => {
@@ -1985,6 +2340,89 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     });
     setChatInput('');
   };
+
+  // --- 30-SECOND MATCH WAGER / BET SELECTION HOOK ---
+  const [wagerSeconds, setWagerSeconds] = useState<number>(30);
+
+  const handleSelectBet = async (amount: number) => {
+    if (!roomId || !myPlayerKey) return;
+    const roomRef = ref(db, `matches/${roomId}`);
+    await update(roomRef, {
+      [`${myPlayerKey}/bet`]: amount
+    });
+  };
+
+  const handleConfirmBet = async () => {
+    if (!roomId || !myPlayerKey) return;
+    const roomRef = ref(db, `matches/${roomId}`);
+    await update(roomRef, {
+      [`${myPlayerKey}/betConfirmed`]: true
+    });
+  };
+
+  useEffect(() => {
+    if (roomData?.status !== 'BETTING') return;
+
+    setWagerSeconds(30);
+
+    // AI Bot auto confirms bet if opponent is bot
+    if (roomData?.p2?.isBot && !roomData?.p2?.betConfirmed) {
+      const aiTimer = setTimeout(() => {
+        const myBet = roomData?.p1?.bet || 5000;
+        const roomRef = ref(db, `matches/${roomId}`);
+        update(roomRef, {
+          'p2/bet': myBet,
+          'p2/betConfirmed': true
+        });
+      }, 1200);
+      return () => clearTimeout(aiTimer);
+    }
+
+    const p1Conf = roomData?.p1?.betConfirmed;
+    const p2Conf = roomData?.p2?.betConfirmed;
+
+    if (p1Conf && p2Conf) {
+      const p1Bet = roomData?.p1?.bet || 5000;
+      const p2Bet = roomData?.p2?.bet || 5000;
+      const totalPot = p1Bet + p2Bet;
+      const roomRef = ref(db, `matches/${roomId}`);
+      update(roomRef, {
+        status: 'PLAYING',
+        totalPot: totalPot,
+        combatLogs: [
+          ...(roomData.combatLogs || []).slice(-10),
+          `💰 [CHỐT CƯỢC THÀNH CÔNG]: P1 (${p1Bet.toLocaleString('vi-VN')} PP) + P2 (${p2Bet.toLocaleString('vi-VN')} PP) = Tổng Quỹ Thưởng Bài Vương ${totalPot.toLocaleString('vi-VN')} PP! BẮT ĐẦU ĐẤU YU-GI-OH!`
+        ]
+      });
+      return;
+    }
+
+    const interval = setInterval(() => {
+      setWagerSeconds((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          const p1Bet = roomData?.p1?.bet || 5000;
+          const p2Bet = roomData?.p2?.bet || 5000;
+          const totalPot = p1Bet + p2Bet;
+          const roomRef = ref(db, `matches/${roomId}`);
+          update(roomRef, {
+            'p1/betConfirmed': true,
+            'p2/betConfirmed': true,
+            status: 'PLAYING',
+            totalPot: totalPot,
+            combatLogs: [
+              ...(roomData.combatLogs || []).slice(-10),
+              `⏱️ [HẾT 30S ĐẶT CƯỢC]: Tự động chốt cược! Tổng Tiền Thưởng = ${totalPot.toLocaleString('vi-VN')} PP! BẮT ĐẦU ĐẤU YU-GI-OH!`
+            ]
+          });
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [roomData?.status, roomData?.p1?.betConfirmed, roomData?.p2?.betConfirmed, roomData?.p1?.bet, roomId]);
 
   // --- REALTIME BETTING POOL HOOK ---
   const [bettingPool, setBettingPool] = useState<{ totalPot: number; userContributions: Record<string, number> }>({
@@ -2059,11 +2497,19 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     });
   };
 
-  // 20-Second Selection Timer Loop for PvP & AI Matches
+  // 15-Second Selection Timer Loop for Fast 30-60s Gameplay (Auto AI response in 800ms)
   useEffect(() => {
     if (!roomData || roomData.status !== 'PLAYING') return;
 
-    setTurnSeconds(20);
+    setTurnSeconds(15);
+
+    // Fast AI Bot Response in 800ms for fast action
+    if (roomData.turn === 'p2' && roomData.p2?.isBot) {
+      const aiTimer = setTimeout(() => {
+        executeAiTurn();
+      }, 800);
+      return () => clearTimeout(aiTimer);
+    }
 
     const interval = setInterval(() => {
       setTurnSeconds((prev) => {
@@ -2071,8 +2517,6 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           clearInterval(interval);
           if (isMyTurn && !isAttacking) {
             handleNormalAttack();
-          } else if (roomData.turn === 'p2' && roomData.p2?.isBot) {
-            executeAiTurn();
           }
           return 0;
         }
@@ -2137,6 +2581,12 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       updates['p2/shield'] = skillRes.selfShield;
       updates['p2/energy'] = skillRes.selfEnergy;
 
+      const aiSkillDmg = Math.max(0, (opp?.hp || 300) - skillRes.oppHp);
+      if (aiSkillDmg > 0) {
+        triggerDamageFloat('p1', aiSkillDmg, true);
+        triggerImpactEffects(aiSkillDmg, true, aiCard.rarity, aiCard.skillName);
+      }
+
       if (skillRes.isOpponentDead) {
         updates.status = 'FINISHED';
         updates.winnerId = me.id;
@@ -2164,6 +2614,11 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           actualDmg -= newShield;
           newShield = 0;
         }
+      }
+
+      if (actualDmg > 0) {
+        triggerDamageFloat('p1', actualDmg, aiCard.rarity === 'SS' || aiCard.rarity === 'S');
+        triggerImpactEffects(actualDmg, aiCard.rarity === 'SS' || aiCard.rarity === 'S', aiCard.rarity, aiCard.name);
       }
 
       const newOppHp = Math.max(0, opp.hp - actualDmg);
@@ -2197,13 +2652,12 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     await update(roomRef, updates);
   };
 
-  // Determine current player role (p1, p2, or spectator)
-  const isP1 = roomData?.p1?.id === uid;
+  // Determine current player role (p1 or p2)
+  const isP1 = roomData?.p1?.id === uid || (!roomData?.p1 && !roomData?.p2);
   const isP2 = roomData?.p2?.id === uid;
-  const isSpectator = !isP1 && !isP2;
 
-  const myPlayerKey = isP1 ? 'p1' : isP2 ? 'p2' : null;
-  const oppPlayerKey = isP1 ? 'p2' : isP2 ? 'p1' : null;
+  const myPlayerKey = isP2 ? 'p2' : 'p1';
+  const oppPlayerKey = myPlayerKey === 'p1' ? 'p2' : 'p1';
 
   const isMyTurn = myPlayerKey && roomData?.turn === myPlayerKey && roomData?.status === 'PLAYING';
 
@@ -2222,6 +2676,8 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       energy: 3,
       shield: 0,
       activeCardIdx: 0,
+      bet: 5000,
+      betConfirmed: false,
       hand: generateRandomHand(5)
     };
 
@@ -2235,6 +2691,8 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       shield: 0,
       activeCardIdx: 0,
       isBot: true,
+      bet: 5000,
+      betConfirmed: true,
       hand: generateRandomHand(5)
     };
 
@@ -2246,10 +2704,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       spectators: {},
       turn: 'p1',
       turnCount: 1,
-      status: 'PLAYING',
+      status: 'BETTING',
       combatLogs: [
-        '🤖 [PHÒNG ĐẤU THỬ NGHIỆM AI BOT]: AI Bot Tối Thượng đã sẵn sàng nghênh chiến!',
-        `⚡ Lượt đầu tiên thuộc về [${player1Obj.name}]. Mỗi bên sở hữu 5 thẻ ngẫu nhiên độc nhất!`
+        '🎰 [GIAI ĐOẠN ĐẶT CƯỢC 30S]: Hãy chọn mức cược Vàng / PP cho trận đấu! Thắng ăn trọn tổng quỹ thưởng kép.'
       ],
       createdAt: Date.now()
     });
@@ -2269,6 +2726,8 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       energy: 3,
       shield: 0,
       activeCardIdx: 0,
+      bet: 5000,
+      betConfirmed: false,
       hand: generateRandomHand(5)
     };
 
@@ -2282,16 +2741,18 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       shield: 0,
       activeCardIdx: 0,
       isBot: true,
+      bet: 5000,
+      betConfirmed: true,
       hand: generateRandomHand(5)
     };
 
     await update(roomRef, {
       p1: player1Obj,
       p2: aiBotObj,
-      status: 'PLAYING',
+      status: 'BETTING',
       combatLogs: [
         ...(roomData.combatLogs || []),
-        `🤖 [AI BOT] đã gia nhập Đấu Trường nghênh chiến [${player1Obj.name}]!`
+        `🤖 [AI BOT] đã gia nhập Đấu Trường! Bắt đầu giai đoạn chốt mức cược 30s!`
       ]
     });
   };
@@ -2314,6 +2775,8 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         energy: 3,
         shield: 0,
         activeCardIdx: 0,
+        bet: 5000,
+        betConfirmed: false,
         hand: generateRandomHand(5)
       };
 
@@ -2336,9 +2799,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         const roomRef = ref(db, `matches/${matchedRoomId}`);
         await update(roomRef, {
           p2: playerObj,
-          status: 'PLAYING',
+          status: 'BETTING',
           combatLogs: [
-            `⚔️ [${playerObj.name}] đã gia nhập phòng #${matchedRoomId}! Trận đấu Solo 1v1 chính thức BẮT ĐẦU!`
+            `⚔️ [${playerObj.name}] đã gia nhập phòng #${matchedRoomId}! Bắt đầu 30s chốt mức cược kép!`
           ]
         });
         setRoomId(matchedRoomId);
@@ -2488,6 +2951,158 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     setRoomInput('arena_1');
   };
 
+  // Join a specific room from the lobby list
+  const handleJoinSpecificRoom = async (targetRoomId: string) => {
+    try {
+      const roomRef = ref(db, `matches/${targetRoomId}`);
+      const snap = await get(roomRef);
+      if (!snap.exists()) return;
+      const room = snap.val();
+
+      const playerObj = {
+        id: uid,
+        name: user?.name || 'Võ Sĩ Thẻ',
+        avatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+        hp: 300,
+        maxHp: 300,
+        energy: 3,
+        shield: 0,
+        activeCardIdx: 0,
+        bet: 5000,
+        betConfirmed: false,
+        hand: generateRandomHand(5)
+      };
+
+      if (!room.p2 && room.p1?.id !== uid) {
+        await update(roomRef, {
+          p2: playerObj,
+          status: 'BETTING',
+          combatLogs: [
+            ...(room.combatLogs || []),
+            `⚔️ [${playerObj.name}] đã gia nhập phòng #${targetRoomId}! Bắt đầu chốt cược 1v1!`
+          ]
+        });
+        setRoomId(targetRoomId);
+        setRoomInput(targetRoomId);
+        setIsSearching(false);
+        playSound('victory');
+      } else {
+        setRoomId(targetRoomId);
+        setRoomInput(targetRoomId);
+      }
+    } catch (err) {
+      console.error('Error joining room:', err);
+    }
+  };
+
+  // Return to Lobby Waiting Room & Cleanup Room Document
+  const handleReturnToLobby = async () => {
+    try {
+      if (roomId) {
+        if (roomId === 'arena_1') {
+          await set(ref(db, `matches/arena_1`), {
+            id: 'arena_1',
+            p1: null,
+            p2: null,
+            spectators: {},
+            turn: 'p1',
+            turnCount: 1,
+            status: 'WAITING',
+            combatLogs: ['🏠 Bạn đã quay lại phòng chờ arena_1! Sẵn sàng thách đấu trận mới.']
+          }).catch(() => {});
+        } else {
+          await remove(ref(db, `matches/${roomId}`)).catch(() => {});
+        }
+      }
+    } catch (err) {
+      console.warn('Return to lobby error:', err);
+    }
+    setRoomId('arena_1');
+    setRoomInput('arena_1');
+    setIsSearching(false);
+    playSound('victory');
+  };
+
+  // Surrender / Forfeit Match (Fixed & Guaranteed Instant Firebase Sync)
+  const handleSurrender = async () => {
+    if (!roomData) return;
+    if (roomData.status !== 'PLAYING' && roomData.status !== 'BETTING') {
+      alert('Chỉ có thể đầu hàng khi trận đấu đang diễn ra!');
+      return;
+    }
+
+    const confirmSurrender = window.confirm('Bạn có chắc chắn muốn Đầu Hàng? Đối thủ sẽ thắng và nhận tiền cược trận đấu này.');
+    if (!confirmSurrender) return;
+
+    const currentMyKey = roomData.p2?.id === uid ? 'p2' : 'p1';
+    const currentOppKey = currentMyKey === 'p1' ? 'p2' : 'p1';
+    const oppObj = roomData[currentOppKey];
+    const meObj = roomData[currentMyKey];
+
+    const winnerId = oppObj?.id || (currentOppKey === 'p2' ? 'bot_ai_master' : 'opponent');
+
+    const roomRef = ref(db, `matches/${roomId}`);
+    await update(roomRef, {
+      status: 'FINISHED',
+      winnerId: winnerId,
+      surrenderedBy: uid,
+      combatLogs: [
+        ...(roomData.combatLogs || []),
+        `🏳️ [${meObj?.name || user?.name || 'Người chơi'}] đã đầu hàng! [${oppObj?.name || 'Đối thủ'}] giành chiến thắng!`
+      ]
+    });
+    playSound('victory');
+  };
+
+  // Swap / Switch Active Card in Hand
+  const handleSwapActiveCard = async () => {
+    if (!isMyTurn || isAttacking || !myHand || myHand.length === 0) return;
+    const unusedIndices = myHand.map((c: any, i: number) => (!c.used ? i : -1)).filter((i: number) => i !== -1);
+    if (unusedIndices.length <= 1) return;
+
+    const currentPos = unusedIndices.indexOf(activeCardIdx);
+    const nextPos = (currentPos + 1) % unusedIndices.length;
+    const nextIdx = unusedIndices[nextPos];
+
+    setActiveCardIdx(nextIdx);
+    const roomRef = ref(db, `matches/${roomId}`);
+    await update(roomRef, {
+      [`${myPlayerKey}/activeCardIdx`]: nextIdx
+    }).catch(() => {});
+    playSound('card');
+  };
+
+  // Pass Turn to Opponent
+  const handleEndTurn = async () => {
+    if (!isMyTurn || isAttacking) return;
+    const roomRef = ref(db, `matches/${roomId}`);
+    const nextTurn = oppPlayerKey;
+
+    await update(roomRef, {
+      turn: nextTurn,
+      turnCount: (roomData.turnCount || 1) + 1,
+      combatLogs: [
+        ...(roomData.combatLogs || []),
+        `⏭ [${myPlayerObj?.name || user?.name || 'Bạn'}] đã kết thúc lượt! Lượt đấu chuyển sang [${oppPlayerObj?.name || 'Đối thủ'}]!`
+      ]
+    }).catch(() => {});
+    setTurnSeconds(20);
+    playSound('turn');
+  };
+
+  // Clean all lobby rooms on Firebase DB
+  const handleCleanAllRooms = async () => {
+    if (window.confirm('Bạn có chắc chắn muốn làm sạch tất cả phòng chờ hiện tại để bắt đầu thử nghiệm mới?')) {
+      try {
+        await remove(ref(db, 'matches'));
+        setActiveRoomsList([]);
+        playSound('victory');
+      } catch (e) {
+        console.warn('Clear rooms error:', e);
+      }
+    }
+  };
+
   // Perform Normal Attack
   const handleNormalAttack = async () => {
     if (!isMyTurn || !myPlayerKey || !oppPlayerKey || isAttacking) return;
@@ -2511,12 +3126,18 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     // Check Role Advantage
     const roleAdv = getRoleAdvantage(myCard.role, oppCard.role);
 
+    // Check Active Combo Multiplier
+    const activeCombo = getComboEffect(myCard, myHand);
+
     let myAtk = myCard.atk;
     let oppDef = oppCard.def;
     if (me.swapped) myAtk = myCard.def;
     if (opp.swapped) oppDef = oppCard.atk;
 
     let rawDmg = Math.max(15, Math.floor((myAtk - Math.floor(oppDef / 2)) * roleAdv.dmgMult));
+    if (activeCombo) {
+      rawDmg = Math.floor(rawDmg * activeCombo.dmgMult);
+    }
     let actualDmg = rawDmg;
     let newShield = opp.shield || 0;
 
@@ -2530,14 +3151,20 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
       }
     }
 
-    if (myCard.role === 'SPECIAL' || myCard.rarity === 'S') {
-      triggerMatchEvent(myCard.name, myCard.role, me.name);
+    if (myCard.role === 'SPECIAL' || myCard.rarity === 'S' || activeCombo) {
+      triggerMatchEvent(activeCombo ? activeCombo.title : myCard.name, myCard.role, me.name);
     }
 
     const newOppHp = Math.max(0, opp.hp - actualDmg);
     const newMyEnergy = Math.min(5, me.energy + 1);
 
-    let logMsg = `⚔️ [${me.name}] chọn [${myCard.name}] (${myCard.roleName}) tấn công [${opp.name}] (${oppCard.roleName}), gây -${actualDmg} Sát thương!`;
+    if (actualDmg > 0 && oppPlayerKey) {
+      triggerDamageFloat(oppPlayerKey as 'p1' | 'p2', actualDmg, myCard.rarity === 'SS' || myCard.rarity === 'S' || !!activeCombo);
+      triggerImpactEffects(actualDmg, myCard.rarity === 'SS' || myCard.rarity === 'S' || roleAdv.dmgMult > 1 || !!activeCombo, myCard.rarity, activeCombo ? activeCombo.badge : myCard.name);
+    }
+
+    let logMsg = `⚔️ [${me.name}] chọn [${myCard.name}] (${myCard.roleName}) tấn công [${opp.name}], gây -${actualDmg} Sát thương!`;
+    if (activeCombo) logMsg += ` ⚡ [${activeCombo.badge}]!`;
     if (roleAdv.log) logMsg += ` ${roleAdv.log}`;
 
     const newMyShield = (me.shield || 0) + roleAdv.bonusShield;
@@ -2606,9 +3233,22 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
     const oppCard = opp.hand[opp.activeCardIdx || 0] || CARD_DECK[0];
     const roleAdv = getRoleAdvantage(myCard.role, oppCard.role);
+    const activeCombo = getComboEffect(myCard, myHand);
 
     const skillRes = applyCardSkillEffect(myCard, me, opp, roleAdv);
     let logMsg = skillRes.logMsg;
+
+    let skillDmgDealt = Math.max(0, (opp?.hp || 300) - skillRes.oppHp);
+    if (activeCombo && skillDmgDealt > 0) {
+      skillDmgDealt = Math.floor(skillDmgDealt * activeCombo.dmgMult);
+      skillRes.oppHp = Math.max(0, (opp?.hp || 300) - skillDmgDealt);
+      logMsg += ` ⚡ [${activeCombo.badge}]!`;
+    }
+
+    if (skillDmgDealt > 0 && oppPlayerKey) {
+      triggerDamageFloat(oppPlayerKey as 'p1' | 'p2', skillDmgDealt, true);
+      triggerImpactEffects(skillDmgDealt, true, myCard.rarity, activeCombo ? activeCombo.badge : myCard.skillName);
+    }
 
     const updates: any = {
       [`${myPlayerKey}/energy`]: skillRes.selfEnergy,
@@ -2665,10 +3305,49 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   const handleCloseModal = async () => {
     setIsSearching(false);
-    if (roomData?.status === 'WAITING' && roomData?.p1?.id === uid && !roomData?.p2) {
-      await remove(ref(db, `matches/${roomId}`)).catch(() => {});
-    } else if (roomId.startsWith('ai_') || (roomData?.status === 'FINISHED' && roomId.startsWith('pvp_'))) {
-      await remove(ref(db, `matches/${roomId}`)).catch(() => {});
+    if (roomId) {
+      try {
+        const roomRef = ref(db, `matches/${roomId}`);
+        if (roomData?.status === 'PLAYING') {
+          const currentMyKey = roomData.p2?.id === uid ? 'p2' : 'p1';
+          const currentOppKey = currentMyKey === 'p1' ? 'p2' : 'p1';
+          const oppObj = roomData[currentOppKey];
+          const winnerId = oppObj?.id || 'bot_ai_master';
+
+          await update(roomRef, {
+            status: 'FINISHED',
+            winnerId: winnerId,
+            combatLogs: [
+              ...(roomData.combatLogs || []),
+              `🚪 [${user?.name || 'Người chơi'}] đã thoát khỏi trận đấu!`
+            ]
+          });
+        }
+        
+        if (roomId === 'arena_1') {
+          if (roomData?.status === 'FINISHED' || roomData?.status === 'WAITING') {
+            await set(ref(db, `matches/arena_1`), {
+              id: 'arena_1',
+              p1: null,
+              p2: null,
+              spectators: {},
+              turn: 'p1',
+              turnCount: 1,
+              status: 'WAITING',
+              combatLogs: ['🏠 Phòng chờ arena_1 đã được làm sạch!']
+            }).catch(() => {});
+          }
+        } else if (
+          roomData?.status === 'WAITING' ||
+          roomData?.status === 'FINISHED' ||
+          roomId.startsWith('ai_') ||
+          roomId.startsWith('pvp_')
+        ) {
+          await remove(roomRef).catch(() => {});
+        }
+      } catch (e) {
+        console.warn('Error deleting room on modal exit:', e);
+      }
     }
     onClose();
   };
@@ -2686,6 +3365,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
   const currentSelectedCard = myHand[activeCardIdx] || myHand[0];
   const myPlayerObj = roomData?.[myPlayerKey || 'p1'];
+  const oppPlayerObj = roomData?.[oppPlayerKey || 'p2'];
   const myEnergy = myPlayerObj?.energy || 0;
 
   const filteredCompendiumDeck = CARD_DECK.filter((c) => {
@@ -2716,9 +3396,11 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
       
       {/* BALANCED LAPTOP & MOBILE RESPONSIVE CONTAINER */}
-      <div className="glass-box w-full max-w-xl lg:max-w-6xl p-3 sm:p-5 border-[#00f0ff]/40 bg-[#050608]/95 max-h-[95vh] overflow-y-auto flex flex-col justify-between space-y-3 relative mx-auto my-auto rounded-2xl shadow-[0_0_50px_rgba(0,240,255,0.25)] select-none">
+      <div className={`glass-box w-full max-w-xl lg:max-w-6xl p-3 sm:p-5 border-[#00f0ff]/40 bg-[#050608]/95 max-h-[95vh] overflow-y-auto flex flex-col justify-between space-y-3 relative mx-auto my-auto rounded-2xl shadow-[0_0_50px_rgba(0,240,255,0.25)] select-none ${
+        isScreenShaking ? 'animate-shake' : ''
+      }`}>
         
-        {/* Custom CSS Keyframes for 3D Card Flip, Lien Quan Mobile Aura Effects & Combat Animations */}
+        {/* Custom CSS Keyframes for Shake, Flash, Zoom, Combo & 3D Animations */}
         <style>{`
           .perspective-1000 {
             perspective: 1000px;
@@ -2731,6 +3413,64 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           }
           .rotate-y-180 {
             transform: rotateY(180deg);
+          }
+
+          @keyframes screenShake {
+            0%, 100% { transform: translate(0, 0) rotate(0deg); }
+            15% { transform: translate(-10px, 6px) rotate(-1.5deg); }
+            30% { transform: translate(10px, -6px) rotate(1.5deg); }
+            45% { transform: translate(-8px, -4px) rotate(-1deg); }
+            60% { transform: translate(8px, 4px) rotate(1deg); }
+            75% { transform: translate(-4px, 2px) rotate(-0.5deg); }
+          }
+          .animate-shake {
+            animation: screenShake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+          }
+
+          @keyframes criticalFlashRed {
+            0% { opacity: 0.9; background: radial-gradient(circle, rgba(239,68,68,0.85) 0%, rgba(0,0,0,0) 80%); }
+            50% { opacity: 0.95; background: radial-gradient(circle, rgba(255,0,60,0.9) 0%, rgba(0,0,0,0) 85%); }
+            100% { opacity: 0; }
+          }
+          .animate-critical-flash-red {
+            animation: criticalFlashRed 0.5s ease-out forwards;
+          }
+
+          @keyframes criticalFlashGold {
+            0% { opacity: 0.9; background: radial-gradient(circle, rgba(250,204,21,0.85) 0%, rgba(0,0,0,0) 80%); }
+            50% { opacity: 0.95; background: radial-gradient(circle, rgba(245,158,11,0.9) 0%, rgba(0,0,0,0) 85%); }
+            100% { opacity: 0; }
+          }
+          .animate-critical-flash-gold {
+            animation: criticalFlashGold 0.55s ease-out forwards;
+          }
+
+          @keyframes criticalFlashCyan {
+            0% { opacity: 0.9; background: radial-gradient(circle, rgba(0,240,255,0.85) 0%, rgba(0,0,0,0) 80%); }
+            50% { opacity: 0.95; background: radial-gradient(circle, rgba(168,85,247,0.9) 0%, rgba(0,0,0,0) 85%); }
+            100% { opacity: 0; }
+          }
+          .animate-critical-flash-cyan {
+            animation: criticalFlashCyan 0.55s ease-out forwards;
+          }
+
+          @keyframes impactZoomKey {
+            0% { transform: scale(1); }
+            35% { transform: scale(1.08) rotate(0.5deg); filter: brightness(1.2); }
+            100% { transform: scale(1); }
+          }
+          .animate-impact-zoom {
+            animation: impactZoomKey 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+          }
+
+          @keyframes comboPopIn {
+            0% { transform: scale(0.2) rotate(-10deg); opacity: 0; }
+            50% { transform: scale(1.2) rotate(3deg); opacity: 1; }
+            75% { transform: scale(1) rotate(0deg); opacity: 1; }
+            100% { transform: scale(0.9) translateY(-20px); opacity: 0; }
+          }
+          .animate-combo-pop {
+            animation: comboPopIn 1.3s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
           }
 
           @keyframes lienQuanAuraSS {
@@ -2847,6 +3587,44 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           .animate-glow-trail {
             animation: glowTrailSpecial 1.8s infinite ease-in-out;
           }
+
+          @keyframes glideHandCard {
+            0% {
+              opacity: 0;
+              transform: translateY(45px) scale(0.85);
+            }
+            100% {
+              opacity: 1;
+              transform: translateY(0) scale(1);
+            }
+          }
+
+          .animate-glide-hand-card {
+            animation: glideHandCard 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+          }
+
+          @keyframes floatDamage {
+            0% {
+              opacity: 0;
+              transform: translate(-50%, 15px) scale(0.6);
+            }
+            20% {
+              opacity: 1;
+              transform: translate(-50%, -10px) scale(1.3);
+            }
+            75% {
+              opacity: 1;
+              transform: translate(-50%, -35px) scale(1);
+            }
+            100% {
+              opacity: 0;
+              transform: translate(-50%, -50px) scale(0.8);
+            }
+          }
+
+          .animate-float-damage {
+            animation: floatDamage 1.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+          }
         `}</style>
 
         {/* HEADER TOP BAR */}
@@ -2867,6 +3645,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           </div>
 
           <div className="flex items-center gap-1.5">
+            {(roomData?.status === 'PLAYING' || roomData?.status === 'BETTING') && (
+              <button
+                onClick={handleSurrender}
+                className="px-2.5 py-1.5 bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 rounded-lg text-[9px] font-mono font-bold uppercase transition cursor-pointer flex items-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.3)] z-30"
+                title="Đầu hàng và nhận thua trận này"
+              >
+                🏳️ ĐẦU HÀNG
+              </button>
+            )}
             <button
               onClick={handleFindPlayer}
               className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:brightness-125 text-black font-black rounded-lg text-[9px] font-mono transition cursor-pointer flex items-center gap-1 border border-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.4)]"
@@ -2877,9 +3664,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             <button
               onClick={() => setShowCompendium(true)}
               className="px-3 py-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:brightness-125 text-white rounded-lg text-[9px] font-mono font-bold transition cursor-pointer flex items-center gap-1 border border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
-              title="Xem Thư Viện 50 Thẻ Bài & Kĩ Năng"
+              title="Xem Thư Viện 100+ Thẻ Bài & Kĩ Năng"
             >
-              <Layers className="w-3.5 h-3.5 text-yellow-300" /> THƯ VIỆN THẺ (50 THẺ)
+              <Layers className="w-3.5 h-3.5 text-yellow-300" /> THƯ VIỆN THẺ (100+ THẺ)
             </button>
             <button
               onClick={handleResetMatch}
@@ -2941,30 +3728,309 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           </div>
         ) : roomData?.status === 'WAITING' ? (
           <div
-            className="my-auto p-6 glass-box border-2 border-cyan-500/40 text-center space-y-4 rounded-2xl max-w-md mx-auto w-full bg-cover bg-center"
+            className="my-auto p-5 sm:p-6 glass-box border-2 border-cyan-500/40 text-center space-y-4 rounded-2xl max-w-xl mx-auto w-full bg-cover bg-center"
             style={{
               backgroundImage: `linear-gradient(to bottom, rgba(5, 6, 12, 0.88), rgba(10, 15, 30, 0.95)), url('https://shareviet.net/wp-content/uploads/2024/06/65243-background-phong-nen-the-duc-the-thao-file-CDR.jpg')`
             }}
           >
             <Users className="w-10 h-10 text-cyan-400 mx-auto animate-pulse" />
-            <h3 className="text-white font-black text-xs sm:text-sm uppercase tracking-wider">TÌM TRẬN ĐẤU THẺ 1V1</h3>
-            <p className="text-[10px] text-slate-300 leading-relaxed max-w-xs mx-auto">
-              Nhấn nút tìm người chơi bên dưới. Hệ thống sẽ đếm 60s tìm đối thủ thực tế, tự động ghép AI Bot nếu hết thời gian!
+            <h3 className="text-white font-black text-xs sm:text-sm uppercase tracking-wider">SẢNH PHÒNG CHỜ ĐẤU THẺ 1V1</h3>
+            <p className="text-[10px] text-slate-300 leading-relaxed max-w-sm mx-auto">
+              Nhấn nút tìm người chơi hoặc chọn trực tiếp một phòng chờ đang mở trong danh sách bên dưới để gia nhập thi đấu 1v1!
             </p>
 
-            <div className="flex flex-col gap-2 pt-2">
+            <div className="flex flex-col sm:flex-row gap-2 pt-1">
               <button
                 onClick={handleFindPlayer}
-                className="w-full py-3 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all flex items-center justify-center gap-1.5 border border-cyan-300"
+                className="flex-1 py-2.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.5)] transition-all flex items-center justify-center gap-1.5 border border-cyan-300"
               >
-                <Users className="w-4 h-4" /> TÌM NGƯỜI CHƠI SOLO 1V1 (GHÉP AI SAU 1 PHÚT)
+                <Users className="w-4 h-4" /> TÌM NGƯỜI CHƠI (SOLO 1V1)
               </button>
 
               <button
-                onClick={handleJoinMatch}
-                className="w-full py-2 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-500/40 text-cyan-300 font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
+                onClick={handleJoinMatchWithAi}
+                className="py-2.5 px-4 bg-purple-950/80 hover:bg-purple-900 border border-purple-500/50 text-purple-200 font-bold text-xs uppercase tracking-wider rounded-xl cursor-pointer transition-all flex items-center justify-center gap-1.5"
               >
-                <Swords className="w-3.5 h-3.5" /> THAM GIA PHÒNG HIỆN TẠI (#{roomId})
+                🤖 ĐẤU VỚI AI BOT NGAY
+              </button>
+            </div>
+
+            {/* 🏠 DANH SÁCH PHÒNG CHỜ ĐẤU THẺ 1V1 (CARD BATTLE LOBBY) */}
+            <div className="space-y-2 pt-3 border-t border-cyan-500/30 text-left">
+              <div className="flex items-center justify-between gap-2">
+                <h4 className="text-xs font-mono font-black text-cyan-300 uppercase tracking-wider flex items-center gap-1.5 truncate">
+                  <Users className="w-4 h-4 text-cyan-400 shrink-0" /> PHÒNG CHỜ ĐANG MỞ ({activeRoomsList.length})
+                </h4>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    onClick={handleCleanAllRooms}
+                    className="px-2 py-1 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 border border-rose-400/50 rounded-lg text-[8.5px] font-mono font-bold uppercase transition cursor-pointer flex items-center gap-1"
+                    title="Xóa tất cả các phòng chờ thử nghiệm hiện tại"
+                  >
+                    🧹 LÀM SẠCH PHÒNG CHỜ
+                  </button>
+                  <button
+                    onClick={handleFindPlayer}
+                    className="px-2.5 py-1 bg-cyan-500/20 hover:bg-cyan-500/40 text-cyan-300 border border-cyan-400/50 rounded-lg text-[9px] font-mono font-bold uppercase transition cursor-pointer"
+                  >
+                    + TẠO PHÒNG MỚI
+                  </button>
+                </div>
+              </div>
+
+              {activeRoomsList.length === 0 ? (
+                <div className="p-3 bg-black/60 rounded-xl border border-white/10 text-center text-[10px] text-slate-400 font-mono">
+                  Chưa có phòng chờ nào. Hãy nhấn <strong className="text-cyan-300">"TÌM NGƯỜI CHƠI (SOLO 1V1)"</strong> để mở phòng!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-52 overflow-y-auto pr-1">
+                  {activeRoomsList.map((room) => {
+                    const isSelfRoom = room.p1?.id === uid;
+                    const isWaiting = room.status === 'WAITING' && !room.p2;
+                    const isBetting = room.status === 'BETTING';
+
+                    return (
+                      <div
+                        key={room.id}
+                        className={`p-2 rounded-xl border flex items-center justify-between gap-2 transition-all ${
+                          room.id === roomId
+                            ? 'bg-purple-950/60 border-purple-400 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
+                            : 'bg-black/70 border-cyan-500/30 hover:border-cyan-400/70'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img
+                            src={room.p1?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                            alt=""
+                            className="w-7 h-7 rounded-full border border-cyan-400 object-cover shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <div className="text-[10px] font-bold text-white truncate font-mono">
+                              {room.p1?.name || 'Võ Sĩ Thẻ'}
+                            </div>
+                            <div className="flex items-center gap-1 text-[8px] font-mono">
+                              <span className="text-yellow-400">#{room.id.slice(0, 8)}</span>
+                              <span className={`px-1 rounded font-black uppercase ${
+                                isWaiting ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40' :
+                                isBetting ? 'bg-purple-500/20 text-purple-300 border border-purple-500/40' :
+                                'bg-red-500/20 text-red-300 border border-red-500/40'
+                              }`}>
+                                {isWaiting ? '⏳ Đang Chờ' : isBetting ? '🎰 Cược PP' : '⚔️ Thi Đấu'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="shrink-0">
+                          {isSelfRoom ? (
+                            <span className="text-[8.5px] font-mono text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 px-2 py-1 rounded-lg">
+                              Phòng Bạn
+                            </span>
+                          ) : isWaiting ? (
+                            <button
+                              onClick={() => handleJoinSpecificRoom(room.id)}
+                              className="px-2.5 py-1 bg-gradient-to-r from-cyan-500 to-blue-600 hover:brightness-125 text-black font-black text-[9px] font-mono rounded-lg transition cursor-pointer shadow-[0_0_10px_rgba(0,240,255,0.4)]"
+                            >
+                              ⚔️ THAM GIA
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleSwitchRoom(room.id)}
+                              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-slate-300 font-bold text-[8.5px] font-mono rounded-lg transition cursor-pointer"
+                            >
+                              VÀO PHÒNG
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* 📜 LỊCH SỬ THI ĐẤU (5 TRẬN GẦN NHẤT) TRONG SẢNH PHÒNG CHỜ */}
+            <div className="space-y-2 pt-3 border-t border-cyan-500/30 text-left">
+              <div className="flex items-center justify-between font-mono font-bold text-xs uppercase text-cyan-300">
+                <span className="flex items-center gap-1.5">
+                  <History className="w-4 h-4 text-cyan-400" />
+                  📜 LỊCH SỬ THI ĐẤU (5 TRẬN GẦN NHẤT)
+                </span>
+                <span className="text-[9px] text-slate-400 font-normal">
+                  Đồng bộ Realtime Firebase
+                </span>
+              </div>
+
+              {matchHistory.length === 0 ? (
+                <div className="p-3 bg-black/60 rounded-xl border border-white/10 text-center text-[10px] text-slate-400 font-mono">
+                  Chưa có lịch sử thi đấu nào. Hãy nhấn <strong className="text-cyan-300">"TÌM NGƯỜI CHƠI (SOLO 1V1)"</strong> để bắt đầu!
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto pr-1">
+                  {matchHistory.map((item) => (
+                    <div
+                      key={item.id}
+                      className={`p-2 rounded-xl border flex items-center justify-between font-mono text-[10px] transition-all ${
+                        item.result === 'WIN'
+                          ? 'bg-emerald-950/60 border-emerald-500/50 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.2)]'
+                          : 'bg-rose-950/60 border-rose-500/50 text-rose-300 shadow-[0_0_8px_rgba(244,63,94,0.2)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img
+                          src={item.opponentAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                          alt=""
+                          className="w-6 h-6 rounded-full border border-white/20 object-cover shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <span className="truncate font-bold text-white text-[10px] block">
+                            {item.opponentName}
+                          </span>
+                          <span className="text-[8px] text-slate-400 block font-mono">
+                            {new Date(item.timestamp).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="text-right shrink-0">
+                        <span className={`px-1.5 py-0.5 rounded text-[8.5px] font-black uppercase inline-block ${
+                          item.result === 'WIN'
+                            ? 'bg-emerald-500 text-black shadow-[0_0_6px_rgba(16,185,129,0.8)]'
+                            : 'bg-rose-600 text-white shadow-[0_0_6px_rgba(225,29,72,0.8)]'
+                        }`}>
+                          {item.result === 'WIN' ? 'THẮNG' : 'THUA'}
+                        </span>
+                        <div className={`text-[9px] font-bold mt-0.5 ${item.result === 'WIN' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                          {item.result === 'WIN' ? `+${((item as any).ppChange || 5000).toLocaleString('vi-VN')} PP` : `${((item as any).ppChange || -5000).toLocaleString('vi-VN')} PP`}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : roomData?.status === 'BETTING' ? (
+          <div
+            className="my-auto p-5 sm:p-6 glass-box border-2 border-yellow-500/60 text-center space-y-4 rounded-2xl max-w-lg mx-auto w-full shadow-[0_0_60px_rgba(250,204,21,0.3)] animate-fadeIn relative overflow-hidden bg-cover bg-center"
+            style={{
+              backgroundImage: `linear-gradient(to bottom, rgba(5, 6, 12, 0.9), rgba(15, 12, 35, 0.95)), url('https://shareviet.net/wp-content/uploads/2024/06/65243-background-phong-nen-the-duc-the-thao-file-CDR.jpg')`
+            }}
+          >
+            {/* Floating Golden Trophy Header */}
+            <div className="relative z-10 space-y-1">
+              <div className="inline-flex items-center gap-2 bg-yellow-500/20 border border-yellow-400/50 px-3 py-1 rounded-full text-yellow-300 font-mono font-bold text-xs uppercase shadow-[0_0_15px_rgba(250,204,21,0.4)]">
+                <Trophy className="w-4 h-4 text-amber-400 animate-bounce" />
+                <span>GIAI ĐOẠN ĐẶT CƯỢC MỨC CƯỢC THẦN BÀI (30S)</span>
+              </div>
+              <h3 className="text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 uppercase drop-shadow pt-1">
+                CHỌN MỨC CƯỢC VÀNG / PP BÀI VƯƠNG
+              </h3>
+              <p className="text-[11px] text-slate-300">
+                Hai bên cùng chốt mức cược. Tổng phần thưởng người thắng nhận được = <strong className="text-yellow-300 font-mono">2 Bên Cộng Lại</strong>!
+              </p>
+            </div>
+
+            {/* Countdown 30s Bar */}
+            <div className="space-y-1.5 relative z-10 bg-black/60 p-3 rounded-xl border border-yellow-500/30">
+              <div className="flex justify-between items-center text-xs font-mono font-bold">
+                <span className="text-yellow-400">⏱️ Thời gian chốt mức cược:</span>
+                <span className="text-rose-400 text-sm animate-pulse">{wagerSeconds}s</span>
+              </div>
+              <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-white/10">
+                <div
+                  className="bg-gradient-to-r from-yellow-500 via-amber-400 to-rose-500 h-full transition-all duration-1000"
+                  style={{ width: `${(wagerSeconds / 30) * 100}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Live Match Players Wager Status */}
+            <div className="grid grid-cols-2 gap-3 relative z-10">
+              {/* P1 Box */}
+              <div className={`p-3 rounded-xl border font-mono text-left space-y-1 transition-all ${
+                roomData?.p1?.betConfirmed
+                  ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                  : 'bg-slate-900/80 border-cyan-500/30 text-cyan-200'
+              }`}>
+                <div className="flex items-center gap-1.5">
+                  <img src={roomData?.p1?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-5 h-5 rounded-full object-cover border border-cyan-400" />
+                  <span className="font-bold text-xs truncate max-w-[100px] text-white">
+                    {roomData?.p1?.name || 'Player 1'}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-300">
+                  Cược: <strong className="text-yellow-300">{(roomData?.p1?.bet || 5000).toLocaleString()} PP</strong>
+                </div>
+                <div className="text-[9px] font-bold uppercase">
+                  {roomData?.p1?.betConfirmed ? '✅ Đã Chốt Cược' : '⏳ Đang Chọn...'}
+                </div>
+              </div>
+
+              {/* P2 Box */}
+              <div className={`p-3 rounded-xl border font-mono text-left space-y-1 transition-all ${
+                roomData?.p2?.betConfirmed
+                  ? 'bg-emerald-950/60 border-emerald-500/60 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.3)]'
+                  : 'bg-slate-900/80 border-rose-500/30 text-rose-200'
+              }`}>
+                <div className="flex items-center gap-1.5">
+                  <img src={roomData?.p2?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-5 h-5 rounded-full object-cover border border-rose-400" />
+                  <span className="font-bold text-xs truncate max-w-[100px] text-white">
+                    {roomData?.p2?.name || 'Player 2'}
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-300">
+                  Cược: <strong className="text-yellow-300">{(roomData?.p2?.bet || 5000).toLocaleString()} PP</strong>
+                </div>
+                <div className="text-[9px] font-bold uppercase">
+                  {roomData?.p2?.betConfirmed ? '✅ Đã Chốt Cược' : '⏳ Đang Chọn...'}
+                </div>
+              </div>
+            </div>
+
+            {/* Combined Total Pot Preview */}
+            <div className="p-3 bg-gradient-to-r from-amber-950/80 via-black to-yellow-950/80 rounded-xl border border-yellow-400/60 text-center relative z-10 shadow-[0_0_20px_rgba(250,204,21,0.2)]">
+              <span className="text-[10px] text-yellow-300 font-mono font-bold uppercase block">
+                💰 TỔNG NỒI CƯỢC THẦN BÀI (2 BÊN CỘNG LẠI):
+              </span>
+              <div className="text-2xl font-black font-mono text-amber-300 drop-shadow-[0_0_10px_rgba(250,204,21,0.8)]">
+                {((roomData?.p1?.bet || 5000) + (roomData?.p2?.bet || 5000)).toLocaleString('vi-VN')} PP
+              </div>
+            </div>
+
+            {/* Wager Selection Buttons */}
+            <div className="space-y-2 relative z-10 pt-1">
+              <div className="text-[10px] text-slate-300 font-mono font-bold text-left">Chọn Mức Cược Của Bạn:</div>
+              <div className="grid grid-cols-5 gap-1.5">
+                {[1000, 5000, 10000, 50000, 100000].map((amt) => {
+                  const isSelected = (myPlayerObj?.bet || 5000) === amt;
+                  return (
+                    <button
+                      key={amt}
+                      onClick={() => handleSelectBet(amt)}
+                      disabled={myPlayerObj?.betConfirmed}
+                      className={`py-2 px-1 rounded-lg border font-mono font-bold text-[10px] transition-all cursor-pointer ${
+                        isSelected
+                          ? 'bg-yellow-400 text-black border-yellow-200 shadow-[0_0_12px_rgba(250,204,21,0.8)] scale-105'
+                          : 'bg-black/60 border-white/20 text-yellow-300 hover:border-yellow-400 hover:bg-yellow-500/20'
+                      }`}
+                    >
+                      {amt >= 1000 ? `${amt / 1000}k` : amt} PP
+                    </button>
+                  );
+                })}
+              </div>
+
+              <button
+                onClick={handleConfirmBet}
+                disabled={myPlayerObj?.betConfirmed}
+                className={`w-full py-3 mt-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 border ${
+                  myPlayerObj?.betConfirmed
+                    ? 'bg-emerald-600 text-black border-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.5)] cursor-default'
+                    : 'bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 hover:brightness-125 text-black border-yellow-200 shadow-[0_0_20px_rgba(250,204,21,0.6)] cursor-pointer'
+                }`}
+              >
+                {myPlayerObj?.betConfirmed ? '✅ ĐÃ CHỐT MỨC CƯỢC (CHỜ ĐỐI THỦ...)' : '⚡ XÁC NHẬN CHỐT MỨC CƯỢC & BẮT ĐẦU VÀO TRẬN'}
               </button>
             </div>
           </div>
@@ -2987,517 +4053,473 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-3 pt-2 w-full max-w-md">
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 w-full max-w-md">
+                  <button
+                    onClick={handleReturnToLobby}
+                    className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all flex items-center justify-center gap-2 border border-emerald-300"
+                  >
+                    <Users className="w-4 h-4 text-black" /> 🏠 QUAY LẠI PHÒNG CHỜ
+                  </button>
+
                   <button
                     onClick={handleResetMatch}
                     className="flex-1 py-3 px-4 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.6)] transition-all flex items-center justify-center gap-2 border border-cyan-300"
                   >
-                    <RefreshCw className="w-4 h-4 text-black animate-spin-slow" /> ⚔️ TÁI ĐẤU NGAY VỚI AI BOT
+                    <RefreshCw className="w-4 h-4 text-black" /> ⚔️ TÁI ĐẤU NGAY
                   </button>
 
                   <button
                     onClick={() => setShowCompendium(true)}
                     className="py-3 px-4 bg-purple-600/80 hover:bg-purple-500 text-white font-bold text-xs uppercase rounded-xl cursor-pointer border border-purple-400/50 flex items-center justify-center gap-1.5"
                   >
-                    <Layers className="w-4 h-4 text-yellow-300" /> BỘ BÀI (50 THẺ)
+                    <Layers className="w-4 h-4 text-yellow-300" /> BỘ BÀI
                   </button>
                 </div>
               </div>
             )}
 
-            {/* DESKTOP RESPONSIVE GRID LAYOUT (lg:grid lg:grid-cols-12 lg:gap-4) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-start">
+            {/* DESKTOP & MOBILE RESPONSIVE BATTLE FIELD LAYOUT */}
+            <div className="space-y-3">
               
-              {/* LEFT COLUMN: 1V1 CENTRAL BATTLE SHOWDOWN & ACTIVE SKILL BANNER (lg:col-span-7) */}
-              <div className="lg:col-span-7 space-y-3">
-                
-                {/* 1v1 Battle Arena Card Showdown Box */}
-                <div className="relative glass-box p-3 border border-purple-500/30 bg-gradient-to-b from-purple-950/20 via-black to-slate-950 rounded-xl space-y-2 overflow-hidden shadow-[0_0_20px_rgba(168,85,247,0.15)]">
-                  
-                  {/* Turn Banner Indicator with 20s Selection Countdown Timer */}
-                  <div className="flex items-center justify-between text-[10px] font-mono border-b border-purple-500/20 pb-1.5 gap-2">
-                    <span className={`font-bold px-2 py-0.5 rounded text-[9px] uppercase flex items-center gap-1.5 ${
-                      isMyTurn ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-400/50 animate-pulse' : 'bg-rose-500/20 text-rose-300'
-                    }`}>
-                      <Clock className="w-3 h-3 text-amber-400 animate-spin-slow" />
-                      {isMyTurn ? `⚡ LƯỢT CHỌN BẠN (${turnSeconds}s)` : `⏳ ĐỐI THỦ CHỌN (${turnSeconds}s)`}
-                    </span>
+              {/* 1. TOP HEADER BAR: Opponent Avatar, HP, Energy, Turn, Ping & Surrender Button */}
+              <div className="bg-slate-950/90 border border-purple-500/40 rounded-xl p-2.5 flex items-center justify-between gap-2 shadow-[0_0_20px_rgba(168,85,247,0.2)]">
+                {/* Left: Opponent Avatar, Name, HP, Energy, Turn, Ping */}
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  <img
+                    src={oppPlayerObj?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                    alt=""
+                    className="w-9 h-9 rounded-full border-2 border-rose-400 object-cover shrink-0 shadow-[0_0_10px_rgba(244,63,94,0.6)]"
+                  />
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-black text-xs text-white uppercase truncate font-mono max-w-[120px]">
+                        {oppPlayerObj?.name || 'Đối Thủ'}
+                      </span>
+                      <span className="text-amber-400 font-mono font-bold text-xs shrink-0">
+                        ⚡{oppPlayerObj?.energy || 0}/5
+                      </span>
+                      <span className="bg-purple-900/80 text-purple-200 border border-purple-400/40 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold shrink-0">
+                        Turn {roomData?.turnCount || 1}
+                      </span>
+                      <span className="text-emerald-400 text-[9px] font-mono shrink-0 hidden sm:inline">
+                        📶 Ping 28ms
+                      </span>
+                    </div>
 
-                    {/* 20s Timer Progress Bar */}
-                    <div className="flex-1 bg-slate-900 h-2 rounded-full overflow-hidden border border-white/10 max-w-[120px]">
+                    {/* Opponent HP bar */}
+                    <div className="flex items-center gap-2 max-w-xs">
+                      <span className="text-[9px] font-mono text-slate-300 font-bold shrink-0">
+                        HP: {oppPlayerObj?.hp || 0}/300
+                      </span>
+                      <div className="flex-1 bg-slate-900 h-2.5 rounded-full overflow-hidden border border-white/10">
+                        <div
+                          className="bg-gradient-to-r from-red-600 to-rose-400 h-full transition-all duration-300"
+                          style={{ width: `${Math.max(0, ((oppPlayerObj?.hp || 0) / 300) * 100)}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Prominent Surrender Button */}
+                <button
+                  onClick={handleSurrender}
+                  className="py-2 px-3 bg-gradient-to-r from-rose-600 via-red-600 to-rose-700 hover:brightness-125 text-white font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_15px_rgba(225,29,72,0.6)] border border-rose-400 flex items-center gap-1.5 shrink-0 active:scale-95 transition-all"
+                >
+                  <Flag className="w-3.5 h-3.5 animate-pulse" />
+                  <span>ĐẦU HÀNG</span>
+                </button>
+              </div>
+
+              {/* 2. CENTER BATTLE ARENA FIELD: Opponent Active Card -> Skill Animation Zone -> Your Active Card */}
+              <div className="bg-gradient-to-b from-purple-950/20 via-black to-slate-950 border border-purple-500/30 rounded-2xl p-3 space-y-3 relative overflow-hidden shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+                
+                {/* OPPONENT ACTIVE CARD */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Swords className="w-3 h-3 text-rose-500" /> THẺ ĐỐI THỦ (Active Card)
+                  </span>
+                  
+                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all ${
+                    p2Card?.rarity === 'SS'
+                      ? 'ss-card-glow text-white ring-2 ring-amber-300'
+                      : roomData?.turn === 'p2' && isAttacking
+                      ? 'animate-attack-slash ring-2 ring-rose-400'
+                      : 'border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
+                  }`}>
+                    {/* Floating Damage Overlay for P2 */}
+                    {damageFloats.filter((f) => f.target === 'p2').map((f) => (
                       <div
-                        className="bg-gradient-to-r from-amber-400 via-yellow-400 to-rose-500 h-full transition-all duration-1000"
-                        style={{ width: `${(turnSeconds / 20) * 100}%` }}
+                        key={f.id}
+                        className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
+                      >
+                        <span>💥 -{f.damage}</span>
+                        {f.isCritical && <span className="text-[8px] text-yellow-300 font-bold uppercase">CRIT!</span>}
+                      </div>
+                    ))}
+
+                    <div className="flex items-center justify-between w-full relative z-10 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-500/30">
+                      <span className="text-[8px] font-bold text-rose-300 uppercase truncate">
+                        {p2Card?.name || 'Thẻ Đối Thủ'}
+                      </span>
+                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(p2Card?.rarity || 'C')}`}>
+                        {p2Card?.rarity || 'C'}
+                      </span>
+                    </div>
+
+                    <div className="aspect-[3/4] h-24 sm:h-28 w-full rounded-lg overflow-hidden bg-slate-950 border border-rose-500/30 flex items-center justify-center relative z-10">
+                      <img
+                        src={p2Card?.avatarUrl}
+                        alt={p2Card?.name}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getCardImageSvg(p2Card?.id || 'c1');
+                        }}
+                        className="w-full h-full object-contain"
                       />
                     </div>
 
-                    <span className="text-slate-400 font-bold hidden sm:inline">
-                      1V1 ARENA
-                    </span>
+                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p2Card?.atk} | DEF: {p2Card?.def}</span>
                   </div>
-
-                  {/* 1v1 Battle Arena Cards Display */}
-                  <div className="grid grid-cols-2 gap-3 my-1">
-                    
-                    {/* Player 1 Card (Your / P1 Active Card) */}
-                    <div className={`p-2 rounded-xl border bg-black/70 relative overflow-hidden flex flex-col items-center justify-between space-y-1 transition-all ${
-                      p1Card?.rarity === 'SS'
-                        ? 'ss-card-glow text-white ring-2 ring-amber-300'
-                        : roomData?.turn === 'p1' && isAttacking
-                        ? 'animate-attack-slash ring-2 ring-cyan-400'
-                        : 'border-cyan-500/40 shadow-[0_0_15px_rgba(0,240,255,0.2)]'
-                    }`}>
-                      {p1Card?.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
-
-                      <div className="flex items-center justify-between w-full relative z-10">
-                        <span className="text-[8px] font-mono font-bold bg-cyan-950 border border-cyan-500/40 text-cyan-300 px-1.5 py-0.2 rounded uppercase truncate">
-                          {p1Card?.role === 'ATTACK' ? '🔴 TẤN CÔNG' : p1Card?.role === 'DEFENSE' ? '🔵 PHÒNG THỦ' : '🟢 CHỨC NĂNG'}
-                        </span>
-                        <span className={`text-[7.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(p1Card?.rarity || 'C')}`}>
-                          {p1Card?.rarity || 'C'}
-                        </span>
-                      </div>
-
-                      <div className="aspect-[3/4] h-32 sm:h-36 lg:h-40 w-full rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/30 flex items-center justify-center relative z-10">
-                        <img
-                          src={p1Card?.avatarUrl}
-                          alt={p1Card?.name}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = getCardImageSvg(p1Card?.id || 'c1');
-                          }}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-
-                      <div className="w-full text-center relative z-10">
-                        <strong className="block text-[10px] uppercase font-bold text-white truncate">{p1Card?.name}</strong>
-                        <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p1Card?.atk} | DEF: {p1Card?.def}</span>
-                      </div>
-                    </div>
-
-                    {/* Player 2 Card (Opponent / P2 Active Card) */}
-                    <div className={`p-2 rounded-xl border bg-black/70 relative overflow-hidden flex flex-col items-center justify-between space-y-1 transition-all ${
-                      p2Card?.rarity === 'SS'
-                        ? 'ss-card-glow text-white ring-2 ring-amber-300'
-                        : roomData?.turn === 'p2' && isAttacking
-                        ? 'animate-attack-slash ring-2 ring-rose-400'
-                        : 'border-rose-500/40 shadow-[0_0_15px_rgba(244,63,94,0.2)]'
-                    }`}>
-                      {p2Card?.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
-
-                      <div className="flex items-center justify-between w-full relative z-10">
-                        <span className="text-[8px] font-mono font-bold bg-rose-950 border border-rose-500/40 text-rose-300 px-1.5 py-0.2 rounded uppercase truncate">
-                          {p2Card?.role === 'ATTACK' ? '🔴 TẤN CÔNG' : p2Card?.role === 'DEFENSE' ? '🔵 PHÒNG THỦ' : '🟢 CHỨC NĂNG'}
-                        </span>
-                        <span className={`text-[7.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(p2Card?.rarity || 'C')}`}>
-                          {p2Card?.rarity || 'C'}
-                        </span>
-                      </div>
-
-                      <div className="aspect-[3/4] h-32 sm:h-36 lg:h-40 w-full rounded-lg overflow-hidden bg-slate-950 border border-rose-500/30 flex items-center justify-center relative z-10">
-                        <img
-                          src={p2Card?.avatarUrl}
-                          alt={p2Card?.name}
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).src = getCardImageSvg(p2Card?.id || 'c1');
-                          }}
-                          className="w-full h-full object-contain"
-                        />
-                      </div>
-
-                      <div className="w-full text-center relative z-10">
-                        <strong className="block text-[10px] uppercase font-bold text-white truncate">{p2Card?.name}</strong>
-                        <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p2Card?.atk} | DEF: {p2Card?.def}</span>
-                      </div>
-                    </div>
-
-                  </div>
-
-                  {/* Combat Log Live Ticker */}
-                  <div className="p-2 bg-black/80 rounded-lg border border-white/10 text-[9.5px] font-mono text-slate-300 line-clamp-2 leading-relaxed">
-                    <span className="text-yellow-400 font-bold">📜 Nhật Ký: </span>
-                    {roomData?.combatLogs?.[roomData.combatLogs.length - 1] || 'Đấu Trường đã sẵn sàng...'}
-                  </div>
-
                 </div>
 
-                {/* SELECTED CARD SKILL BANNER & DESCRIPTION */}
-                {!isSpectator && (
-                  <div className="p-2.5 bg-gradient-to-r from-slate-950 via-purple-950/40 to-slate-950 border border-cyan-500/40 rounded-xl text-[10px] font-mono space-y-1 shadow-[0_0_12px_rgba(0,240,255,0.15)]">
-                    <div className="flex items-center justify-between text-yellow-300 font-bold">
-                      <span className="flex items-center gap-1">
-                        <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                        Kỹ Năng: {currentSelectedCard?.skillName}
+                {/* ⚔ KHU VỰC ANIMATION KỸ NĂNG, COMBOS & DAMAGE FLOATS */}
+                <div className="p-2.5 bg-black/80 border border-cyan-500/30 rounded-xl text-center space-y-1 relative min-h-[50px] flex flex-col items-center justify-center overflow-hidden">
+                  {/* Combo Synergy Badge */}
+                  {(() => {
+                    const activeCombo = getComboEffect(currentSelectedCard, myHand);
+                    if (!activeCombo) return null;
+                    return (
+                      <div className="animate-bounce">
+                        <span className="px-3 py-0.5 rounded-full bg-gradient-to-r from-yellow-400 via-amber-500 to-yellow-400 text-black font-black text-[10px] uppercase font-mono border border-yellow-200 shadow-[0_0_15px_rgba(250,204,21,0.8)]">
+                          🔥 COMBO: {activeCombo.badge} (+{Math.round((activeCombo.dmgMult - 1) * 100)}% DMG)
+                        </span>
+                      </div>
+                    );
+                  })()}
+
+                  <p className="text-[10px] font-mono text-cyan-200 leading-relaxed max-w-lg mx-auto">
+                    {roomData?.combatLogs?.[(roomData?.combatLogs?.length || 0) - 1] || '⚔️ Đấu Trường đã sẵn sàng... Hãy chọn kỹ năng tấn công!'}
+                  </p>
+                </div>
+
+                {/* YOUR ACTIVE CARD */}
+                <div className="flex flex-col items-center">
+                  <span className="text-[9px] font-mono font-bold text-cyan-300 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    <Sparkles className="w-3 h-3 text-cyan-400" /> THẺ CỦA BẠN (Active Card)
+                  </span>
+
+                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all ${
+                    p1Card?.rarity === 'SS'
+                      ? 'ss-card-glow text-white ring-2 ring-amber-300'
+                      : roomData?.turn === 'p1' && isAttacking
+                      ? 'animate-attack-slash ring-2 ring-cyan-400'
+                      : 'border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
+                  }`}>
+                    {/* Floating Damage Overlay for P1 */}
+                    {damageFloats.filter((f) => f.target === 'p1').map((f) => (
+                      <div
+                        key={f.id}
+                        className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
+                      >
+                        <span>💥 -{f.damage}</span>
+                        {f.isCritical && <span className="text-[8px] text-yellow-300 font-bold uppercase">CRIT!</span>}
+                      </div>
+                    ))}
+
+                    <div className="flex items-center justify-between w-full relative z-10 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                      <span className="text-[8px] font-bold text-cyan-300 uppercase truncate">
+                        {p1Card?.name || 'Thẻ Của Bạn'}
                       </span>
-                      <span className="text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded text-[9px]">
-                        Chi phí: {currentSelectedCard?.energyCost} NL
+                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(p1Card?.rarity || 'C')}`}>
+                        {p1Card?.rarity || 'C'}
                       </span>
                     </div>
-                    <p className="text-slate-300 text-[9.5px] leading-relaxed">
-                      {currentSelectedCard?.skillDesc}
-                    </p>
-                  </div>
-                )}
 
-                {/* Big Prominent Action Buttons */}
-                {!isSpectator && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={handleNormalAttack}
-                      disabled={!isMyTurn || isAttacking || currentSelectedCard?.used}
-                      className={`py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                        isMyTurn && !currentSelectedCard?.used
-                          ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-125 text-white shadow-[0_0_15px_rgba(255,0,60,0.5)] active:scale-95'
-                          : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
-                      }`}
-                    >
-                      <Swords className="w-4 h-4" /> TẤN CÔNG THƯỜNG
-                    </button>
+                    <div className="aspect-[3/4] h-24 sm:h-28 w-full rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/30 flex items-center justify-center relative z-10">
+                      <img
+                        src={p1Card?.avatarUrl}
+                        alt={p1Card?.name}
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = getCardImageSvg(p1Card?.id || 'c1');
+                        }}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
 
-                    <button
-                      onClick={handleUseSkill}
-                      disabled={!isMyTurn || isAttacking || currentSelectedCard?.used || myEnergy < (currentSelectedCard?.energyCost || 2)}
-                      className={`py-3 px-3 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                        isMyTurn && !currentSelectedCard?.used && myEnergy >= (currentSelectedCard?.energyCost || 2)
-                          ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:brightness-125 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95'
-                          : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
-                      }`}
-                    >
-                      <Zap className="w-4 h-4" /> KĨ NĂNG ({currentSelectedCard?.energyCost || 2} NL)
-                    </button>
+                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {p1Card?.atk} | DEF: {p1Card?.def}</span>
                   </div>
-                )}
+                </div>
 
               </div>
 
-              {/* RIGHT COLUMN: OPPONENT & YOUR HAND CARDS + STATUS (lg:col-span-5) */}
-              <div className="lg:col-span-5 space-y-3">
+              {/* 3. YOUR STATUS & 5 HAND CARDS SELECTION AREA */}
+              <div className="bg-slate-950/90 border border-cyan-500/40 rounded-xl p-3 space-y-2 shadow-[0_0_15px_rgba(0,240,255,0.15)]">
                 
-                {/* 1. OPPONENT STATUS & 5 FACE-DOWN HAND CARDS */}
-                <div className="bg-gradient-to-b from-rose-950/40 via-black to-slate-950 p-2.5 rounded-xl border border-rose-500/30 space-y-2 relative">
-                  <div className="flex items-center justify-between">
+                {/* HP, Energy, Shield Bar */}
+                <div className="space-y-1 font-mono">
+                  <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <img
-                        src={p2?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                        alt=""
-                        className="w-7 h-7 rounded-full border border-rose-400 object-cover"
-                      />
-                      <div>
-                        <strong className="text-white text-xs block uppercase font-bold truncate max-w-[120px] sm:max-w-[160px]">
-                          {p2?.name || 'Đối Thủ (P2)'}
-                        </strong>
-                        <span className="text-[8px] text-rose-400 font-mono uppercase">
-                          Lượt: {roomData?.turn === 'p2' ? '⚡ LƯỢT ĐẤU ĐỐI THỦ' : 'Chờ...'}
-                        </span>
-                      </div>
+                      <img src={myPlayerObj?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-6 h-6 rounded-full border border-cyan-400 object-cover" />
+                      <span className="font-bold text-white uppercase">{myPlayerObj?.name || 'Bạn'} (BẠN)</span>
                     </div>
-
-                    <div className="text-right">
-                      <div className="text-amber-400 font-mono font-bold text-xs">⚡ {p2?.energy || 0}/5 NL</div>
-                      {p2?.shield > 0 && <span className="text-blue-400 text-[9px] font-bold">🛡️ +{p2?.shield}</span>}
+                    <div className="flex items-center gap-3">
+                      <span className="text-amber-400 font-black text-xs">⚡ {myEnergy}/5 NL</span>
+                      {myPlayerObj?.shield > 0 && <span className="text-blue-400 text-xs font-black">🛡️ {myPlayerObj?.shield}</span>}
                     </div>
                   </div>
 
-                  {/* Opponent HP Bar */}
-                  <div className="space-y-0.5">
-                    <div className="flex justify-between text-[9px] font-mono text-slate-300">
-                      <span>❤️ HP: {p2?.hp || 0}/300</span>
-                      <span className="text-rose-400 font-bold">{Math.round(((p2?.hp || 0) / 300) * 100)}%</span>
-                    </div>
-                    <div className="w-full bg-slate-900 h-2 rounded-full overflow-hidden border border-white/10">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-slate-300 font-bold shrink-0">HP BẠN: {myPlayerObj?.hp || 0}/300</span>
+                    <div className="flex-1 bg-slate-900 h-2.5 rounded-full overflow-hidden border border-white/10">
                       <div
-                        className="bg-gradient-to-r from-red-600 to-rose-400 h-full transition-all duration-300"
-                        style={{ width: `${Math.max(0, ((p2?.hp || 0) / 300) * 100)}%` }}
+                        className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 h-full transition-all duration-300"
+                        style={{ width: `${Math.max(0, ((myPlayerObj?.hp || 0) / 300) * 100)}%` }}
                       />
-                    </div>
-                  </div>
-
-                  {/* Opponent's 5 Hand Cards (Rendered as 3D Flippable Face-Down Cards) */}
-                  <div className="pt-1">
-                    <span className="text-[8px] text-slate-400 font-mono uppercase block mb-1">
-                      🎴 THẺ TRÊN TAY ĐỐI THỦ (MẶT SAU AYK8686):
-                    </span>
-                    <div className="flex gap-1.5 overflow-x-auto pb-1.5 snap-x scrollbar-thin scrollbar-thumb-rose-500/30">
-                      {oppHand.map((card: any, idx: number) => (
-                        <div
-                          key={card.instanceId || `opp_${idx}`}
-                          className={`w-14 sm:w-16 shrink-0 snap-center perspective-1000 aspect-[3/4] h-14 sm:h-16 rounded-lg overflow-hidden border transition-all relative flex items-center justify-center ${
-                            card.used
-                              ? 'opacity-30 grayscale border-slate-700 bg-slate-950'
-                              : p2?.activeCardIdx === idx
-                              ? 'border-rose-400 ring-2 ring-rose-500 shadow-[0_0_12px_rgba(244,63,94,0.6)]'
-                              : 'border-purple-500/40 bg-slate-900'
-                          }`}
-                        >
-                          {card.used ? (
-                            <span className="text-[7px] text-slate-500 font-mono uppercase font-bold text-center">
-                              ĐÃ DÙNG
-                            </span>
-                          ) : (
-                            <img
-                              src={getCardBackSvg()}
-                              alt="Face Down Card"
-                              className="w-full h-full object-cover"
-                            />
-                          )}
-                        </div>
-                      ))}
                     </div>
                   </div>
                 </div>
 
-                {/* 2. YOUR STATUS HEADER */}
-                {!isSpectator && (
-                  <div className="bg-gradient-to-b from-cyan-950/40 via-black to-slate-950 p-2.5 rounded-xl border border-cyan-500/30 space-y-1.5">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <img
-                          src={roomData[myPlayerKey || 'p1']?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                          alt=""
-                          className="w-7 h-7 rounded-full border border-cyan-400 object-cover"
-                        />
-                        <div>
-                          <strong className="text-white text-xs block uppercase font-bold truncate max-w-[120px] sm:max-w-[160px]">
-                            {roomData[myPlayerKey || 'p1']?.name || 'Bạn'} (BẠN)
-                          </strong>
-                          <span className="text-[8px] text-cyan-400 font-mono uppercase">
-                            Thẻ chọn: {currentSelectedCard?.name}
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="text-right">
-                        <div className="text-amber-400 font-mono font-bold text-xs">⚡ {myEnergy}/5 NL</div>
-                        {roomData[myPlayerKey || 'p1']?.shield > 0 && (
-                          <span className="text-blue-400 text-[9px] font-bold">🛡️ +{roomData[myPlayerKey || 'p1']?.shield}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Your HP Bar */}
-                    <div className="space-y-0.5">
-                      <div className="flex justify-between text-[9px] font-mono text-slate-300">
-                        <span>❤️ HP BẠN: {roomData[myPlayerKey || 'p1']?.hp || 0}/300</span>
-                        <span className="text-cyan-300 font-bold">{Math.round(((roomData[myPlayerKey || 'p1']?.hp || 0) / 300) * 100)}%</span>
-                      </div>
-                      <div className="w-full bg-slate-900 h-2.5 rounded-full overflow-hidden border border-white/10">
-                        <div
-                          className="bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-300 h-full transition-all duration-300"
-                          style={{ width: `${Math.max(0, ((roomData[myPlayerKey || 'p1']?.hp || 0) / 300) * 100)}%` }}
-                        />
-                      </div>
-                    </div>
+                {/* 5 HAND CARDS SELECTION ROW */}
+                <div className="space-y-1 pt-1">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-slate-300">
+                    <span className="font-bold text-cyan-300 uppercase flex items-center gap-1">
+                      <Layers className="w-3.5 h-3.5 text-cyan-400" /> [Card1][Card2][Card3][Card4][Card5] THẺ TRÊN TAY
+                    </span>
+                    <span className="text-[8px] text-slate-400 font-bold">Chạm để đổi bài</span>
                   </div>
-                )}
 
-                {/* 3. YOUR 5 HAND CARDS SELECTION (HORIZONTAL SCROLLABLE ROW ON MOBILE) */}
-                {!isSpectator && (
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-[9px] font-mono text-slate-300">
-                      <span className="font-bold text-cyan-300 uppercase flex items-center gap-1">
-                        <Layers className="w-3.5 h-3.5 text-cyan-400" /> 5 THẺ TRÊN TAY BẠN (CUỘN NGANG):
-                      </span>
-                      <span className="text-[8px] text-slate-400 font-bold">
-                        Chạm để chọn / ℹ️ xem chi tiết
-                      </span>
-                    </div>
+                  <div className="flex gap-2 overflow-x-auto pb-1.5 pt-1 px-0.5 snap-x scrollbar-thin scrollbar-thumb-cyan-500/50">
+                    {myHand.map((card: any, idx: number) => {
+                      const isUsed = card.used;
+                      const isSelected = activeCardIdx === idx;
+                      const isEnergyLocked = myEnergy < card.energyCost;
 
-                    <div className="flex gap-2 overflow-x-auto pb-2 pt-1 px-1 snap-x scrollbar-thin scrollbar-thumb-cyan-500/50 scrollbar-track-slate-950">
-                      {myHand.map((card: any, idx: number) => {
-                        const isUsed = card.used;
-                        const isSelected = activeCardIdx === idx;
-                        const isEnergyLocked = myEnergy < card.energyCost;
-
-                        return (
+                      return (
+                        <div
+                          key={card.instanceId || `my_card_${idx}`}
+                          className="w-20 sm:w-24 shrink-0 snap-center relative"
+                        >
                           <div
-                            key={card.instanceId || `my_card_${idx}`}
-                            className="w-20 sm:w-24 md:w-28 shrink-0 snap-center relative"
+                            onClick={() => !isUsed && handleSelectCard(idx)}
+                            role="button"
+                            tabIndex={isUsed ? -1 : 0}
+                            className={`w-full p-1.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col items-center justify-between select-none ${
+                              isUsed
+                                ? 'opacity-30 grayscale border-slate-800 bg-slate-950 pointer-events-none'
+                                : isSelected
+                                ? 'bg-gradient-to-b from-purple-900/60 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-[1.03]'
+                                : 'bg-black/80 border-white/10 text-slate-400 hover:border-cyan-400/50'
+                            }`}
                           >
-                            <div
-                              onClick={() => !isUsed && handleSelectCard(idx)}
-                              role="button"
-                              tabIndex={isUsed ? -1 : 0}
-                              className={`w-full p-1.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col items-center justify-between select-none ${
-                                isUsed
-                                  ? 'opacity-30 grayscale border-slate-800 bg-slate-950 pointer-events-none'
-                                  : isSelected
-                                  ? 'bg-gradient-to-b from-purple-900/60 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-[1.03]'
-                                  : card.rarity === 'SS'
-                                  ? 'bg-gradient-to-b from-rose-950/80 via-purple-950/80 to-black ss-card-glow text-white ring-1 ring-amber-300'
-                                  : card.rarity === 'S'
-                                  ? 'bg-gradient-to-b from-amber-950/60 to-black animate-lq-gold text-white'
-                                  : card.rarity === 'A'
-                                  ? 'bg-gradient-to-b from-purple-950/60 to-black animate-lq-purple text-white'
-                                  : 'bg-black/80 border-white/10 text-slate-400 hover:border-cyan-400/50'
-                              }`}
-                            >
-                              {/* SS Card Golden Diagonal Shimmer Sweep */}
-                              {card.rarity === 'SS' && !isUsed && (
-                                <div className="ss-shimmer-overlay" />
-                              )}
+                            <span className={`absolute top-0.5 right-0.5 z-20 text-[6.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
+                              {card.rarity || 'C'}
+                            </span>
 
-                              {/* Lien Quan Mobile Shiny Shimmer Effect Overlay */}
-                              {(card.rarity === 'S' || card.rarity === 'A') && !isUsed && (
-                                <div className="absolute inset-0 overflow-hidden pointer-events-none z-10 rounded-xl">
-                                  <div className={`w-1/2 h-full bg-gradient-to-r ${
-                                    card.rarity === 'SS' ? 'from-transparent via-amber-300/70 to-transparent' : card.rarity === 'S' ? 'from-transparent via-amber-300/50 to-transparent' : 'from-transparent via-fuchsia-300/50 to-transparent'
-                                  } animate-[lienQuanShimmer_1.8s_infinite]`} />
-                                </div>
-                              )}
-
-                              {/* Luxury LIMITED Animated Badge for SS, S & A Cards */}
-                              {(card.rarity === 'SS' || card.rarity === 'S' || card.rarity === 'A') && (
-                                <div className={`absolute top-0.5 left-1/2 -translate-x-1/2 z-20 px-1 py-0.2 rounded-full border text-black font-black text-[6px] tracking-tighter uppercase flex items-center gap-0.5 ${
-                                  card.rarity === 'SS'
-                                    ? 'bg-gradient-to-r from-amber-300 via-rose-400 to-cyan-300 border-amber-200 shadow-[0_0_10px_rgba(251,191,36,1)] animate-bounce'
-                                    : 'bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 border-yellow-200 shadow-[0_0_8px_rgba(250,204,21,0.8)] animate-pulse'
-                                }`}>
-                                  <span>{card.rarity === 'SS' ? '👑 SS CỰC BÁ' : '✨ LIMITED'}</span>
-                                </div>
-                              )}
-
-                              {/* Card Rarity Badge */}
-                              <span className={`absolute top-0.5 right-0.5 z-20 text-[6.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
-                                {card.rarity || 'C'}
-                              </span>
-
-                              {/* Inspect Card Detail Button */}
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setInspectedCard(card);
+                            <div className="aspect-[3/4] h-16 sm:h-20 w-full rounded-lg overflow-hidden bg-slate-950 mb-0.5 flex items-center justify-center relative">
+                              <img
+                                src={card.avatarUrl}
+                                alt={card.name}
+                                onError={(e) => {
+                                  (e.target as HTMLImageElement).src = getCardImageSvg(card.id);
                                 }}
-                                className="absolute top-0.5 left-0.5 z-20 p-0.5 bg-cyan-950/90 border border-cyan-400/60 rounded text-[8px] text-cyan-300 hover:scale-110 transition cursor-pointer"
-                                title="Xem chi tiết kỹ năng"
-                              >
-                                <Info className="w-2.5 h-2.5" />
-                              </button>
+                                className="w-full h-full object-contain"
+                              />
+                            </div>
 
-                              {/* Card Image & 3D Container */}
-                              <div className="perspective-1000 aspect-[3/4] h-20 sm:h-24 w-full rounded-lg overflow-hidden bg-slate-950 mb-0.5 flex items-center justify-center relative">
-                                <img
-                                  src={card.avatarUrl}
-                                  alt={card.name}
-                                  onError={(e) => {
-                                    (e.target as HTMLImageElement).src = getCardImageSvg(card.id);
-                                  }}
-                                  className={`w-full h-full object-contain transition-transform duration-500 ${
-                                    isSelected ? 'scale-105' : ''
-                                  }`}
-                                />
-
-                                {/* Used Card Overlay */}
-                                {isUsed && (
-                                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center text-[7px] font-mono font-bold text-red-400 uppercase text-center px-0.5">
-                                    ĐÃ DÙNG
-                                  </div>
-                                )}
-
-                                {/* Energy Lock Overlay */}
-                                {!isUsed && isEnergyLocked && (
-                                  <div className="absolute inset-0 bg-black/85 backdrop-blur-sm flex flex-col items-center justify-center text-center p-0.5">
-                                    <span className="text-xs">🔒</span>
-                                    <span className="text-[7px] font-mono font-bold text-amber-400 leading-tight">
-                                      KHÓA NL
-                                    </span>
-                                    <span className="text-[6.5px] font-mono text-slate-400">
-                                      ({card.energyCost} NL)
-                                    </span>
-                                  </div>
-                                )}
-                              </div>
-
-                              {/* Card Role & Stats */}
-                              <div className="w-full text-center leading-none">
-                                <strong className="block text-[8px] uppercase font-bold truncate text-white">{card.name}</strong>
-                                <span className="text-[7px] font-mono text-yellow-400 block font-bold mt-0.5">
-                                  {card.atk}/{card.def}
-                                </span>
-                              </div>
+                            <div className="w-full text-center leading-none">
+                              <strong className="block text-[8px] uppercase font-bold truncate text-white">{card.name}</strong>
+                              <span className="text-[7px] font-mono text-yellow-400 block font-bold mt-0.5">
+                                {card.atk}/{card.def}
+                              </span>
                             </div>
                           </div>
-                        );
-                      })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* READ CARD SKILL DESCRIPTION */}
+                <div className="p-2.5 bg-gradient-to-r from-slate-950 via-purple-950/40 to-slate-950 border border-cyan-500/40 rounded-xl text-[10px] font-mono space-y-1">
+                  <div className="flex items-center justify-between text-yellow-300 font-bold">
+                    <span>📖 Đọc kỹ năng thẻ: {currentSelectedCard?.skillName}</span>
+                    <span className="text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded text-[9px]">
+                      Tốn: {currentSelectedCard?.energyCost || 2} NL
+                    </span>
+                  </div>
+                  <p className="text-slate-300 text-[9.5px] leading-relaxed">
+                    {currentSelectedCard?.skillDesc}
+                  </p>
+                </div>
+
+                {/* 4 MAIN ACTION BUTTONS: [⚔ Đánh] [✨ Skill] [🔄 Đổi bài] [⏭ Kết thúc lượt] */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
+                  <button
+                    onClick={handleNormalAttack}
+                    disabled={!isMyTurn || isAttacking || currentSelectedCard?.used}
+                    className={`py-2.5 px-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      isMyTurn && !currentSelectedCard?.used
+                        ? 'bg-gradient-to-r from-red-600 via-rose-600 to-red-700 hover:brightness-125 text-white shadow-[0_0_15px_rgba(255,0,60,0.5)] active:scale-95'
+                        : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
+                    }`}
+                  >
+                    <Swords className="w-3.5 h-3.5" /> ⚔️ Đánh
+                  </button>
+
+                  <button
+                    onClick={handleUseSkill}
+                    disabled={!isMyTurn || isAttacking || currentSelectedCard?.used || myEnergy < (currentSelectedCard?.energyCost || 2)}
+                    className={`py-2.5 px-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      isMyTurn && !currentSelectedCard?.used && myEnergy >= (currentSelectedCard?.energyCost || 2)
+                        ? 'bg-gradient-to-r from-amber-500 via-yellow-500 to-amber-600 hover:brightness-125 text-black shadow-[0_0_15px_rgba(245,158,11,0.5)] active:scale-95'
+                        : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
+                    }`}
+                  >
+                    <Zap className="w-3.5 h-3.5" /> ✨ Skill ({currentSelectedCard?.energyCost || 2} NL)
+                  </button>
+
+                  <button
+                    onClick={handleSwapActiveCard}
+                    disabled={!isMyTurn || isAttacking}
+                    className={`py-2.5 px-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      isMyTurn
+                        ? 'bg-gradient-to-r from-cyan-600 to-blue-600 hover:brightness-125 text-white shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95'
+                        : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
+                    }`}
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" /> 🔄 Đổi bài
+                  </button>
+
+                  <button
+                    onClick={handleEndTurn}
+                    disabled={!isMyTurn || isAttacking}
+                    className={`py-2.5 px-2 rounded-xl font-black text-xs uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1 ${
+                      isMyTurn
+                        ? 'bg-gradient-to-r from-purple-600 to-indigo-600 hover:brightness-125 text-white shadow-[0_0_15px_rgba(168,85,247,0.4)] active:scale-95'
+                        : 'bg-white/5 text-slate-600 cursor-not-allowed border border-white/5'
+                    }`}
+                  >
+                    <Clock className="w-3.5 h-3.5" /> ⏭ Kết thúc lượt
+                  </button>
+                </div>
+
+              </div>
+
+              {/* 4. BOTTOM MULTI-TAB PANEL: Log trận | Combo | Buff | Chat */}
+              <div className="bg-slate-950/90 border border-cyan-500/40 rounded-xl p-3 space-y-2">
+                <div className="flex border-b border-cyan-500/30 gap-1 pb-1.5 overflow-x-auto">
+                  <button
+                    onClick={() => setBattleTab('log')}
+                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                      battleTab === 'log' ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(0,240,255,0.5)]' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    📜 Log trận
+                  </button>
+                  <button
+                    onClick={() => setBattleTab('combo')}
+                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                      battleTab === 'combo' ? 'bg-yellow-400 text-black shadow-[0_0_10px_rgba(250,204,21,0.5)]' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🔥 Combo
+                  </button>
+                  <button
+                    onClick={() => setBattleTab('buff')}
+                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                      battleTab === 'buff' ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    🛡️ Buff
+                  </button>
+                  <button
+                    onClick={() => setBattleTab('chat')}
+                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                      battleTab === 'chat' ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    💬 Chat ({chatMessages.length})
+                  </button>
+                </div>
+
+                {/* TAB 1: LOG TRẬN */}
+                {battleTab === 'log' && (
+                  <div className="h-28 overflow-y-auto space-y-1 text-[10px] font-mono pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30">
+                    {roomData?.combatLogs?.length > 0 ? (
+                      roomData.combatLogs.map((log: string, idx: number) => (
+                        <div key={idx} className="p-1 bg-black/60 rounded border border-white/5 text-slate-300 leading-relaxed">
+                          {log}
+                        </div>
+                      ))
+                    ) : (
+                      <p className="text-slate-500 text-center py-4">Chưa có nhật ký combat...</p>
+                    )}
+                  </div>
+                )}
+
+                {/* TAB 2: COMBO */}
+                {battleTab === 'combo' && (
+                  <div className="p-2 bg-black/80 rounded-lg text-[10px] font-mono text-slate-200 space-y-1.5">
+                    <div className="text-yellow-400 font-bold uppercase">⚡ DANH SÁCH TƯƠNG TÁC COMBO THẺ:</div>
+                    <ul className="space-y-1 text-slate-300 leading-tight">
+                      <li>• <strong className="text-red-400">Tấn Công + Chức Năng</strong>: 🔥 Lốc Lửa (+30% Sát thương)</li>
+                      <li>• <strong className="text-amber-400">Tấn Công + Phòng Thủ</strong>: 🛡️ Phản Pháo (+20% Giáp + 15% Dmg)</li>
+                      <li>• <strong className="text-cyan-300">Phòng Thủ + Hỗ Trợ</strong>: ✨ Hồi Phục Bất Tử (+25 HP + Shield)</li>
+                      <li>• <strong className="text-purple-400">Thẻ SS Vương Giả</strong>: 👑 Cực Bá Tối Thượng (+50% Dmg)</li>
+                    </ul>
+                  </div>
+                )}
+
+                {/* TAB 3: BUFF */}
+                {battleTab === 'buff' && (
+                  <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
+                    <div className="p-2 bg-cyan-950/60 rounded border border-cyan-500/30 space-y-1">
+                      <div className="text-cyan-300 font-bold">BẠN:</div>
+                      <div>🛡️ Giáp bảo hộ: {myPlayerObj?.shield || 0}</div>
+                      <div>⚡ Năng lượng: {myEnergy}/5 NL</div>
+                    </div>
+                    <div className="p-2 bg-rose-950/60 rounded border border-rose-500/30 space-y-1">
+                      <div className="text-rose-300 font-bold">ĐỐI THỦ:</div>
+                      <div>🛡️ Giáp bảo hộ: {oppPlayerObj?.shield || 0}</div>
+                      <div>⚡ Năng lượng: {oppPlayerObj?.energy || 0}/5 NL</div>
                     </div>
                   </div>
                 )}
 
-              </div>
+                {/* TAB 4: CHAT */}
+                {battleTab === 'chat' && (
+                  <div className="space-y-2">
+                    <div className="h-24 overflow-y-auto space-y-1 text-[10px] font-mono pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30">
+                      {chatMessages.length === 0 ? (
+                        <p className="text-slate-500 text-center py-4 italic">Chưa có tin nhắn...</p>
+                      ) : (
+                        chatMessages.map((msg) => (
+                          <div key={msg.id} className="p-1 bg-white/5 rounded border border-white/5 flex items-start gap-2">
+                            <span className="text-cyan-300 font-bold shrink-0">{msg.sender}:</span>
+                            <span className="text-slate-200 flex-1 break-words">{msg.text}</span>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                        placeholder="Nhập tin nhắn..."
+                        className="flex-1 bg-black/90 border border-cyan-500/30 rounded-xl px-3 py-1.5 text-[11px] text-white focus:outline-none focus:border-cyan-400 font-mono"
+                      />
+                      <button
+                        onClick={handleSendMessage}
+                        className="px-4 py-1.5 bg-cyan-500 text-black font-black text-xs rounded-xl transition cursor-pointer font-mono uppercase"
+                      >
+                        GỬI
+                      </button>
+                    </div>
+                  </div>
+                )}
 
-            </div>
-
-            {/* REAL-TIME MATCH CHAT & LIVE BETTING POOL (Firebase Synced) */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-3 border-t border-white/10">
-              
-              {/* 1. Live Betting Pool Box */}
-              <div className="p-3 bg-slate-950/90 border border-yellow-500/40 rounded-xl space-y-2">
-                <div className="flex items-center justify-between text-yellow-400 font-bold text-xs uppercase font-mono">
-                  <span className="flex items-center gap-1">
-                    💰 QUỸ ĐẶT CƯỢC LIVE
-                  </span>
-                  <span className="text-amber-300 font-mono text-xs font-bold">
-                    {(bettingPool.totalPot || 0).toLocaleString('vi-VN')} Vàng
-                  </span>
-                </div>
-
-                <p className="text-[9.5px] text-slate-300 leading-tight font-mono">
-                  Đặt cược vào chiến thắng trận đấu! Tất cả người xem đồng bộ theo thời gian thực.
-                </p>
-
-                <div className="flex gap-1.5 pt-1">
-                  {[100, 500, 1000, 5000].map((amt) => (
-                    <button
-                      key={amt}
-                      onClick={() => handlePlaceBet(amt)}
-                      className="flex-1 py-1.5 bg-gradient-to-r from-yellow-500/20 via-amber-500/30 to-yellow-600/20 hover:bg-yellow-500 hover:text-black border border-yellow-500/50 text-yellow-300 font-bold text-[10px] rounded-lg transition-all cursor-pointer font-mono shadow-[0_0_8px_rgba(250,204,21,0.2)]"
-                    >
-                      +{amt.toLocaleString()}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* 2. Real-time Live Chat Room Box */}
-              <div className="p-3 bg-slate-950/90 border border-cyan-500/40 rounded-xl space-y-2 flex flex-col justify-between">
-                <div className="flex items-center justify-between text-cyan-400 font-bold text-xs uppercase font-mono border-b border-cyan-500/20 pb-1">
-                  <span className="flex items-center gap-1">
-                    💬 PHÒNG CHAT TRỰC TIẾP LIVE
-                  </span>
-                  <span className="text-[9px] text-slate-400">
-                    {chatMessages.length} Tin nhắn
-                  </span>
-                </div>
-
-                <div className="h-20 overflow-y-auto space-y-1.5 text-[9.5px] font-mono pr-1 scrollbar-thin scrollbar-thumb-cyan-500/30">
-                  {chatMessages.length === 0 ? (
-                    <p className="text-slate-500 text-center py-3 text-[9px] italic">Chưa có tin nhắn... Hãy bình luận ngay!</p>
-                  ) : (
-                    chatMessages.map((msg) => (
-                      <div key={msg.id} className="p-1 bg-white/5 rounded border border-white/5 flex gap-1">
-                        <span className="text-cyan-300 font-bold truncate max-w-[80px]">{msg.sender}:</span>
-                        <span className="text-slate-200 flex-1 break-words">{msg.text}</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="flex gap-1 pt-1">
-                  <input
-                    type="text"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-                    placeholder="Nhập lời nhắn khán giả..."
-                    className="flex-1 bg-black/80 border border-cyan-500/30 rounded-lg px-2 py-1 text-[10px] text-white focus:outline-none focus:border-cyan-400 font-mono"
-                  />
-                  <button
-                    onClick={handleSendMessage}
-                    className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-[10px] rounded-lg transition cursor-pointer font-mono"
-                  >
-                    GỬI
-                  </button>
-                </div>
               </div>
 
             </div>
@@ -3507,7 +4529,33 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
       </div>
 
-      {/* SPECIAL CARD PARTICLES BURST & SCREEN FLASH OVERLAY FOR ALL Connected SPECTATORS & PLAYERS */}
+      {/* CRITICAL / COMBO SCREEN FLASH OVERLAY */}
+      {criticalFlashType && (
+        <div className={`fixed inset-0 z-[95] pointer-events-none ${
+          criticalFlashType === 'CYAN'
+            ? 'animate-critical-flash-cyan'
+            : criticalFlashType === 'GOLD'
+            ? 'animate-critical-flash-gold'
+            : 'animate-critical-flash-red'
+        }`} />
+      )}
+
+      {/* COMBO / CRITICAL IMPACT POPUP OVERLAY */}
+      {comboPopup && (
+        <div className="fixed inset-0 z-[98] pointer-events-none flex flex-col items-center justify-center p-4">
+          <div className="animate-combo-pop bg-black/90 border-2 border-yellow-400 p-5 sm:p-7 rounded-3xl text-center space-y-1 shadow-[0_0_80px_rgba(250,204,21,0.9)] backdrop-blur-md">
+            <span className="text-3xl sm:text-5xl block animate-bounce">⚡💥🔥</span>
+            <h2 className="text-2xl sm:text-4xl font-black font-mono text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-rose-400 uppercase drop-shadow-[0_0_20px_rgba(250,204,21,0.8)] tracking-wider">
+              {comboPopup.title}
+            </h2>
+            <p className="text-xs sm:text-base font-mono font-bold text-cyan-300 drop-shadow">
+              {comboPopup.subtitle}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* SPECIAL CARD PARTICLES BURST & SCREEN FLASH OVERLAY FOR ALL CONNECTED PLAYERS */}
       {activeSpecialEvent && (
         <div className="fixed inset-0 z-[100] pointer-events-none flex flex-col items-center justify-center bg-black/50 backdrop-blur-sm animate-screen-flash">
           <div className="relative flex flex-col items-center justify-center space-y-3">
@@ -3530,7 +4578,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         </div>
       )}
 
-      {/* 50 CARDS DECK COMPENDIUM & SKILLS GALLERY MODAL WITH RARITY FILTER */}
+      {/* FULL CARD POOL COMPENDIUM & SKILLS GALLERY MODAL WITH RARITY FILTER */}
       {showCompendium && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-black/90 backdrop-blur-md animate-fadeIn">
           <div className="glass-box w-full max-w-4xl p-4 sm:p-6 border border-cyan-500/40 bg-[#080b12] max-h-[90vh] overflow-y-auto rounded-2xl space-y-4 shadow-[0_0_60px_rgba(0,240,255,0.3)]">
@@ -3543,10 +4591,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                 </div>
                 <div>
                   <h3 className="text-white font-black text-sm sm:text-base uppercase tracking-wider flex items-center gap-2">
-                    📚 THƯ VIỆN BỘ BÀI (50 THẺ & PHẨM CẤP C, B, A, S)
+                    📚 THƯ VIỆN BỘ BÀI TOÀN NĂNG (PHẨM CẤP C, B, A, S, SS)
                   </h3>
                   <p className="text-[10px] text-slate-400 font-mono">
-                    Xem toàn bộ 50 thẻ bài Công, Thủ, Chức năng, Đặc biệt và kĩ năng độc quyền
+                    Xem toàn bộ kho thẻ bài Công, Thủ, Chức năng, Tối thượng và kĩ năng độc quyền
                   </p>
                 </div>
               </div>

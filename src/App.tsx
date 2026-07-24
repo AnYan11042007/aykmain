@@ -933,7 +933,7 @@ export default function App() {
               }}
               className="py-1.5 px-3 bg-[#ff003c] hover:bg-red-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest text-center cursor-pointer transition-all flex items-center justify-center gap-1 shadow-md"
             >
-              <Maximize2 className="w-3 h-3" /> [ QUAY LẠI KHÁN ĐÀI LIVE ]
+              <Maximize2 className="w-3 h-3" /> [ QUAY LẠI TRÒ CHƠI ]
             </button>
           </motion.div>
         )}
