@@ -227,7 +227,7 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
             <div className="flex items-center gap-2 mt-1 text-xs">
               <span className="text-[#00f0ff] font-bold">UID / STK: {uid}</span>
               <span className="text-slate-400">•</span>
-              <span className="text-amber-400 font-bold">{user?.class || 'S88'}</span>
+              <span className="text-amber-400 font-bold">{user?.class || 'AYK'}</span>
             </div>
             <div className="mt-1 text-emerald-400 font-black text-xs">
               Tài sản: {(user?.pp || 0).toLocaleString()} PP

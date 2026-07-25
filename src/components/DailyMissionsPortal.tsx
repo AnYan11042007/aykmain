@@ -19,15 +19,14 @@ import {
   Trophy, 
   Flame, 
   MessageSquare, 
-  Landmark, 
-  ShoppingBag, 
   BookOpen, 
   Compass, 
-  HelpCircle,
   Coins,
   ShieldCheck,
   Zap,
-  Gift
+  Gift,
+  Clock,
+  PlayCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -73,15 +72,19 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
   const getMissionUnitLabel = (type: string) => {
     switch (type) {
       case 'chat_messages': return 'tin nhắn';
-      case 'taixiu_wins': return 'trận thắng';
+      case 'taixiu_wins':
+      case 'taixiu_play': return 'trận tài xỉu';
       case 'crash_rides': return 'chuyến bay';
       case 'penalty_goals': return 'bàn thắng';
       case 'wheel_spins': return 'lượt quay';
-      case 'bank_deposit': return 'giao dịch';
-      case 'marketplace_buy': return 'lượt mua';
       case 'ai_chat': return 'câu hỏi AI';
       case 'horse_rides': return 'chặng đua';
-      case 'check_in': return 'ngày điểm danh';
+      case 'claw_machine': return 'lượt gắp thú';
+      case 'fcmobile_match': return 'trận bóng đá';
+      case 'card_battle': return 'trận thẻ bài';
+      case 'quiz_answer': return 'câu trắc nghiệm';
+      case 'world_hunting': return 'quái/boss';
+      case 'game_play': return 'ván minigame';
       case 'general_study': default: return 'lượt hoàn thành';
     }
   };
@@ -120,7 +123,9 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
       if (snap.exists()) {
         const val = snap.val();
         const list: UserMission[] = Array.isArray(val) ? val : Object.values(val);
-        setMissions(list);
+        const obsoleteTypes = ['bank_deposit', 'check_in', 'marketplace_buy', 'rps_match', 'bj_match', 'tienlen_match', 'roulette_spin'];
+        const validList = list.filter((m) => m && !obsoleteTypes.includes(m.type));
+        setMissions(validList);
       }
     });
 
@@ -160,7 +165,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
 
         list.push({
           uid: uId,
-          name: u.fullName || u.displayName || u.username || 'Sinh Viên S88',
+          name: u.fullName || u.displayName || u.username || 'Sinh Viên AYK',
           avatar: u.avatarUrl || u.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
           completedCount,
           totalMissions,
@@ -343,9 +348,8 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
 
   const getMissionIcon = (type: string) => {
     switch (type) {
-      case 'check_in':
-        return <Calendar className="w-5 h-5 text-cyan-400" />;
       case 'taixiu_wins':
+      case 'taixiu_play':
         return <Trophy className="w-5 h-5 text-yellow-400" />;
       case 'crash_rides':
         return <Flame className="w-5 h-5 text-orange-400" />;
@@ -355,14 +359,22 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
         return <MessageSquare className="w-5 h-5 text-blue-400" />;
       case 'wheel_spins':
         return <Sparkles className="w-5 h-5 text-purple-400" />;
-      case 'bank_deposit':
-        return <Landmark className="w-5 h-5 text-amber-500" />;
-      case 'marketplace_buy':
-        return <ShoppingBag className="w-5 h-5 text-rose-400" />;
       case 'ai_chat':
-        return <BookOpen className="w-5 h-5 text-cyan-500" />;
+        return <BookOpen className="w-5 h-5 text-cyan-400" />;
       case 'horse_rides':
         return <Compass className="w-5 h-5 text-red-400" />;
+      case 'claw_machine':
+        return <Gift className="w-5 h-5 text-pink-400" />;
+      case 'fcmobile_match':
+        return <Trophy className="w-5 h-5 text-green-400" />;
+      case 'card_battle':
+        return <Zap className="w-5 h-5 text-indigo-400" />;
+      case 'quiz_answer':
+        return <BookOpen className="w-5 h-5 text-amber-400" />;
+      case 'world_hunting':
+        return <Flame className="w-5 h-5 text-rose-500" />;
+      case 'game_play':
+        return <Award className="w-5 h-5 text-cyan-300" />;
       case 'general_study':
       default:
         return <Award className="w-5 h-5 text-amber-400" />;
@@ -400,11 +412,15 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
             </div>
             <h1 className="text-2xl md:text-3xl font-black text-white uppercase tracking-wider flex items-center gap-3">
               <Target className="w-8 h-8 text-[#00f0ff] animate-bounce" />
-              NGÂN HÀNG NHIỆM VỤ S88
+              NGÂN HÀNG NHIỆM VỤ AYK
             </h1>
             <p className="text-slate-400 text-xs font-sans max-w-xl leading-relaxed">
               Mỗi ngày hệ thống tự động xáo trộn 20 nhiệm vụ ngẫu nhiên. Hoàn thành để tích lũy học bổng Portal Points (PP) và điểm XP nâng cấp Battle Pass!
             </p>
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[10px] font-bold rounded-lg font-mono">
+              <Clock className="w-3.5 h-3.5 text-amber-400 animate-spin" style={{ animationDuration: '10s' }} />
+              <span>Tự động Reset tất cả nhiệm vụ vào 00:00 (0h sáng) Giờ Việt Nam (GMT+7)</span>
+            </div>
           </div>
 
           {/* Action buttons on banner */}
@@ -608,7 +624,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                 <form onSubmit={handleCreateMission} className="bg-black/40 border border-white/10 p-4 rounded-xl space-y-4">
                   <h4 className="text-xs font-black text-amber-400 uppercase flex items-center gap-1.5">
                     <Plus className="w-4 h-4 text-amber-400" />
-                    TẠO NHIỆM VỤ HẰNG NGÀY MỚI (SẼ VÀO KHO POOL S88)
+                    TẠO NHIỆM VỤ HẰNG NGÀY MỚI (SẼ VÀO KHO POOL AYK)
                   </h4>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
@@ -632,16 +648,19 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                         className="w-full bg-slate-950 border border-white/10 focus:border-amber-400 rounded-lg p-2.5 text-white"
                       >
                         <option value="general_study">Nghiên Cứu Bài Học / Khóa Học</option>
-                        <option value="ai_chat">Hỏi Đáp AI Gia Sư S88</option>
+                        <option value="ai_chat">Hỏi Đáp AI Gia Sư AYK</option>
+                        <option value="quiz_answer">Trắc Nghiệm Tri Thức Góc Học Tập</option>
                         <option value="chat_messages">Thảo Luận Chat Toàn Trường</option>
-                        <option value="check_in">Báo Danh Hằng Ngày</option>
                         <option value="taixiu_wins">Thắng Ván Tài Xỉu</option>
-                        <option value="crash_rides">Chuyến Bay Không Chiến</option>
-                        <option value="penalty_goals">Bàn Thắng Penalty</option>
-                        <option value="bank_deposit">Giao Dịch Ngân Hàng</option>
-                        <option value="marketplace_buy">Mua Sắm Chợ S88</option>
-                        <option value="wheel_spins">Vòng Quay Vàng</option>
-                        <option value="horse_rides">Tham Gia Đua Ngựa</option>
+                        <option value="crash_rides">Chuyến Bay Không Chiến Crash</option>
+                        <option value="penalty_goals">Bàn Thắng Penalty 3D</option>
+                        <option value="claw_machine">Gắp Thú Bằng Bông AYK</option>
+                        <option value="fcmobile_match">Thi Đấu FC Mobile Bóng Đá</option>
+                        <option value="card_battle">Đấu Thẻ Bài 1v1 Arena</option>
+                        <option value="world_hunting">Thợ Săn Quái World Hunting</option>
+                        <option value="wheel_spins">Vòng Quay Vàng Lucky Wheel</option>
+                        <option value="horse_rides">Tham Gia Đua Ngựa AYK</option>
+                        <option value="game_play">Chơi Minigame Bất Kỳ</option>
                       </select>
                     </div>
 
@@ -819,6 +838,33 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
               const isJustClaimed = justClaimedId === m.id;
               const unitLabel = getMissionUnitLabel(m.type);
 
+              // Status badge definition
+              let statusBadge = {
+                text: 'CHƯA BẮT ĐẦU',
+                color: 'bg-slate-800/80 text-slate-400 border-slate-700',
+                icon: <PlayCircle className="w-3 h-3 text-slate-400" />
+              };
+
+              if (m.claimed) {
+                statusBadge = {
+                  text: 'ĐÃ HOÀN THÀNH',
+                  color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/40',
+                  icon: <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                };
+              } else if (isCompleted) {
+                statusBadge = {
+                  text: 'SẮN SÀNG NHẬN THƯỞNG',
+                  color: 'bg-gradient-to-r from-yellow-400/20 to-amber-500/20 text-yellow-300 border-yellow-400/60 animate-pulse',
+                  icon: <Sparkles className="w-3 h-3 text-yellow-300 animate-spin" />
+                };
+              } else if (m.current > 0) {
+                statusBadge = {
+                  text: `ĐANG LÀM (${m.current}/${m.target})`,
+                  color: 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40',
+                  icon: <Clock className="w-3 h-3 text-cyan-400 animate-pulse" />
+                };
+              }
+
               return (
                 <motion.div
                   key={m.id}
@@ -829,7 +875,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                     isJustClaimed
                       ? 'bg-gradient-to-br from-yellow-950/50 via-slate-900 to-amber-950/40 border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.6)] ring-2 ring-yellow-400/80 animate-pulse'
                       : m.claimed
-                        ? 'bg-slate-950/40 border-white/5 opacity-60'
+                        ? 'bg-slate-950/40 border-white/5 opacity-65'
                         : isCompleted
                           ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-emerald-900/20 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
                           : 'bg-slate-900/70 border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-[0_0_15px_rgba(0,240,255,0.1)]'
@@ -860,6 +906,18 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                     />
                   )}
 
+                  {/* Top Status Header */}
+                  <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full border text-[10px] font-black uppercase tracking-wider font-mono ${statusBadge.color}`}>
+                      {statusBadge.icon}
+                      {statusBadge.text}
+                    </span>
+
+                    <span className="text-[10px] text-slate-400 font-mono">
+                      Mục tiêu: <strong className="text-white font-bold">{m.target}</strong> {unitLabel}
+                    </span>
+                  </div>
+
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 min-w-0">
                       <div className="shrink-0 p-2.5 bg-white/5 rounded-xl border border-white/10 shadow-inner">
@@ -885,29 +943,29 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                     </div>
                   </div>
 
-                  {/* Enhanced Visual Progress Bar Section */}
+                  {/* Enhanced Gamified Visual Progress Bar Section */}
                   <div className="space-y-2 pt-2.5 border-t border-white/5">
                     <div className="flex items-center justify-between text-xs font-mono">
                       <div className="flex items-center gap-1.5 min-w-0">
                         {m.claimed ? (
                           <span className="text-slate-400 text-[10px] uppercase font-bold flex items-center gap-1">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                            Đã thu hoạch quà
+                            Đã hoàn thành & nhận thưởng
                           </span>
                         ) : isCompleted ? (
                           <span className="text-emerald-400 text-[10px] uppercase font-bold flex items-center gap-1">
                             <Sparkles className="w-3.5 h-3.5 text-emerald-400 animate-spin" />
-                            Đã đủ điều kiện nhận thưởng!
+                            Sẵn sàng nhận thưởng ngay!
                           </span>
                         ) : (
                           <span className="text-cyan-300 text-[10px] uppercase font-bold flex items-center gap-1">
-                            <Target className="w-3.5 h-3.5 text-cyan-400" />
-                            Tiến độ: <strong className="text-white font-mono">{m.current}/{m.target}</strong> {unitLabel}
+                            <Clock className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                            Tiến độ: <strong className="text-white font-mono font-bold">{m.current}/{m.target}</strong> {unitLabel}
                           </span>
                         )}
                       </div>
 
-                      <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                      <span className={`px-2 py-0.5 text-[10px] font-black rounded-full border font-mono ${
                         m.claimed
                           ? 'bg-slate-800 border-slate-700 text-slate-400'
                           : isCompleted
@@ -918,8 +976,8 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                       </span>
                     </div>
 
-                    {/* Progress Track & Bar */}
-                    <div className="w-full bg-slate-950 border border-white/10 rounded-full h-3 p-0.5 overflow-hidden shadow-inner relative">
+                    {/* Progress Track & Bar with Gamified Step Ticks */}
+                    <div className="w-full bg-slate-950 border border-white/10 rounded-full h-3.5 p-0.5 overflow-hidden shadow-inner relative">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${progressPct}%` }}
@@ -937,13 +995,28 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-pulse" />
                         )}
                       </motion.div>
+
+                      {/* Gamified Step Ticks for targets > 1 */}
+                      {m.target > 1 && Array.from({ length: m.target - 1 }).map((_, stepIdx) => {
+                        const tickPct = ((stepIdx + 1) / m.target) * 100;
+                        const isStepReached = m.current >= (stepIdx + 1);
+                        return (
+                          <div
+                            key={stepIdx}
+                            className={`absolute top-0 bottom-0 w-0.5 z-10 transition-colors ${
+                              isStepReached ? 'bg-white/80 shadow-[0_0_4px_#fff]' : 'bg-white/20'
+                            }`}
+                            style={{ left: `${tickPct}%` }}
+                          />
+                        );
+                      })}
                     </div>
 
                     {/* Helper status footnote for incomplete missions */}
                     {!isCompleted && !m.claimed && (
-                      <div className="text-[10px] text-slate-400 font-sans flex items-center justify-between">
-                        <span>Còn thiếu <strong className="text-cyan-300 font-mono font-bold">{m.target - m.current}</strong> {unitLabel}</span>
-                        <span className="text-amber-400/90 font-mono">Thưởng +{m.reward.toLocaleString()} PP</span>
+                      <div className="text-[10px] text-slate-400 font-sans flex items-center justify-between pt-0.5">
+                        <span>Còn thiếu <strong className="text-cyan-300 font-mono font-bold">{m.target - m.current}</strong> {unitLabel} nữa</span>
+                        <span className="text-amber-400 font-mono font-bold">+ {m.reward.toLocaleString()} PP</span>
                       </div>
                     )}
 

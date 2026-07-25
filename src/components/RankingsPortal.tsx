@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, onValue } from 'firebase/database';
 import { db } from '../firebase';
 import { User } from '../types';
-import { Trophy, Award, TrendingUp, Calendar, Zap, Sparkles, User as UserIcon } from 'lucide-react';
+import { Trophy, Award, TrendingUp, Calendar, Zap, Sparkles, User as UserIcon, PartyPopper } from 'lucide-react';
+import confetti from 'canvas-confetti';
 
 interface RankingsPortalProps {
   uid: string;
@@ -23,12 +24,41 @@ interface LeaderboardUser {
   stats?: number[];
   title?: string;
   goldAmount?: number;
+  activeFrame?: string;
 }
 
 export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
   const [activeTab, setActiveTab] = useState<'pp' | 'academic' | 'gold'>('pp');
   const [leaderboard, setLeaderboard] = useState<LeaderboardUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isShaking, setIsShaking] = useState(false);
+  const [milestoneBanner, setMilestoneBanner] = useState<string | null>(null);
+
+  const prevRankRef = useRef<number | null>(null);
+
+  const triggerCelebration = (bannerMsg?: string) => {
+    setIsShaking(true);
+    setTimeout(() => setIsShaking(false), 500);
+
+    try {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
+      setTimeout(() => {
+        confetti({ particleCount: 60, angle: 60, spread: 55, origin: { x: 0 } });
+        confetti({ particleCount: 60, angle: 120, spread: 55, origin: { x: 1 } });
+      }, 150);
+    } catch (e) {
+      console.error(e);
+    }
+
+    if (bannerMsg) {
+      setMilestoneBanner(bannerMsg);
+      setTimeout(() => setMilestoneBanner(null), 5000);
+    }
+  };
 
   useEffect(() => {
     setIsLoading(true);
@@ -49,7 +79,8 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
             pp: val.pp || 0,
             stats: val.stats || [50, 50, 50, 50, 50],
             title: val.title || '',
-            goldAmount: val.gold?.amount || 0
+            goldAmount: val.gold?.amount || 0,
+            activeFrame: val.activeFrame || ''
           });
         });
       }
@@ -75,8 +106,64 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
     return () => unsubscribe();
   }, [activeTab]);
 
+  // Handle rank improvement or milestone check
+  useEffect(() => {
+    if (leaderboard.length > 0 && uid) {
+      const myIndex = leaderboard.findIndex((u) => u.id === uid);
+      if (myIndex !== -1) {
+        const currentRank = myIndex + 1;
+        const prevRank = prevRankRef.current;
+
+        if (prevRank !== null && currentRank < prevRank) {
+          // Rank increased!
+          let msg = `🎉 THĂNG HẠNG THÀNH CÔNG! Bạn đã vươn từ Hạng #${prevRank} lên Hạng #${currentRank}!`;
+          if (currentRank === 1) {
+            msg = `👑 QUÁN QUÂN AYK! Bạn đã xuất sắc vươn lên TOP 1 BẢNG DANH DỰ!`;
+          } else if (currentRank <= 3) {
+            msg = `🏆 ĐỘT PHÁ TOP 3! Bạn đã đạt Hạng #${currentRank} Bảng Vàng!`;
+          } else if (currentRank <= 10) {
+            msg = `🌟 ĐỘT PHÁ TOP 10! Bạn đã thăng hạng lên Vị trí #${currentRank}!`;
+          }
+          triggerCelebration(msg);
+        }
+
+        prevRankRef.current = currentRank;
+      }
+    }
+  }, [leaderboard, uid]);
+
+  const myRank = leaderboard.findIndex((u) => u.id === uid) + 1;
+
+  const handleManualCelebrate = () => {
+    if (myRank > 0) {
+      let msg = `✨ CHÚC MỪNG MỐC THÀNH TỰU! Hiện bạn đang đứng Hạng #${myRank} trên Bảng Xếp Hạng!`;
+      if (myRank === 1) msg = `👑 ĐỈNH CAO THÀNH TỰU! Bạn đang nắm giữ vị trí TOP 1 BẢNG XẾP HẠNG!`;
+      else if (myRank <= 3) msg = `🏆 THÀNH TỰU TOP 3! Vinh danh TOP 3 Cao Thủ xuất sắc!`;
+      else if (myRank <= 10) msg = `🌟 THÀNH TỰU TOP 10! Vinh danh TOP 10 Học Bá Sinh Viên!`;
+      triggerCelebration(msg);
+    } else {
+      triggerCelebration(`🎉 BẬT MỐC THÀNH TỰU & PHÁO HOA XẾP HẠNG!`);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className={`space-y-6 transition-transform duration-200 ${isShaking ? 'shake-screen' : ''}`}>
+      {/* Milestone Celebration Toast Banner */}
+      {milestoneBanner && (
+        <div className="p-4 bg-gradient-to-r from-yellow-500/20 via-amber-500/30 to-yellow-500/20 border-2 border-yellow-400/80 rounded-2xl shadow-[0_0_30px_rgba(255,215,0,0.5)] flex items-center justify-between gap-3 text-yellow-300 font-mono text-xs md:text-sm font-black animate-bounce">
+          <div className="flex items-center gap-3">
+            <PartyPopper className="w-6 h-6 text-yellow-400 animate-spin" />
+            <span>{milestoneBanner}</span>
+          </div>
+          <button
+            onClick={() => setMilestoneBanner(null)}
+            className="px-2 py-1 bg-yellow-400 text-black font-bold rounded-lg hover:bg-yellow-300 transition text-[10px]"
+          >
+            ĐÓNG
+          </button>
+        </div>
+      )}
+
       {/* Top Header Card */}
       <div className="glass-box p-6 border-amber-500/30 bg-amber-950/5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>
@@ -86,37 +173,53 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
               BẢNG VÀNG DANH DỰ S-SYSTEM 88
             </h2>
           </div>
-          <p className="text-[11px] text-[#8b949e] font-mono mt-1 uppercase">
-            Vinh danh những học bá kiêm triệu phú học đường ưu tú xuất sắc nhất
+          <p className="text-[11px] text-[#8b949e] font-mono mt-1 uppercase flex items-center gap-2">
+            <span>Vinh danh những học bá kiêm triệu phú học đường ưu tú xuất sắc nhất</span>
+            {myRank > 0 && (
+              <span className="text-yellow-400 font-bold bg-yellow-500/10 border border-yellow-500/30 px-2 py-0.5 rounded-full text-[10px]">
+                Hạng hiện tại của bạn: #{myRank}
+              </span>
+            )}
           </p>
         </div>
 
-        {/* Categories selector */}
-        <div className="flex bg-black/40 border border-white/5 rounded-xl p-1 shrink-0 font-mono text-xs">
+        {/* Categories selector & Celebration button */}
+        <div className="flex flex-wrap items-center gap-2">
           <button
-            onClick={() => setActiveTab('pp')}
-            className={`py-2 px-4 rounded-lg font-bold transition-all cursor-pointer ${
-              activeTab === 'pp' ? 'bg-[#ffd700] text-black font-black' : 'text-slate-400 hover:text-white'
-            }`}
+            onClick={handleManualCelebrate}
+            className="py-2 px-3 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-mono font-black text-xs rounded-xl flex items-center gap-1.5 shadow-[0_0_15px_rgba(255,215,0,0.3)] transition cursor-pointer active:scale-95"
+            title="Ăn mừng mốc thứ hạng thành tựu hiện tại"
           >
-            ĐẠI GIA PP
+            <Sparkles className="w-4 h-4" />
+            <span>ĂN MỪNG THÀNH TỰU</span>
           </button>
-          <button
-            onClick={() => setActiveTab('academic')}
-            className={`py-2 px-4 rounded-lg font-bold transition-all cursor-pointer ${
-              activeTab === 'academic' ? 'bg-[#ffd700] text-black font-black' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            HỌC BÁ ACADEMIC
-          </button>
-          <button
-            onClick={() => setActiveTab('gold')}
-            className={`py-2 px-4 rounded-lg font-bold transition-all cursor-pointer ${
-              activeTab === 'gold' ? 'bg-[#ffd700] text-black font-black' : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            TRÙM SÀN VÀNG
-          </button>
+
+          <div className="flex bg-black/40 border border-white/5 rounded-xl p-1 shrink-0 font-mono text-xs">
+            <button
+              onClick={() => setActiveTab('pp')}
+              className={`py-2 px-4 rounded-lg font-bold transition-all cursor-pointer ${
+                activeTab === 'pp' ? 'bg-[#ffd700] text-black font-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              ĐẠI GIA PP
+            </button>
+            <button
+              onClick={() => setActiveTab('academic')}
+              className={`py-2 px-4 rounded-lg font-bold transition-all cursor-pointer ${
+                activeTab === 'academic' ? 'bg-[#ffd700] text-black font-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              HỌC BÁ ACADEMIC
+            </button>
+            <button
+              onClick={() => setActiveTab('gold')}
+              className={`py-2 px-4 rounded-lg font-bold transition-all cursor-pointer ${
+                activeTab === 'gold' ? 'bg-[#ffd700] text-black font-black' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              TRÙM SÀN VÀNG
+            </button>
+          </div>
         </div>
       </div>
 
@@ -156,7 +259,7 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
                     key={u.id}
                     className={`grid grid-cols-12 items-center py-3.5 px-4 rounded-xl border transition-all ${
                       isMe 
-                        ? 'bg-[#ff003c]/10 border-[#ff003c]/40 text-white' 
+                        ? 'bg-[#ff003c]/10 border-[#ff003c]/40 text-white shadow-[0_0_15px_rgba(255,0,60,0.2)]' 
                         : 'bg-white/5 border-white/5 hover:border-white/10 hover:bg-white/10'
                     }`}
                   >

@@ -47,6 +47,7 @@ export interface User {
   academic?: AcademicRecord;
   sessionToken?: string; // New Secure Login Session Token
   xp?: number;
+  bbp?: number;
   level?: number;
   isPremiumBattlePass?: boolean;
   battlePassRewardsClaimed?: { [tierId: string]: boolean };

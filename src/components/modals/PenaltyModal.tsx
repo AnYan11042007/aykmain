@@ -68,7 +68,7 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
         sender: uid,
         senderName: user?.name || 'Sinh Viên',
         receiver: 'SYSTEM_PENALTY',
-        receiverName: 'Đá Luân Lưu S88',
+        receiverName: 'Đá Luân Lưu AYK',
         amount: amt,
         message: `Cược Penalty: Đá luân lưu 5 quả`,
         time: new Date().toLocaleString('vi-VN'),

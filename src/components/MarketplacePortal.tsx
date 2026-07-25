@@ -57,7 +57,7 @@ const SHOP_ITEMS: ShopItem[] = [
     type: 'frame', 
     price: 1000000000, 
     value: 'https://png.pngtree.com/png-clipart/20240319/original/pngtree-avatar-frame-dragon-round-animal-template-for-game-cartoon-empty-dragon-png-image_14623495.png', 
-    desc: 'Khung Rồng Vương Thượng Cổ II giá trị 1 TỶ PP xịn xịn nhất hệ thống S88.' 
+    desc: 'Khung Rồng Vương Thượng Cổ II giá trị 1 TỶ PP xịn xịn nhất hệ thống AYK.' 
   },
 
   // Classic Frames
@@ -67,7 +67,7 @@ const SHOP_ITEMS: ShopItem[] = [
   // Titles
   { id: 'title_academic', name: 'Danh Hiệu: Chúa Tể Học Thuật', type: 'title', price: 30000, value: 'Chúa Tể Học Thuật', desc: 'Danh hiệu tối thượng dành cho học bá có công lực phi phàm.' },
   { id: 'title_investor', name: 'Danh Hiệu: Ông Trùm Đầu Tư', type: 'title', price: 40000, value: 'Ông Trùm Đầu Tư', desc: 'Hiển thị danh hiệu quý tộc của tay chơi thao túng Sàn Vàng.' },
-  { id: 'title_casino', name: 'Danh Hiệu: Thần Bài Las Vegas', type: 'title', price: 80000, value: 'Thần Bài Las Vegas', desc: 'Khẳng định vị thế ông hoàng đỏ đen thống trị sòng bài S88.' },
+  { id: 'title_casino', name: 'Danh Hiệu: Thần Bài Las Vegas', type: 'title', price: 80000, value: 'Thần Bài Las Vegas', desc: 'Khẳng định vị thế ông hoàng đỏ đen thống trị sòng bài AYK.' },
   { id: 'title_vip', name: 'Danh Hiệu: Đại Gia Học Đường', type: 'title', price: 100000, value: 'Đại Gia Học Đường', desc: 'Tôn vinh sinh viên sở hữu khối lượng tài sản PP vô địch thiên hạ.' }
 ];
 

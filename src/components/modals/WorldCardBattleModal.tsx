@@ -35,7 +35,7 @@ export interface CardItem {
 export const FULL_CARD_POOL: CardItem[] = [
   {
     id: 'c_ss1',
-    name: 'S88 THẦN RỒNG TỐI THƯỢNG',
+    name: 'AYK THẦN RỒNG TỐI THƯỢNG',
     role: 'SUPPORT',
     roleName: 'Thần Thoại Cực Bá',
     rarity: 'SS',
@@ -50,7 +50,7 @@ export const FULL_CARD_POOL: CardItem[] = [
   },
   {
     id: 'c_ss2',
-    name: 'S88 CỬU THIÊN BÁ CHỦ',
+    name: 'AYK CỬU THIÊN BÁ CHỦ',
     role: 'ATTACK',
     roleName: 'Tấn Công Cực Bá',
     rarity: 'SS',
@@ -65,7 +65,7 @@ export const FULL_CARD_POOL: CardItem[] = [
   },
   {
     id: 'c_ss3',
-    name: 'S88 VƯƠNG GIẢ TỐI THƯỢNG',
+    name: 'AYK VƯƠNG GIẢ TỐI THƯỢNG',
     role: 'SUPPORT',
     roleName: 'Chức Năng Cực Bá',
     rarity: 'SS',
@@ -80,7 +80,7 @@ export const FULL_CARD_POOL: CardItem[] = [
   },
   {
     id: 'c_ss4',
-    name: 'S88 THẦN MA BÁ CHỦ',
+    name: 'AYK THẦN MA BÁ CHỦ',
     role: 'ATTACK',
     roleName: 'Tấn Công Cực Bá',
     rarity: 'SS',

@@ -221,7 +221,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     try {
       const snap = await get(ref(db, `users/${targetId}`));
       if (!snap.exists()) {
-        setErrorMsg('Mã ID này không tồn tại trong hệ thống S88!');
+        setErrorMsg('Mã ID này không tồn tại trong hệ thống AYK!');
         setIsLoading(false);
         return;
       }

@@ -32,7 +32,7 @@ export interface BPTier {
 export const BALANCED_BP_TIERS: BPTier[] = [
   {
     id: 'tier_1',
-    name: 'CẤP ĐỘ 1 - TÂN BINH S88',
+    name: 'CẤP ĐỘ 1 - TÂN BINH AYK',
     levelRequired: 1,
     missionsRequired: 1,
     standardReward: { label: '+100,000 PP', value: 100000 },
@@ -105,7 +105,7 @@ export const BALANCED_BP_TIERS: BPTier[] = [
   },
   {
     id: 'tier_10',
-    name: '🏆 CẤP ĐỘ 10 - TỶ PHÚ S88 KHÔNG NGỦ (MỐC VIP 10)',
+    name: '🏆 CẤP ĐỘ 10 - TỶ PHÚ AYK KHÔNG NGỦ (MỐC VIP 10)',
     levelRequired: 10,
     missionsRequired: 10,
     isMilestone: true,
@@ -146,7 +146,7 @@ export const BALANCED_BP_TIERS: BPTier[] = [
   },
   {
     id: 'tier_15',
-    name: '👑 CẤP ĐỘ 15 - SIÊU ĐẠI GIA S88 (MỐC VIP 15)',
+    name: '👑 CẤP ĐỘ 15 - SIÊU ĐẠI GIA AYK (MỐC VIP 15)',
     levelRequired: 15,
     missionsRequired: 15,
     isMilestone: true,
@@ -179,7 +179,7 @@ export const BALANCED_BP_TIERS: BPTier[] = [
   },
   {
     id: 'tier_19',
-    name: 'CẤP ĐỘ 19 - HOÀNG ĐẾ S88 CORE',
+    name: 'CẤP ĐỘ 19 - HOÀNG ĐẾ AYK CORE',
     levelRequired: 19,
     missionsRequired: 19,
     standardReward: { label: '👑 +40,000,000 PP', value: 40000000 },
@@ -292,7 +292,7 @@ export default function BattlePassPortal({ uid, user, onShowResult }: BattlePass
 
       onShowResult(
         'KÍCH HOẠT BATTLE PASS PREMIUM 🎉',
-        'Chúc mừng bạn đã sở hữu S88 BATTLE PASS PREMIUM! Tất cả phần thưởng VIP cao cấp đã được mở khóa.',
+        'Chúc mừng bạn đã sở hữu AYK BATTLE PASS PREMIUM! Tất cả phần thưởng VIP cao cấp đã được mở khóa.',
         true
       );
     } catch (err) {
@@ -376,7 +376,7 @@ export default function BattlePassPortal({ uid, user, onShowResult }: BattlePass
             </div>
             <div>
               <h2 className="text-base md:text-lg font-black tracking-wider uppercase text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-cyan-300">
-                S88 BATTLE PASS PORTAL // 20 CẤP ĐỘ
+                AYK BATTLE PASS PORTAL // 20 CẤP ĐỘ
               </h2>
               <p className="text-[10px] text-slate-400 mt-0.5 font-sans">
                 Tích lũy EXP từ nhiệm vụ hằng ngày & đấu trường để nhận vương miện, PP & Khung Avatar độc quyền.

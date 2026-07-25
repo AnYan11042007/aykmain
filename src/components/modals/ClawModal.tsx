@@ -106,7 +106,7 @@ export default function ClawModal({ uid, user, onClose, onShowResult }: ClawModa
           sender: uid,
           senderName: user?.name || 'Sinh Viên',
           receiver: 'SYSTEM_CLAW',
-          receiverName: 'Máy Gắp Thú S88',
+          receiverName: 'Máy Gắp Thú AYK',
           amount: amt,
           message: `Cược Gắp Thú: Gắp thú 1 lượt (${amt.toLocaleString()} PP)`,
           time: new Date().toLocaleString('vi-VN'),
@@ -188,7 +188,7 @@ export default function ClawModal({ uid, user, onClose, onShowResult }: ClawModa
 
               await push(ref(db, 'transactions'), {
                 sender: 'SYSTEM_CLAW',
-                senderName: 'Máy Gắp Thú S88',
+                senderName: 'Máy Gắp Thú AYK',
                 receiver: uid,
                 receiverName: user?.name || 'Sinh Viên',
                 amount: pWin,

@@ -86,7 +86,7 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
         sender: uid,
         senderName: user?.name || 'Sinh Viên',
         receiver: 'SYSTEM_HORSE',
-        receiverName: 'Đua Ngựa Hoàng Gia S88',
+        receiverName: 'Đua Ngựa Hoàng Gia AYK',
         amount: amt,
         message: `Cược Đua Ngựa: Chọn chiến mã số ${choice}`,
         time: new Date().toLocaleString('vi-VN'),
@@ -158,7 +158,7 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
         // Save win transaction log to ledger
         await push(ref(db, 'transactions'), {
           sender: 'SYSTEM_HORSE',
-          senderName: 'Đua Ngựa Hoàng Gia S88',
+          senderName: 'Đua Ngựa Hoàng Gia AYK',
           receiver: uid,
           receiverName: user?.name || 'Sinh Viên',
           amount: winAmount,

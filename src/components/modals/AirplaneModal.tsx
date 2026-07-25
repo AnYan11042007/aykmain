@@ -3,12 +3,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, update, push, onValue } from 'firebase/database';
 import { db } from '../../firebase';
-import { X, Navigation, Flame, Trophy, Info, Compass, HelpCircle } from 'lucide-react';
+import { X, Navigation, Flame, Trophy, Info, HelpCircle, Volume2, VolumeX, Zap, ShieldAlert, Crosshair, Sparkles } from 'lucide-react';
 import { User } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
+import { getTodayVNString } from '../../utils/date';
 
 interface AirplaneModalProps {
   uid: string;
@@ -41,7 +42,7 @@ const getMultiplierAtTime = (timeS: number) => {
   return 1.00 + 0.08 * timeS + 0.015 * Math.pow(timeS, 2);
 };
 
-// Deterministic crash point selector for roundId - revamped to allow 0.01x up to 100x
+// Deterministic crash point selector for roundId - 0.01x up to 100x
 const getCrashPointForRound = (rId: number) => {
   const randFunc = mulberry32(rId * 1234567);
   const r = randFunc();
@@ -68,6 +69,70 @@ const getCrashPointForRound = (rId: number) => {
   return parseFloat(point.toFixed(2));
 };
 
+// Web Audio API Sound Generator for Adrenaline SFX
+const playSoundEffect = (type: 'cashout' | 'crash' | 'bet' | 'click', isMuted: boolean) => {
+  if (isMuted) return;
+  try {
+    const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+
+    if (type === 'click' || type === 'bet') {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(type === 'bet' ? 880 : 520, ctx.currentTime);
+      gain.gain.setValueAtTime(0.15, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.08);
+    } else if (type === 'cashout') {
+      // High-pitched victory chime (C5 -> E5 -> G5 -> C6)
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(523.25, ctx.currentTime);
+      osc.frequency.setValueAtTime(659.25, ctx.currentTime + 0.08);
+      osc.frequency.setValueAtTime(783.99, ctx.currentTime + 0.16);
+      osc.frequency.setValueAtTime(1046.50, ctx.currentTime + 0.24);
+      gain.gain.setValueAtTime(0.35, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.5);
+    } else if (type === 'crash') {
+      // Instant noise explosion BOOM!
+      const bufferSize = ctx.sampleRate * 0.45;
+      const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        data[i] = Math.random() * 2 - 1;
+      }
+      const noise = ctx.createBufferSource();
+      noise.buffer = buffer;
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(900, ctx.currentTime);
+      filter.frequency.exponentialRampToValueAtTime(20, ctx.currentTime + 0.4);
+
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0.7, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.42);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(ctx.destination);
+      noise.start();
+    }
+  } catch (e) {
+    // Audio autoplay restrictions bypass
+  }
+};
+
 export default function AirplaneModal({ uid, user, onClose, onShowResult }: AirplaneModalProps) {
   const [betAmount, setBetAmount] = useState('');
   const [cycleTime, setCycleTime] = useState(0);
@@ -76,6 +141,15 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
   const [isProcessing, setIsProcessing] = useState(false);
   const [serverTimeOffset, setServerTimeOffset] = useState(0);
   const [showRules, setShowRules] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+
+  // Auto Cash Out states
+  const [autoCashOut, setAutoCashOut] = useState<string>('2.00');
+  const [autoCashOutEnabled, setAutoCashOutEnabled] = useState<boolean>(false);
+
+  // Lock ref to prevent double cashout race conditions
+  const cashOutLockRef = useRef<boolean>(false);
+  const crashHandledRef = useRef<number>(-1);
 
   // Sync server time offset
   useEffect(() => {
@@ -96,7 +170,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
       const rId = Math.floor(now / 30000); // Unique round index
       setCycleTime(cTime);
       setCurrentRoundId(rId);
-    }, 50);
+    }, 40);
     return () => clearInterval(interval);
   }, [serverTimeOffset]);
 
@@ -125,17 +199,22 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
 
   const hasBetThisRound = activeBet && activeBet.roundId === currentRoundId;
 
-  // Auto-resolve pending previous round bets that were left in 'PLAYING' state
+  // Reset lock when round changes or betting phase begins
+  useEffect(() => {
+    if (isBettingPhase) {
+      cashOutLockRef.current = false;
+    }
+  }, [isBettingPhase, currentRoundId]);
+
+  // Auto-resolve pending previous round bets left in 'PLAYING'
   useEffect(() => {
     if (activeBet && activeBet.roundId < currentRoundId && activeBet.status === 'PLAYING') {
       const oldRoundId = activeBet.roundId;
       const oldAmount = activeBet.amount;
       const oldCrashPoint = getCrashPointForRound(oldRoundId);
       
-      // Update DB
       update(ref(db, `users/${uid}/crash_game`), { status: 'CRASHED' });
       
-      // Log loss
       push(ref(db, 'game_logs'), {
         uid,
         name: user?.name || 'Sinh Viên',
@@ -146,16 +225,33 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
         time: new Date().toLocaleString('vi-VN'),
         timestamp: Date.now()
       });
+
+      push(ref(db, `transactions/${uid}`), {
+        id: `tx_crash_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        type: 'EXPENSE',
+        title: 'Nổ Phi Thuyền AYK (Vòng cũ)',
+        amount: -oldAmount,
+        unit: 'PP',
+        timestamp: Date.now()
+      }).catch(() => {});
     }
   }, [activeBet, currentRoundId, uid]);
 
-  // Auto-resolve crash logic if player was still flying
+  // INSTANT Crash resolution: trigger instant sound & explosion as soon as hasCrashed turns true
   useEffect(() => {
-    if (hasCrashed && hasBetThisRound && activeBet.status === 'PLAYING') {
+    if (
+      hasCrashed &&
+      hasBetThisRound &&
+      activeBet.status === 'PLAYING' &&
+      crashHandledRef.current !== currentRoundId
+    ) {
+      crashHandledRef.current = currentRoundId;
+      playSoundEffect('crash', isMuted);
+
       // Mark as CRASHED in database
       update(ref(db, `users/${uid}/crash_game`), { status: 'CRASHED' });
 
-      // Log transaction/play loss
+      // Write game log & transaction history
       push(ref(db, 'game_logs'), {
         uid,
         name: user?.name || 'Sinh Viên',
@@ -167,23 +263,107 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
         timestamp: Date.now()
       });
 
+      push(ref(db, `transactions/${uid}`), {
+        id: `tx_crash_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        type: 'EXPENSE',
+        title: 'Nổ Phi Thuyền AYK',
+        amount: -activeBet.amount,
+        unit: 'PP',
+        timestamp: Date.now()
+      }).catch(() => {});
+
       onShowResult(
-        'MÁY BAY BỊ TIÊU DIỆT !',
-        `Phi thuyền S88 đã phát nổ ở x${crashPoint.toFixed(2)}!\nBạn đã bị trễ nhịp nhảy dù và mất trắng -${activeBet.amount.toLocaleString()} PP cược.`,
+        '💥 PHI THUYỀN BỊ BẮN NỔ!',
+        `Tiêu diệt ở mốc x${crashPoint.toFixed(2)}!\nTên lửa địch đã bắn hạ phi thuyền AYK! Bạn bị mất -${activeBet.amount.toLocaleString()} PP cược.`,
         false
       );
     }
-  }, [hasCrashed, hasBetThisRound, activeBet?.status]);
+  }, [hasCrashed, hasBetThisRound, activeBet?.status, currentRoundId]);
+
+  // Handle Cash Out function (Jumping Out)
+  const handleCashOut = async () => {
+    if (isProcessing || cashOutLockRef.current) return;
+    if (!hasBetThisRound || activeBet.status !== 'PLAYING' || hasCrashed) return;
+
+    cashOutLockRef.current = true;
+    setIsProcessing(true);
+    playSoundEffect('cashout', isMuted);
+
+    const winAmount = Math.floor(activeBet.amount * currentMultiplier);
+    const profit = winAmount - activeBet.amount;
+
+    try {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      const freshPP = uSnap.val()?.pp || 0;
+
+      // Credit winnings and finalize bet state
+      await update(ref(db, `users/${uid}`), {
+        pp: freshPP + winAmount,
+        'crash_game/status': 'CASHED_OUT',
+        'crash_game/multiplier': currentMultiplier
+      });
+
+      // Write game logs
+      await push(ref(db, 'game_logs'), {
+        uid,
+        name: user?.name || 'Sinh Viên',
+        game: 'Crash',
+        bet: activeBet.amount,
+        pnl: profit,
+        result: `Nhảy dù chốt x${currentMultiplier.toFixed(2)} (Thắng)`,
+        time: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+      });
+
+      // Write transaction history
+      await push(ref(db, `transactions/${uid}`), {
+        id: `tx_crash_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+        type: 'INCOME',
+        title: `Nhảy Dù Không Chiến AYK (x${currentMultiplier.toFixed(2)})`,
+        amount: winAmount,
+        unit: 'PP',
+        timestamp: Date.now()
+      });
+
+      onShowResult(
+        '🪂 NHẢY DÙ THÀNH CÔNG!',
+        `Thoát hiểm an toàn ở mốc x${currentMultiplier.toFixed(2)}!\nĐã chốt lợi nhuận +${winAmount.toLocaleString()} PP vào tài khoản!`,
+        true
+      );
+    } catch (err) {
+      cashOutLockRef.current = false;
+      alert('Giao dịch nhảy dù thất bại. Vui lòng thử lại!');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  // Auto Cash Out effect trigger
+  useEffect(() => {
+    if (
+      !isBettingPhase &&
+      !hasCrashed &&
+      hasBetThisRound &&
+      activeBet?.status === 'PLAYING' &&
+      autoCashOutEnabled &&
+      !cashOutLockRef.current
+    ) {
+      const targetMulti = parseFloat(autoCashOut);
+      if (!isNaN(targetMulti) && targetMulti >= 1.01 && currentMultiplier >= targetMulti) {
+        handleCashOut();
+      }
+    }
+  }, [currentMultiplier, isBettingPhase, hasCrashed, hasBetThisRound, activeBet?.status, autoCashOutEnabled, autoCashOut]);
 
   // Handle Placing bet during Betting Phase
   const handlePlaceBet = async () => {
     if (isProcessing) return;
     if (!isBettingPhase) {
-      alert('Đã hết thời gian đặt cược! Vui lòng chờ vòng sau.');
+      alert('Đã hết thời gian đặt cược! Vui lòng chờ vòng tiếp theo.');
       return;
     }
     if (hasBetThisRound) {
-      alert('Bạn đã đặt cược cho vòng này rồi!');
+      alert('Bạn đã đặt cược cho vòng cược này!');
       return;
     }
 
@@ -194,10 +374,12 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
     }
 
     setIsProcessing(true);
+    playSoundEffect('bet', isMuted);
+
     try {
       const uSnap = await get(ref(db, `users/${uid}`));
       if (!uSnap.exists()) {
-        alert('Tài khoản không khả dụng!');
+        alert('Tài khoản không tồn tại!');
         setIsProcessing(false);
         return;
       }
@@ -221,7 +403,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
 
       // Award Daily Missions progress
       try {
-        const todayStr = new Date().toLocaleDateString('sv-SE');
+        const todayStr = getTodayVNString();
         const mRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
         const mSnap = await get(mRef);
         let currentRides = 0;
@@ -231,7 +413,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
         await update(mRef, { crashRides: currentRides + 1 });
         await incrementMissionProgress(uid, 'crash_rides');
       } catch (mErr) {
-        console.warn('Daily mission update error in Crash, bypassed:', mErr);
+        console.warn('Daily mission update error:', mErr);
       }
 
       // Increase Battle Pass XP
@@ -241,7 +423,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
           const uVal = freshSnap.val();
           const currentXP = uVal.xp || 0;
           const currentLevel = uVal.level || 1;
-          const newXP = currentXP + 25; // Gain 25 XP
+          const newXP = currentXP + 25;
           const nextLevelXP = currentLevel * 100;
           if (newXP >= nextLevelXP) {
             await update(ref(db, `users/${uid}`), {
@@ -253,297 +435,375 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
           }
         }
       } catch (xpErr) {
-        console.warn('XP update error in Crash, bypassed:', xpErr);
+        console.warn('XP update error:', xpErr);
       }
 
       setBetAmount('');
     } catch (err) {
-      alert('Lỗi đặt cược!');
-    } finally {
-      setIsProcessing(false);
-    }
-  };
-
-  // Handle Jumping Out (Cash Out) during flight
-  const handleCashOut = async () => {
-    if (isProcessing) return;
-    if (!hasBetThisRound || activeBet.status !== 'PLAYING' || hasCrashed) return;
-
-    setIsProcessing(true);
-    const winAmount = Math.floor(activeBet.amount * currentMultiplier);
-
-    try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      const freshPP = uSnap.val()?.pp || 0;
-
-      // Credit winnings and finalize bet state
-      await update(ref(db, `users/${uid}`), {
-        pp: freshPP + winAmount,
-        'crash_game/status': 'CASHED_OUT',
-        'crash_game/multiplier': currentMultiplier
-      });
-
-      // Write logs
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Crash',
-        bet: activeBet.amount,
-        pnl: winAmount - activeBet.amount,
-        result: `Nhảy dù chốt x${currentMultiplier.toFixed(2)} (Thắng)`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
-
-      onShowResult(
-        'NHẢY DÙ THÀNH CÔNG !',
-        `Chúc mừng chiến hữu! Bạn đã nhảy dù thoát hiểm an toàn ở mốc x${currentMultiplier.toFixed(2)}!\nĐã chốt lợi nhuận khổng lồ: +${winAmount.toLocaleString()} PP!`,
-        true
-      );
-    } catch (err) {
-      alert('Giao dịch nhảy dù lỗi. Hãy thử lại!');
+      alert('Lỗi đặt cược cất cánh!');
     } finally {
       setIsProcessing(false);
     }
   };
 
   // Deterministic plane visual positions
-  let posL = 10;
-  let posB = 15;
+  let posL = 12;
+  let posB = 18;
   if (!isBettingPhase && !hasCrashed) {
-    posL = Math.min(80, 10 + flightTimeS * 3.5);
-    posB = Math.min(80, 15 + flightTimeS * 2.8);
+    posL = Math.min(82, 12 + flightTimeS * 3.8);
+    posB = Math.min(78, 18 + flightTimeS * 3.0);
   } else if (hasCrashed) {
-    // Lock animation at moment of explosion
+    // INSTANT position calculation at time of crash
     const crashTimeS = Math.max(0, (crashPoint - 1.00) / 0.12);
-    posL = Math.min(80, 10 + crashTimeS * 3.5);
-    posB = Math.min(80, 15 + crashTimeS * 2.8);
+    posL = Math.min(82, 12 + crashTimeS * 3.8);
+    posB = Math.min(78, 18 + crashTimeS * 3.0);
   }
+
+  // Enemy fighter jet pursuing directly behind
+  const enemyL = Math.max(5, posL - 22);
+  const enemyB = Math.max(8, posB - 14);
+
+  // Generate 8 recent crash points for history bar
+  const recentRounds = Array.from({ length: 8 }, (_, i) => {
+    const rId = currentRoundId - 8 + i;
+    return {
+      roundId: rId,
+      point: getCrashPointForRound(rId)
+    };
+  }).reverse();
 
   return (
     <div className="overlay z-[5000]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[92vh] w-[95vw] md:w-full max-w-[520px] p-4 sm:p-6 border-[#00f0ff] relative flex flex-col justify-between max-sm:h-[90vh] max-sm:rounded-3xl">
-        <button 
-          onClick={() => setShowRules(true)} 
-          className="absolute top-4 left-4 text-[#8b949e] hover:text-white cursor-pointer transition flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-black/40 px-2 py-1 rounded border border-white/10"
-        >
-          <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
-          Luật Chơi
-        </button>
+      <div className="glass-box login-panel overflow-y-auto max-h-[94vh] w-[95vw] md:w-full max-w-[540px] p-3 sm:p-5 border-[#00f0ff] relative flex flex-col justify-between max-sm:rounded-3xl">
+        
+        {/* Top bar controls: Rules & Mute */}
+        <div className="flex items-center justify-between mb-2">
+          <button 
+            onClick={() => setShowRules(true)} 
+            className="text-[#8b949e] hover:text-white cursor-pointer transition flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-black/40 px-2.5 py-1 rounded-lg border border-white/10"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+            Luật Chơi
+          </button>
 
-        <button 
-          onClick={onClose} 
-          className="absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition z-50"
-        >
-          <X className="w-5 h-5" />
-        </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsMuted(!isMuted)}
+              className="text-slate-400 hover:text-white p-1 rounded-lg bg-black/40 border border-white/10 cursor-pointer"
+              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+            >
+              {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+            </button>
 
-        <h2 className="text-[#00f0ff] text-glow-blue text-xl sm:text-2xl font-black font-mono uppercase tracking-widest mb-1 flex items-center justify-center gap-1.5 mt-3 sm:mt-0">
-          <Navigation className="w-5 h-5 animate-pulse" /> KHÔNG CHIẾN S88
-        </h2>
-        <div className="flex items-center justify-center gap-2 mb-3">
-          <span className="text-[10px] font-mono text-[#8b949e] uppercase">
-            ROUND: #{currentRoundId}
-          </span>
-          <span className="text-[9px] bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 py-0.5 px-1.5 rounded uppercase font-bold font-mono">
-            PORTRAIT READY
-          </span>
+            <button 
+              onClick={onClose} 
+              className="text-[#8b949e] hover:text-white cursor-pointer transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Dynamic sky arena canvas representation */}
-        <div className="relative w-full h-[210px] sm:h-[250px] bg-gradient-to-b from-[#000411] to-[#0a0a2a] border-2 border-[#00f0ff] rounded-xl overflow-hidden shadow-inner select-none mb-3 shrink-0">
+        {/* Modal Header */}
+        <div className="text-center mb-2">
+          <h2 className="text-[#00f0ff] text-glow-blue text-lg sm:text-2xl font-black font-mono uppercase tracking-widest flex items-center justify-center gap-2">
+            <Navigation className="w-5 h-5 animate-pulse text-cyan-400" /> KHÔNG CHIẾN AYK 🚀
+          </h2>
+          <div className="flex items-center justify-center gap-2 mt-0.5">
+            <span className="text-[10px] font-mono text-[#8b949e] uppercase font-bold">
+              ROUND: #{currentRoundId}
+            </span>
+            <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-0.5 px-2 rounded uppercase font-bold font-mono animate-pulse">
+              LIVE ARENA
+            </span>
+          </div>
+        </div>
+
+        {/* Recent Rounds Multipliers History Bar */}
+        <div className="mb-2 bg-black/50 p-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
+          <span className="text-[8px] font-mono text-slate-400 uppercase font-bold shrink-0 px-1">Lịch sử:</span>
+          {recentRounds.map((r) => {
+            const pt = r.point;
+            let colorClass = "bg-cyan-500/10 text-cyan-300 border-cyan-500/30";
+            if (pt < 1.20) colorClass = "bg-red-500/20 text-red-400 border-red-500/40";
+            else if (pt >= 5.00) colorClass = "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_8px_rgba(245,158,11,0.4)]";
+            else if (pt >= 2.00) colorClass = "bg-emerald-500/20 text-emerald-300 border-emerald-500/40";
+
+            return (
+              <span
+                key={r.roundId}
+                className={`text-[9px] font-mono font-black py-0.5 px-2 rounded-lg border shrink-0 ${colorClass}`}
+              >
+                x{pt.toFixed(2)}
+              </span>
+            );
+          })}
+        </div>
+
+        {/* Dynamic Sky Arena Canvas */}
+        <div className={`relative w-full h-[220px] sm:h-[260px] bg-gradient-to-b from-[#000411] via-[#040926] to-[#0a0a2a] border-2 border-[#00f0ff] rounded-2xl overflow-hidden shadow-inner select-none mb-3 shrink-0 ${
+          hasCrashed ? 'animate-shake border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.5)]' : ''
+        }`}>
           
           {/* Synchronized Multiplier display */}
-          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-5xl font-black tracking-widest font-mono z-0 transition-colors ${
-            hasCrashed ? 'text-[#ff003c]/20' : isBettingPhase ? 'text-white/5' : 'text-cyan-400/20'
+          <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-6xl font-black tracking-widest font-mono z-0 transition-colors ${
+            hasCrashed ? 'text-[#ff003c]/25' : isBettingPhase ? 'text-white/5' : 'text-cyan-400/20'
           }`}>
             {isBettingPhase ? `BETTING` : `X${currentMultiplier.toFixed(2)}`}
           </div>
 
-          {/* Prominent Top Jump Button for Mobile view right near the top of rocket arena */}
+          {/* Top Right Quick Jump Button on Canvas */}
           {!isBettingPhase && !hasCrashed && hasBetThisRound && activeBet.status === 'PLAYING' && (
-            <div className="absolute top-3 right-3 z-40">
+            <div className="absolute top-2.5 right-2.5 z-40">
               <button
+                type="button"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleCashOut();
                 }}
                 disabled={isProcessing}
-                className="py-2 px-3 bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 hover:from-emerald-300 hover:to-green-200 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(16,185,129,1)] animate-bounce flex items-center gap-1 border-2 border-white active:scale-90"
+                className="py-2 px-3 bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(16,185,129,1)] animate-bounce flex items-center gap-1 border-2 border-white active:scale-90"
               >
-                🪂 NHẢY DÙ DỪNG X{currentMultiplier.toFixed(2)}
+                <Zap className="w-3.5 h-3.5 fill-black" />
+                🪂 NHẢY DÙ X{currentMultiplier.toFixed(2)}
               </button>
             </div>
           )}
 
-          {/* Time/Status Overlay */}
-          <div className="absolute top-3 left-3 z-30 font-mono text-[9px] text-slate-400 uppercase flex flex-col gap-1">
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping"></span>
-              <span>Trạng thái: {isBettingPhase ? 'Nhận Cược' : hasCrashed ? 'Đã Phát Nổ' : 'Đang Bay'}</span>
+          {/* Flight Info telemetry HUD */}
+          <div className="absolute top-2.5 left-2.5 z-30 font-mono text-[9px] text-slate-300 uppercase flex flex-col gap-0.5 bg-black/60 p-2 rounded-xl border border-white/10 backdrop-blur-sm">
+            <div className="flex items-center gap-1.5 font-bold">
+              <span className={`w-2 h-2 rounded-full ${hasCrashed ? 'bg-red-500' : 'bg-emerald-400 animate-ping'}`} />
+              <span className={hasCrashed ? 'text-red-400 font-black' : 'text-emerald-300'}>
+                {isBettingPhase ? 'Nhận Cược' : hasCrashed ? '🔥 ĐÃ NỔ BẮN HẠ' : '🚀 ĐANG BAY CAO'}
+              </span>
             </div>
-            {!isBettingPhase && (
-              <span className="text-red-400 font-bold">Điểm Nổ Bí Ẩn: ❓.❓❓X</span>
+            {!isBettingPhase && !hasCrashed && (
+              <div className="text-[8px] text-cyan-300 space-y-0.5 mt-0.5">
+                <div>Độ cao: <strong className="text-white">{(flightTimeS * 1250).toFixed(0)} m</strong></div>
+                <div>Vận tốc: <strong className="text-white">{(720 + flightTimeS * 320).toFixed(0)} km/h</strong></div>
+              </div>
             )}
           </div>
 
-          {/* Runway/Hangar visual decoration */}
-          <div className="absolute bottom-0 left-0 w-24 h-10 bg-zinc-900 border-r-2 border-t-2 border-zinc-700 rounded-tr-lg z-10 shadow-lg flex items-center justify-center text-[8px] text-zinc-500 font-mono font-black">
-            S88-HANGAR
+          {/* Runway / Hangar visual decoration */}
+          <div className="absolute bottom-0 left-0 w-24 h-9 bg-zinc-900 border-r-2 border-t-2 border-zinc-700 rounded-tr-xl z-10 shadow-lg flex items-center justify-center text-[8px] text-zinc-400 font-mono font-black tracking-wider">
+            AYK-HANGAR
           </div>
 
-          {/* Flying Rocket representation */}
+          {/* FLYING ROCKET & ENEMY PURSUER */}
           {!isBettingPhase && !hasCrashed && (
             <>
+              {/* ENEMY INTERCEPTOR JET pursuing from behind */}
+              <div 
+                style={{
+                  left: `${enemyL}%`,
+                  bottom: `${enemyB}%`,
+                  transform: 'translate(-50%, 50%)',
+                }}
+                className="absolute z-20 flex items-center gap-1 select-none"
+              >
+                <div className="text-2xl filter drop-shadow-[0_0_10px_rgba(255,0,60,0.9)] animate-pulse">
+                  🛩️
+                </div>
+                <span className="text-[7px] bg-red-600/90 text-white font-mono font-black px-1.5 py-0.5 rounded tracking-widest shadow-md whitespace-nowrap uppercase">
+                  ĐỊCH TRUY KÍCH
+                </span>
+              </div>
+
+              {/* LASER TRACER BEAM fired continuously from Enemy Jet into back of Rocket */}
+              <svg className="absolute inset-0 w-full h-full pointer-events-none z-15">
+                <line
+                  x1={`${enemyL}%`}
+                  y1={`${100 - enemyB}%`}
+                  x2={`${posL}%`}
+                  y2={`${100 - posB}%`}
+                  stroke="#ff003c"
+                  strokeWidth="3"
+                  strokeDasharray="6,3"
+                  className="animate-[dash_0.2s_linear_infinite]"
+                />
+              </svg>
+
+              {/* MAIN PLAYER ROCKET */}
               <div
                 style={{
                   left: `${posL}%`,
                   bottom: `${posB}%`,
                   transform: 'translate(-50%, 50%)',
                 }}
-                className="absolute z-20 text-[#00f0ff] text-glow-blue drop-shadow-[0_8px_12px_rgba(0,240,255,0.6)] flex items-center gap-1 select-none transition-all duration-100"
+                className="absolute z-25 text-[#00f0ff] text-glow-blue drop-shadow-[0_8px_15px_rgba(0,240,255,0.8)] flex items-center gap-1 select-none transition-all duration-75"
               >
-                <Flame className="w-6 h-6 text-orange-500 animate-bounce shrink-0 rotate-90" />
-                <div className="text-[32px] animate-pulse">🚀</div>
-                
-                {/* Bouncing, floating jump button directly next to/above the flying rocket */}
+                <Flame className="w-6 h-6 text-orange-400 animate-bounce shrink-0 rotate-90" />
+                <div className="text-3xl sm:text-4xl animate-pulse filter drop-shadow-[0_0_12px_rgba(0,240,255,0.9)]">🚀</div>
+
+                {/* PROMINENT MOBILE CASH OUT BUTTON DIRECTLY ATTACHED NEXT TO AIRPLANE */}
                 {hasBetThisRound && activeBet.status === 'PLAYING' && (
                   <button
+                    type="button"
                     onClick={(e) => {
                       e.stopPropagation();
                       handleCashOut();
                     }}
                     disabled={isProcessing}
-                    className="absolute -top-14 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-400 via-green-400 to-emerald-500 hover:from-emerald-300 hover:to-green-200 text-black font-black text-xs uppercase tracking-wider py-2 px-4 rounded-full cursor-pointer shadow-[0_0_25px_rgba(16,185,129,1)] animate-bounce flex items-center gap-1.5 whitespace-nowrap active:scale-90 select-none z-30 border-2 border-white"
+                    className="absolute -top-14 left-1/2 -translate-x-1/2 bg-gradient-to-r from-emerald-400 via-green-300 to-emerald-500 hover:from-emerald-300 hover:to-green-200 text-black font-black text-xs sm:text-sm uppercase tracking-wider py-2.5 px-4 rounded-full cursor-pointer shadow-[0_0_35px_rgba(16,185,129,1)] animate-bounce flex items-center gap-1.5 whitespace-nowrap active:scale-90 select-none z-40 border-2 border-white ring-4 ring-emerald-400/50 shrink-0"
                   >
-                    🪂 NHẢY DÙ X{currentMultiplier.toFixed(2)}
+                    <Zap className="w-4 h-4 fill-black animate-pulse shrink-0" />
+                    <span>🪂 BẤM DỪNG X{currentMultiplier.toFixed(2)}</span>
                   </button>
                 )}
               </div>
 
-              {/* Floating sticky Jump overlay button inside the sky canvas for mobile & laptop convenience */}
+              {/* STICKY FULL-WIDTH CANVAS JUMP BUTTON FOR MOBILE THUMB ACCESS */}
               {hasBetThisRound && activeBet.status === 'PLAYING' && (
                 <div className="absolute bottom-2 left-2 right-2 z-40">
                   <button
+                    type="button"
                     onClick={handleCashOut}
                     disabled={isProcessing}
-                    className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.9)] animate-pulse border-2 border-white/50 cursor-pointer flex items-center justify-center gap-2 active:scale-95"
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-emerald-500 via-green-400 to-emerald-500 text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_25px_rgba(16,185,129,1)] border-2 border-white cursor-pointer flex items-center justify-center gap-2 active:scale-95 animate-pulse"
                   >
-                    <span>🪂 BẤM ĐÂY CHỐT LỜI X{currentMultiplier.toFixed(2)}!</span>
+                    <Zap className="w-4 h-4 fill-black" />
+                    <span>CHỐT LỜI NGAY X{currentMultiplier.toFixed(2)} (+{Math.floor(activeBet.amount * currentMultiplier).toLocaleString()} PP)</span>
                   </button>
                 </div>
               )}
             </>
           )}
 
-          {/* Enemy Missile Attack & Explosion Effect */}
+          {/* INSTANT EXPLOSION WHEN CRASHED */}
           {!isBettingPhase && hasCrashed && (
             <>
-              {/* Enemy stealth fighter jet coming from behind */}
+              {/* Enemy Jet celebrating firing shot */}
               <div 
                 style={{
-                  left: `${Math.max(5, posL - 25)}%`,
-                  bottom: `${Math.max(5, posB - 15)}%`,
+                  left: `${enemyL}%`,
+                  bottom: `${enemyB}%`,
                   transform: 'translate(-50%, 50%)',
                 }}
-                className="absolute z-25 flex items-center gap-1 select-none animate-pulse"
+                className="absolute z-20 flex items-center gap-1 select-none"
               >
-                <div className="text-2xl filter drop-shadow-[0_0_8px_rgba(255,0,60,0.8)]">🛩️</div>
-                <span className="text-[7px] bg-red-600/90 text-white font-mono font-bold px-1.5 py-0.5 rounded tracking-widest shadow-md whitespace-nowrap">
-                  MÁY BAY ĐỊCH TẤN CÔNG
-                </span>
+                <div className="text-3xl filter drop-shadow-[0_0_12px_rgba(255,0,60,1)]">🛩️💥</div>
               </div>
 
-              {/* Homing enemy missile fired from jet into back of plane */}
-              <div
-                style={{
-                  left: `${posL - 10}%`,
-                  bottom: `${posB - 5}%`,
-                  transform: 'translate(-50%, 50%) rotate(35deg)',
-                }}
-                className="absolute z-28 text-xl animate-ping"
-              >
-                🚀🔥
-              </div>
-
-              {/* Laser missile trajectory trailing from behind */}
+              {/* Laser beam connecting shot to hit point */}
               <svg className="absolute inset-0 w-full h-full pointer-events-none z-15">
                 <line
-                  x1={`${Math.max(5, posL - 25)}%`}
-                  y1={`${100 - Math.max(5, posB - 15)}%`}
+                  x1={`${enemyL}%`}
+                  y1={`${100 - enemyB}%`}
                   x2={`${posL}%`}
                   y2={`${100 - posB}%`}
                   stroke="#ff003c"
-                  strokeWidth="4"
-                  strokeDasharray="4,2"
-                  className="animate-[dash_0.3s_linear_infinite]"
+                  strokeWidth="5"
+                  className="animate-ping"
                 />
               </svg>
 
-              {/* Target Lock Crosshair */}
+              {/* Target lock crosshair */}
               <div
                 style={{
                   left: `${posL}%`,
                   bottom: `${posB}%`,
                   transform: 'translate(-50%, 50%)',
                 }}
-                className="absolute z-20 w-16 h-16 border-2 border-red-500 border-dashed rounded-full animate-spin flex items-center justify-center"
+                className="absolute z-25 w-20 h-20 border-2 border-red-500 border-dashed rounded-full animate-spin flex items-center justify-center"
               >
-                <div className="w-8 h-8 border border-red-500 rounded-full animate-ping" />
-                <span className="text-[7px] text-red-500 font-bold bg-black/90 px-1 py-0.5 rounded absolute -top-5 whitespace-nowrap border border-red-500/50">
-                  🚨 TÊN LỬA ĐỊCH BẮN TRÚNG!
-                </span>
+                <div className="w-10 h-10 border-2 border-red-500 rounded-full animate-ping" />
               </div>
 
-              {/* Big Explosion Core */}
+              {/* INSTANT BIG EXPLOSION CORE */}
               <div
                 style={{
                   left: `${posL}%`,
                   bottom: `${posB}%`,
-                  transform: 'translate(-50%, 50%) scale(2.2)',
+                  transform: 'translate(-50%, 50%) scale(2.5)',
                 }}
-                className="absolute z-30 text-glow-red text-5xl animate-bounce filter select-none"
+                className="absolute z-30 text-6xl filter drop-shadow-[0_0_30px_rgba(255,0,60,1)] select-none animate-pulse"
               >
                 💥
               </div>
 
-              {/* Fire particles around explosion */}
+              {/* Secondary Explosion Fire Particle Cloud */}
               <div
                 style={{
                   left: `${posL}%`,
                   bottom: `${posB}%`,
                   transform: 'translate(-50%, 50%)',
                 }}
-                className="absolute z-29 text-2xl animate-ping"
+                className="absolute z-29 text-3xl animate-ping select-none"
               >
-                🔥⚡
+                🔥⚡🚨
               </div>
             </>
           )}
 
-          {/* Betting Phase Countdown overlay */}
+          {/* Betting Phase Countdown Overlay */}
           {isBettingPhase && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 z-20 font-mono text-center px-4">
-              <Trophy className="w-8 h-8 text-[#ffd700] mb-2 animate-bounce" />
-              <span className="text-[10px] text-slate-400 uppercase tracking-widest">THỜI GIAN NHẬN ĐẶT CƯỢC</span>
-              <span className="text-glow-gold text-[#ffd700] text-3xl font-black mt-1">CÒN {bettingTimeLeft} GIÂY</span>
-              <p className="text-[8px] text-slate-500 max-w-xs mt-1.5 uppercase leading-relaxed font-sans">
-                Tất cả người chơi trong phòng sẽ bay cùng phi thuyền, nhận chung số nhân. Càng bay cao, tiền thưởng nhân lên càng khủng!
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/65 z-20 font-mono text-center px-4 backdrop-blur-xs">
+              <Trophy className="w-8 h-8 text-[#ffd700] mb-1 animate-bounce" />
+              <span className="text-[10px] text-slate-300 uppercase tracking-widest font-bold">THỜI GIAN ĐẶT CƯỢC CẤT CÁNH</span>
+              <span className="text-glow-gold text-[#ffd700] text-3xl sm:text-4xl font-black mt-0.5">CÒN {bettingTimeLeft} GIÂY</span>
+              <p className="text-[8px] sm:text-[9px] text-slate-400 max-w-xs mt-1.5 uppercase leading-relaxed font-sans">
+                Phi thuyền AYK chuẩn bị rời Hangar! Cất cánh nhận tiền thưởng gấp hàng chục lần!
               </p>
             </div>
           )}
         </div>
 
-        {/* Action controls logic in bottom zone for one-handed thumb access */}
-        <div className="mt-auto max-sm:bg-black/90 max-sm:border-t-2 max-sm:border-[#00f0ff]/30 max-sm:-mx-4 max-sm:-mb-4 max-sm:p-4 max-sm:rounded-t-3xl max-sm:shadow-[0_-10px_30px_rgba(0,240,255,0.2)]">
+        {/* AUTO CASHOUT & ACTION CONTROLS */}
+        <div className="mt-auto space-y-2 font-mono">
+          
+          {/* Auto Cashout setting row */}
+          <div className="bg-black/40 border border-white/10 rounded-xl p-2 flex items-center justify-between text-xs gap-2">
+            <div className="flex items-center gap-2 cursor-pointer" onClick={() => setAutoCashOutEnabled(!autoCashOutEnabled)}>
+              <input
+                type="checkbox"
+                checked={autoCashOutEnabled}
+                onChange={(e) => setAutoCashOutEnabled(e.target.checked)}
+                className="w-4 h-4 accent-emerald-400 rounded cursor-pointer"
+              />
+              <span className="text-[10px] text-slate-300 font-bold uppercase">Tự động nhảy dù:</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] text-emerald-400 font-bold">x</span>
+              <input
+                type="number"
+                step="0.10"
+                min="1.05"
+                max="100.00"
+                value={autoCashOut}
+                onChange={(e) => setAutoCashOut(e.target.value)}
+                disabled={!autoCashOutEnabled}
+                className="w-16 bg-black/80 border border-white/20 focus:border-emerald-400 rounded-lg p-1 text-center text-xs font-black text-emerald-300 font-mono disabled:opacity-40"
+              />
+              <div className="flex gap-1">
+                {['1.50', '2.00', '5.00'].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => {
+                      setAutoCashOut(preset);
+                      setAutoCashOutEnabled(true);
+                    }}
+                    className="px-1.5 py-0.5 text-[8px] bg-white/5 hover:bg-white/10 text-cyan-300 rounded border border-cyan-500/30 font-bold"
+                  >
+                    x{preset}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Zone: Betting vs Flight Status */}
           {isBettingPhase ? (
-            <div className="space-y-3 font-mono text-xs">
+            <div className="space-y-2">
               <div>
                 <div className="flex items-center justify-between mb-1">
                   <label className="text-[#8b949e] uppercase font-bold text-[10px]">CƯỢC PP CẤT CÁNH:</label>
                   {!hasBetThisRound && (
                     <div className="flex gap-1">
-                      {[50000, 200000, 500000].map((quick) => (
+                      {[10000, 50000, 200000, 500000].map((quick) => (
                         <button
                           key={quick}
                           type="button"
@@ -553,6 +813,13 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
                           +{(quick/1000)}k
                         </button>
                       ))}
+                      <button
+                        type="button"
+                        onClick={() => setBetAmount((user?.pp || 0).toString())}
+                        className="px-1.5 py-0.5 text-[9px] bg-amber-500/20 text-amber-300 rounded border border-amber-500/40 font-bold uppercase"
+                      >
+                        TẤT TAY
+                      </button>
                     </div>
                   )}
                 </div>
@@ -571,36 +838,37 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
                 disabled={hasBetThisRound || isProcessing}
                 className={`w-full py-3.5 border text-xs font-black uppercase tracking-widest cursor-pointer rounded-xl transition-all shadow-[0_0_15px_rgba(0,240,255,0.3)] active:scale-95 ${
                   hasBetThisRound 
-                    ? 'bg-emerald-950/20 border-emerald-500 text-emerald-400' 
+                    ? 'bg-emerald-950/40 border-emerald-500 text-emerald-400' 
                     : 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white border-[#00f0ff]'
                 }`}
               >
-                {hasBetThisRound ? '[ ĐÃ ĐỒNG BỘ CƯỢC THÀNH CÔNG ]' : '[ XÁC NHẬN CẤT CÁNH PHI THUYỀN ]'}
+                {hasBetThisRound ? '✅ [ ĐÃ ĐỒNG BỘ CƯỢC THÀNH CÔNG ]' : '🚀 [ XÁC NHẬN CẤT CÁNH PHI THUYỀN ]'}
               </button>
             </div>
           ) : (
-            <div className="font-mono">
+            <div>
               {hasBetThisRound && activeBet.status === 'PLAYING' && !hasCrashed ? (
                 <button
                   onClick={handleCashOut}
                   disabled={isProcessing}
-                  className="w-full py-4 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-black border-2 border-[#00ff80] text-glow-green font-black uppercase tracking-widest text-sm rounded-xl cursor-pointer transition-all active:scale-95 shadow-[0_0_25px_rgba(0,255,128,0.5)]"
+                  className="w-full py-4 bg-gradient-to-r from-emerald-600 via-teal-500 to-emerald-600 text-black border-2 border-[#00ff80] text-glow-green font-black uppercase tracking-widest text-sm rounded-xl cursor-pointer transition-all active:scale-95 shadow-[0_0_25px_rgba(0,255,128,0.5)] flex items-center justify-center gap-2"
                 >
-                  [ 🪂 NHẢY DÙ CHỐT LỜI (ĂN X{currentMultiplier.toFixed(2)}) ]
+                  <Zap className="w-5 h-5 fill-black" />
+                  <span>[ 🪂 NHẢY DÙ CHỐT LỜI (ĂN X{currentMultiplier.toFixed(2)}) ]</span>
                 </button>
               ) : hasBetThisRound && activeBet.status === 'CASHED_OUT' ? (
                 <button
                   disabled
-                  className="w-full py-4 bg-emerald-950/30 border border-[#00ff80] text-[#00ff80] text-glow-green font-black uppercase tracking-widest text-sm rounded-xl cursor-not-allowed"
+                  className="w-full py-3.5 bg-emerald-950/40 border border-[#00ff80] text-[#00ff80] text-glow-green font-black uppercase tracking-widest text-xs rounded-xl cursor-not-allowed"
                 >
                   🎉 ĐÃ NHẢY DÙ AN TOÀN! CHỐT X{activeBet.multiplier?.toFixed(2) || currentMultiplier.toFixed(2)}
                 </button>
               ) : hasBetThisRound && activeBet.status === 'CRASHED' ? (
                 <button
                   disabled
-                  className="w-full py-4 bg-red-950/30 border border-[#ff003c] text-[#ff003c] text-glow-red font-black uppercase tracking-widest text-sm rounded-xl cursor-not-allowed"
+                  className="w-full py-3.5 bg-red-950/40 border border-[#ff003c] text-[#ff003c] text-glow-red font-black uppercase tracking-widest text-xs rounded-xl cursor-not-allowed"
                 >
-                  💥 PHI THUYỀN ĐÃ NỔ! TỔN THẤT TOÀN BỘ
+                  💥 PHI THUYỀN BỊ BẮN NỔ! TỔN THẤT TOÀN BỘ
                 </button>
               ) : (
                 <div className="text-center p-3 bg-white/5 rounded-xl border border-white/5 font-sans text-xs text-slate-400 uppercase leading-relaxed flex items-center justify-center gap-2">
@@ -614,18 +882,18 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
 
         {/* Standalone Airplane Rules Overlay */}
         {showRules && (
-          <div className="absolute inset-0 bg-black/95 backdrop-blur-md z-[5100] flex flex-col justify-between p-6 font-mono text-xs text-white">
+          <div className="absolute inset-0 bg-black/95 backdrop-blur-md z-[5100] flex flex-col justify-between p-6 font-mono text-xs text-white rounded-2xl">
             <div>
               <h3 className="text-[#00f0ff] text-glow-blue font-black text-sm uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-white/10 pb-3">
                 <HelpCircle className="w-5 h-5 text-[#00f0ff]" />
-                Luật Chơi: KHÔNG CHIẾN S88
+                Luật Chơi: KHÔNG CHIẾN AYK
               </h3>
 
               <div className="space-y-3 leading-relaxed text-slate-300">
-                <p>• Phi thuyền S88 sẽ cất cánh bay cao và số nhân (multiplier) giải thưởng tăng dần liên tục theo đồ thị leo dốc.</p>
-                <p>• Người chơi có thể ấn nút <strong className="text-emerald-400">NHẢY DÙ / CHỐT LỜI</strong> bất cứ lúc nào khi phi thuyền đang bay để rút tiền ngay lập tức.</p>
-                <p>• <strong className="text-red-400">Luật tử vong (CRASH)</strong>: Phi thuyền sẽ bị chiến đấu cơ của quân địch bắn nổ ngẫu nhiên. Nếu phi thuyền phát nổ trước khi bạn kịp ấn nhảy dù, bạn sẽ mất trắng 100% số tiền cược.</p>
-                <p>• Số nhân nổ bí ẩn dao động từ <strong className="text-yellow-400">x0.01 cực nhanh</strong> cho tới cơ hội nổ ở số nhân cực khủng <strong className="text-[#00f0ff]">x5, x10, x50</strong>!</p>
+                <p>• Phi thuyền AYK cất cánh bay cao, số nhân (multiplier) giải thưởng tăng dần liên tục.</p>
+                <p>• Bấm nút <strong className="text-emerald-400">🪂 NHẢY DÙ</strong> ngay cạnh máy bay hoặc ở bất kỳ đâu trên màn hình để rút tiền lời lập tức.</p>
+                <p>• <strong className="text-red-400">Luật bắn hạ (CRASH)</strong>: Tên lửa kẻ địch truy kích phía sau sẽ bắn nổ phi thuyền ngẫu nhiên. Nếu nổ trước khi bạn nhảy dù, bạn sẽ mất 100% tiền cược.</p>
+                <p>• Bạn có thể bật <strong className="text-emerald-300">Tự động nhảy dù</strong> ở mốc chỉ định (ví dụ x2.00) để tự động chốt lời chính xác!</p>
               </div>
             </div>
 

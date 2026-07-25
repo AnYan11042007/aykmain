@@ -9,6 +9,7 @@ import { db } from '../../firebase';
 import { Sparkles, X, Tv, HelpCircle, Eye, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
 import { User } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
+import { getTodayVNString } from '../../utils/date';
 
 declare let confetti: any;
 
@@ -125,7 +126,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
         sender: uid,
         senderName: user?.name || 'Sinh Viên',
         receiver: 'SYSTEM_TAIXIU',
-        receiverName: 'Tài Xỉu S88 ELITE',
+        receiverName: 'Tài Xỉu AYK ELITE',
         amount: totalBetAmount,
         message: `Cược Tài Xỉu ELITE (${Object.keys(activeBets).join(', ')})`,
         time: new Date().toLocaleString('vi-VN'),
@@ -226,7 +227,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
 
         await push(ref(db, 'transactions'), {
           sender: 'SYSTEM_TAIXIU',
-          senderName: 'Tài Xỉu S88 ELITE',
+          senderName: 'Tài Xỉu AYK ELITE',
           receiver: uid,
           receiverName: user?.name || 'Sinh Viên',
           amount: totalPayout,
@@ -236,7 +237,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
         });
 
         // Update daily missions progress
-        const todayStr = new Date().toLocaleDateString('sv-SE');
+        const todayStr = getTodayVNString();
         const mRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
         const mSnap = await get(mRef);
         const currentWins = mSnap.val()?.taiXiuWins || 0;
@@ -329,7 +330,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
             {/* Live Stream Badge */}
             <span className="bg-red-600 text-white font-black px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(220,38,38,0.8)] uppercase">
               <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-              LIVE STREAM S88
+              LIVE STREAM AYK
             </span>
 
             {/* Viewers counter */}
@@ -370,7 +371,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
           <div className="absolute inset-0 z-50 bg-black/95 p-6 flex flex-col justify-between font-mono text-xs text-slate-200">
             <div>
               <h3 className="text-amber-400 text-base font-black uppercase mb-3 flex items-center gap-2 border-b border-amber-500/30 pb-2">
-                📜 LUẬT CHƠI TÀI XỈU S88 ELITE
+                📜 LUẬT CHƠI TÀI XỈU AYK ELITE
               </h3>
               <ul className="space-y-2 list-disc list-inside text-slate-300 leading-relaxed text-[11px]">
                 <li><b className="text-yellow-300">TÀI (11-17):</b> Thắng gấp x1.95 tiền cược. Thua nếu ra 3 con giống nhau (Bão).</li>
@@ -392,7 +393,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
         {/* ================= MAIN ARENA AREA ================= */}
         <div className="p-3 sm:p-5 space-y-4 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black">
           
-          {/* CENTERPIECE: BÁT VÀNG S88 ELITE */}
+          {/* CENTERPIECE: BÁT VÀNG AYK ELITE */}
           <div className="relative flex flex-col items-center justify-center my-1 select-none">
             
             {/* Luxurious Casino Table Backdrop */}
@@ -406,7 +407,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
                   
                   {/* Brass Nameplate */}
                   <div className="absolute bottom-1 bg-gradient-to-r from-amber-600 via-yellow-400 to-amber-600 border border-yellow-200 text-black font-black text-[10px] px-3 py-0.5 rounded-full shadow-[0_2px_5px_rgba(0,0,0,0.8)] tracking-widest uppercase z-10">
-                    S88 ELITE
+                    AYK ELITE
                   </div>
 
                   {/* Felt table surface inside ring */}
@@ -459,7 +460,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
                       <path d="M46,25 L54,25 M50,21 L50,29" stroke="currentColor" strokeWidth="2" />
                     </svg>
                     <span className="text-[9px] font-mono font-black text-yellow-100 uppercase tracking-widest drop-shadow">
-                      {isShaking ? 'ĐANG LẮC BÁT...' : 'BÁT VÀNG S88'}
+                      {isShaking ? 'ĐANG LẮC BÁT...' : 'BÁT VÀNG AYK'}
                     </span>
                   </div>
                 </div>

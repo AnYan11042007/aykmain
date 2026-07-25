@@ -13,6 +13,7 @@ import AITutorSection from './AITutorSection';
 import BattlePassPortal from './BattlePassPortal';
 import PromoBanner from './PromoBanner';
 import DailyMissions from './DailyMissions';
+import DailyCheckIn from './DailyCheckIn';
 
 interface AcademicPortalProps {
   uid: string;
@@ -661,6 +662,9 @@ export default function AcademicPortal({ uid, user, onShowResult }: AcademicPort
           </div>
         </div>
       )}
+
+      {/* Floating Action Button for Daily Check-In with Bonus Multiplier */}
+      <DailyCheckIn uid={uid} user={user} onShowResult={onShowResult} />
 
       </div>
     </div>

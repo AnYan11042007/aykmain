@@ -40,7 +40,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
   const [newFrameStyle, setNewFrameStyle] = useState('gold-ring'); // 'gold-ring' | 'neon-ring' | 'cyber-ring' | 'fire-ring' | 'emerald-ring' | 'dragon-ring' | 'custom_url'
   const [newFrameImageUrl, setNewFrameImageUrl] = useState('');
   const [newFramePrice, setNewFramePrice] = useState('50000');
-  const [newFrameDesc, setNewFrameDesc] = useState('Khung Avatar thiết kế độc quyền từ Ban Giám Hiệu S88.');
+  const [newFrameDesc, setNewFrameDesc] = useState('Khung Avatar thiết kế độc quyền từ Ban Giám Hiệu AYK.');
   const [newFrameInBP, setNewFrameInBP] = useState(true);
 
   // Daily missions pool state
@@ -80,7 +80,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
   // Student creation state
   const [createUsername, setCreateUsername] = useState('');
   const [createName, setCreateName] = useState('');
-  const [createClass, setCreateClass] = useState('S88-SE1');
+  const [createClass, setCreateClass] = useState('AYK-SE1');
   const [createPassword, setCreatePassword] = useState('123456');
   const [createInitialPP, setCreateInitialPP] = useState('10000');
 
@@ -416,7 +416,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
         { id: 'frame_cyber', name: 'Khung Hologram Cyberpunk', type: 'frame', price: priceCyberFrame, value: 'cyber-ring', desc: 'Khung ảnh ba chiều đậm chất khoa học viễn tưởng siêu tương lai.' },
         { id: 'title_academic', name: 'Danh Hiệu: Chúa Tể Học Thuật', type: 'title', price: priceAcademicTitle, value: 'Chúa Tể Học Thuật', desc: 'Danh hiệu tối thượng dành cho học bá có công lực phi phàm.' },
         { id: 'title_investor', name: 'Danh Hiệu: Ông Trùm Đầu Tư', type: 'title', price: priceInvestorTitle, value: 'Ông Trùm Đầu Tư', desc: 'Hiển thị danh hiệu quý tộc của tay chơi thao túng Sàn Vàng.' },
-        { id: 'title_casino', name: 'Danh Hiệu: Thần Bài Las Vegas', type: 'title', price: priceCasinoTitle, value: 'Thần Bài Las Vegas', desc: 'Khẳng định vị thế ông hoàng đỏ đen thống trị sòng bài S88.' },
+        { id: 'title_casino', name: 'Danh Hiệu: Thần Bài Las Vegas', type: 'title', price: priceCasinoTitle, value: 'Thần Bài Las Vegas', desc: 'Khẳng định vị thế ông hoàng đỏ đen thống trị sòng bài AYK.' },
         { id: 'title_vip', name: 'Danh Hiệu: Đại Gia Học Đường', type: 'title', price: priceVipTitle, value: 'Đại Gia Học Đường', desc: 'Tôn vinh sinh viên sở hữu khối lượng tài sản PP vô địch thiên hạ.' }
       ];
 
@@ -980,7 +980,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                 <h4 className="text-[#00f0ff] uppercase font-black text-xs flex items-center gap-1">
                   👤 TẠO TÀI KHOẢN SINH VIÊN MỚI
                 </h4>
-                <p className="text-[9px] text-slate-400 font-mono mt-0.5 uppercase">Đăng ký thành viên mới vào mạng lưới S88</p>
+                <p className="text-[9px] text-slate-400 font-mono mt-0.5 uppercase">Đăng ký thành viên mới vào mạng lưới AYK</p>
               </div>
 
               <form onSubmit={handleCreateStudent} className="space-y-3">
@@ -989,7 +989,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                   <input
                     type="text"
                     required
-                    placeholder="ví dụ: s88_an, nva_123"
+                    placeholder="ví dụ: ayk_an, nva_123"
                     className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:border-[#00f0ff] outline-none font-bold"
                     value={createUsername}
                     onChange={(e) => setCreateUsername(e.target.value)}
@@ -1014,7 +1014,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                     <input
                       type="text"
                       required
-                      placeholder="S88-SE1"
+                      placeholder="AYK-SE1"
                       className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-white focus:border-[#00f0ff] outline-none font-bold text-center"
                       value={createClass}
                       onChange={(e) => setCreateClass(e.target.value)}
@@ -1070,7 +1070,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                   Để cộng/trừ tiền học bổng, chọn trực tiếp các nút nhanh <b>+5K / +20K / +100K</b> hoặc bấm biểu tượng Edit để nhập con số tùy thích bên mục chi tiết bên phải.
                 </p>
                 <div className="p-3 bg-black/40 border border-white/5 rounded-lg flex items-center justify-between text-[#00ff80] font-black text-[11px]">
-                  <span>QUỸ S88 VÔ HẠN:</span>
+                  <span>QUỸ AYK VÔ HẠN:</span>
                   <span className="text-glow-green">∞ PP (ONLINE)</span>
                 </div>
               </div>
@@ -1298,7 +1298,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
         <div className="glass-box p-6 font-mono text-xs space-y-4">
           <div className="flex items-center justify-between border-b border-white/5 pb-3">
             <h4 className="text-white uppercase font-black text-xs">PHẢN ÁNH & BÁO CÁO GIAN LẬN ({reportsList.length})</h4>
-            <span className="text-[10px] text-red-400 animate-pulse font-black uppercase">ĐƯỜNG DÂY NÓNG S88</span>
+            <span className="text-[10px] text-red-400 animate-pulse font-black uppercase">ĐƯỜNG DÂY NÓNG AYK</span>
           </div>
 
           {reportsList.length === 0 ? (
@@ -1855,7 +1855,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
           {/* Header */}
           <div className="border-b border-white/5 pb-2">
             <h3 className="text-rose-500 uppercase font-black text-lg text-glow-red flex items-center gap-2">
-              <Zap className="w-5 h-5 text-rose-500 animate-pulse" /> GIÁM SÁT HIỆU NĂNG & AN NINH HỆ THỐNG S88
+              <Zap className="w-5 h-5 text-rose-500 animate-pulse" /> GIÁM SÁT HIỆU NĂNG & AN NINH HỆ THỐNG AYK
             </h3>
             <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase">
               Theo dõi trực quan tải phòng đấu trường, độ trễ và log bảo mật chống gian lận F12 thời gian thực
@@ -2066,7 +2066,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
           <div className="border-b border-white/5 pb-2 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h3 className="text-[#00f0ff] uppercase font-black text-lg text-glow-blue flex items-center gap-2">
-                <Coins className="w-5 h-5 text-yellow-400 animate-pulse" /> QUẢN LÝ BỂ NHIỆM VỤ HÀNG NGÀY S88
+                <Coins className="w-5 h-5 text-yellow-400 animate-pulse" /> QUẢN LÝ BỂ NHIỆM VỤ HÀNG NGÀY AYK
               </h3>
               <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase">
                 Thiết kế bể nhiệm vụ chung để hệ thống tự xáo trộn phát hành cho người chơi cày cuốc lấy PP
@@ -2180,7 +2180,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                   <span className="text-white font-black text-xs uppercase block">📋 DANH SÁCH BỂ NHIỆM VỤ ({missionsPool.length})</span>
                   <span className="text-[8px] text-slate-400 mt-0.5 uppercase block">Các nhiệm vụ đang hoạt động trong thuật toán xáo trộn</span>
                 </div>
-                <span className="text-[10px] text-[#00f0ff] font-bold border border-[#00f0ff]/30 bg-[#00f0ff]/5 py-0.5 px-2 rounded font-mono">POOL S88 ACTIVE</span>
+                <span className="text-[10px] text-[#00f0ff] font-bold border border-[#00f0ff]/30 bg-[#00f0ff]/5 py-0.5 px-2 rounded font-mono">POOL AYK ACTIVE</span>
               </div>
 
               {missionsPool.length === 0 ? (

@@ -98,7 +98,7 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
     // Labels for 60 iterations (simplified)
     const labels = historyData.map((_, idx) => {
       const date = new Date(Date.now() - (historyData.length - 1 - idx) * 60000);
-      return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+      return date.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Ho_Chi_Minh' });
     });
 
     if (chartInstanceRef.current) {
@@ -256,7 +256,7 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
         uid: uid,
         name: user?.name || 'Sinh Viên',
         msg: text,
-        time: new Date().toLocaleTimeString('vi-VN'),
+        time: new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
         timestamp: Date.now()
       });
     } catch (err) {
@@ -308,7 +308,7 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
         bet: totalCost,
         pnl: 0,
         result: `Mua thành công +${amt.toFixed(2)} GOLD`,
-        time: new Date().toLocaleString('vi-VN'),
+        time: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
         timestamp: Date.now()
       });
 
@@ -375,7 +375,7 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
         bet: costOfAmt,
         pnl: profit,
         result: profit >= 0 ? `Chốt lời +${profit.toLocaleString()} PP` : `Cắt lỗ -${Math.abs(profit).toLocaleString()} PP`,
-        time: new Date().toLocaleString('vi-VN'),
+        time: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
         timestamp: Date.now()
       });
 
@@ -416,7 +416,12 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
             <h2 className="text-[#ffd700] text-glow-gold text-2xl font-black uppercase tracking-widest leading-none">
               SÀN GIAO DỊCH VÀNG CHỢ ĐEN
             </h2>
-            <p className="text-[10px] text-[#8b949e] uppercase mt-1">Hệ thống khớp lệnh tức thời & Biến động sau mỗi 60 giây</p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-[10px] text-[#8b949e] uppercase">Hệ thống khớp lệnh tức thời & Biến động 60s/lần</span>
+              <span className="px-2 py-0.5 bg-yellow-500/15 border border-yellow-500/40 text-yellow-300 font-bold text-[9px] rounded-full uppercase tracking-wider flex items-center gap-1">
+                <Clock className="w-3 h-3 text-yellow-400" /> GIỜ VIỆT NAM (GMT+7)
+              </span>
+            </div>
           </div>
         </div>
 

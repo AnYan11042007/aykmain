@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { get, ref, onValue, push, set, update } from 'firebase/database';
 import { db } from '../firebase';
-import { Swords, Play, Trophy, Users, Shield, Plus, ArrowRight } from 'lucide-react';
+import { Swords, Play, Trophy, Users, Shield, Plus, ArrowRight, Rocket, Flame } from 'lucide-react';
 import { User, RpsRoom, BlackjackRoom, TienLenRoom } from '../types';
 
 interface GamesPortalProps {
@@ -305,12 +305,12 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
         {/* Banner Content (Left side) */}
         <div className="relative z-10 space-y-3 max-w-xl text-center md:text-left">
           <div className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[9px] text-cyan-400 font-mono uppercase font-black tracking-wider shadow-[0_0_10px_rgba(6,182,212,0.15)]">
-            <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" /> S88 OFFICIAL ENTERTAINMENT ARENA
+            <span className="w-1.5 h-1.5 bg-cyan-400 rounded-full animate-ping" /> AYK OFFICIAL ENTERTAINMENT ARENA
           </div>
           
           <div className="space-y-1">
             <h2 className="text-2xl sm:text-3xl font-black font-sans text-white tracking-wide uppercase leading-tight">
-              ĐẤU TRƯỜNG <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-[#00f0ff] to-yellow-300 text-glow-blue">GIẢI TRÍ S88</span>
+              ĐẤU TRƯỜNG <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-[#00f0ff] to-yellow-300 text-glow-blue">GIẢI TRÍ AYK</span>
             </h2>
             <p className="text-xs text-slate-400 font-medium font-sans">
               Hệ thống cá cược mô phỏng thời gian thực, cày cuốc nhiệm vụ hàng ngày kiếm PP cực căng và đổi quà cực khủng!
@@ -349,7 +349,7 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
             <div className="w-full h-1 bg-gradient-to-r from-transparent via-amber-500/30 to-transparent mt-1" />
             
             <span className="text-[8px] text-slate-500 font-mono uppercase block text-center md:text-right">
-              Mã ví bảo mật: S88-CORE-SECURE
+              Mã ví bảo mật: AYK-CORE-SECURE
             </span>
           </div>
         </div>
@@ -357,6 +357,46 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
 
       {/* FULL WIDTH GAME LOBBY */}
       <div className="w-full space-y-8">
+
+
+
+          {/* NEW FEATURED: 3D CYBER ARENA - PHI THUYỀN RỒNG THẦN 3D */}
+          <div className="relative overflow-hidden rounded-2xl border-2 border-cyan-500/60 bg-gradient-to-r from-cyan-950/90 via-slate-900 to-blue-950 p-6 shadow-[0_0_35px_rgba(6,182,212,0.35)] space-y-6">
+            <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
+            
+            <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-10 border-b border-cyan-500/20 pb-5">
+              <div className="space-y-2 text-center md:text-left">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 border border-cyan-400/50 text-xs text-cyan-300 font-mono font-black uppercase tracking-wider">
+                  🚀 SÁNG TẠO ĐỘC QUYỀN: GAME 3D CANVAS ENGINE REAL-TIME
+                </div>
+                <h3 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-wider flex items-center justify-center md:justify-start gap-3">
+                  <span>🌌 ĐẤU TRƯỜNG 3D: PHI THUYỀN RỒNG THẦN</span>
+                  <span className="text-xs bg-cyan-500 text-black font-mono font-black px-2.5 py-1 rounded-full animate-pulse shadow-[0_0_10px_rgba(6,182,212,0.6)]">3D NEW</span>
+                </h3>
+                <p className="text-xs text-cyan-200/90 max-w-xl leading-relaxed font-sans">
+                  Sáng tạo đột phá với Công nghệ render 3D Canvas Vector. Ngắm bắn linh quái Rồng Cyber 3D, tích lũy Combo Hits và nhân hệ số tiền thưởng PP siêu tốc!
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 shrink-0 relative z-10 w-full md:w-auto">
+                <button
+                  onClick={() => onOpenGame('cyber_3d_arena')}
+                  className="px-6 py-3.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-blue-500 text-white font-mono font-black text-xs uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-[0_0_25px_rgba(6,182,212,0.6)] hover:scale-105 active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <Swords className="w-4 h-4 animate-spin text-yellow-300" style={{ animationDuration: '8s' }} /> VÀO ĐẤU TRƯỜNG 3D NGAY
+                </button>
+              </div>
+            </div>
+
+            <div className="pt-1 text-center">
+              <button
+                onClick={() => onOpenGame('cyber_3d_arena')}
+                className="w-full py-3 bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 hover:brightness-125 text-white font-mono text-xs font-black uppercase tracking-widest rounded-xl transition-all cursor-pointer shadow-[0_0_20px_rgba(6,182,212,0.4)] flex items-center justify-center gap-2"
+              >
+                <Play className="w-4 h-4 fill-current text-yellow-300" /> BẮT ĐẦU VÁN ĐẤU 3D VỚI VŨ KHÍ PLASMA & RAILGUN
+              </button>
+            </div>
+          </div>
 
           {/* EXCLUSIVE FEATURED: WORLD CARD BATTLE 1V1 ARENA */}
           <div className="relative overflow-hidden rounded-2xl border-2 border-purple-500/60 bg-gradient-to-r from-purple-950/90 via-slate-900 to-indigo-950 p-6 shadow-[0_0_35px_rgba(168,85,247,0.35)] space-y-6">

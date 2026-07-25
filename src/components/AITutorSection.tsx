@@ -63,7 +63,7 @@ export default function AITutorSection({ uid, user }: AITutorSectionProps) {
 
       <div className="flex items-center justify-between pb-3.5 mb-5 border-b border-[#30363d]">
         <h3 className="text-sm tracking-widest uppercase flex items-center gap-2 text-glow-blue text-[#00f0ff] font-black">
-          <GraduationCap className="w-5 h-5 animate-bounce" /> 🤖 TRỢ LÝ AI GIA SƯ S88
+          <GraduationCap className="w-5 h-5 animate-bounce" /> 🤖 TRỢ LÝ AI GIA SƯ AYK
         </h3>
         <span className="text-[10px] text-[#00f0ff] font-bold uppercase tracking-wider bg-cyan-950 border border-cyan-500/20 py-0.5 px-2 rounded-full">
           Gemini 3.5 Flash Powered

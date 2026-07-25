@@ -22,7 +22,7 @@ const PROMOTIONS: Announcement[] = [
   {
     id: 'promo_1',
     tag: 'SỰ KIỆN ĐẤU TRƯỜNG',
-    title: 'GIẢI ĐẤU S88 ARENA: CON ĐƯỜNG HUYỀN THOẠI',
+    title: 'GIẢI ĐẤU AYK ARENA: CON ĐƯỜNG HUYỀN THOẠI',
     description: 'Tham gia so tài sút Penalty, đua ngựa Thần Tốc và chinh phục phi thuyền không chiến để nhận tổng giải thưởng lên đến 500,000 PP!',
     badgeColor: 'border-red-500/40 text-red-400 bg-red-950/20 shadow-[0_0_10px_rgba(239,68,68,0.2)]',
     linkText: 'THAM GIA NGAY',
@@ -32,8 +32,8 @@ const PROMOTIONS: Announcement[] = [
   {
     id: 'promo_2',
     tag: 'CẬP NHẬT HỆ THỐNG',
-    title: 'AI GIA SƯ S88: KÍCH HOẠT MÔ HÌNH SUY LUẬN MỚI',
-    description: 'Hệ thống AI Gia Sư S88 vừa được tích hợp mô hình suy luận sâu sắc thế hệ mới. Đặt câu hỏi học tập ngay để củng cố chỉ số Trí Tuệ của bạn!',
+    title: 'AI GIA SƯ AYK: KÍCH HOẠT MÔ HÌNH SUY LUẬN MỚI',
+    description: 'Hệ thống AI Gia Sư AYK vừa được tích hợp mô hình suy luận sâu sắc thế hệ mới. Đặt câu hỏi học tập ngay để củng cố chỉ số Trí Tuệ của bạn!',
     badgeColor: 'border-cyan-500/40 text-cyan-400 bg-cyan-950/20 shadow-[0_0_10px_rgba(6,182,212,0.2)]',
     linkText: 'HỎI GIA SƯ',
     eventTime: 'Mới cập nhật',
@@ -41,9 +41,9 @@ const PROMOTIONS: Announcement[] = [
   },
   {
     id: 'promo_3',
-    tag: 'TÀI CHÍNH S88',
+    tag: 'TÀI CHÍNH AYK',
     title: 'NGÂN HÀNG TRUNG ƯƠNG: KHUYẾN MÃI LÃI SUẤT 15%',
-    description: 'Gửi tiết kiệm PP tại S88 Bank ngay hôm nay để được hưởng lãi suất hoàng gia cực hời lên tới 15% mỗi chu kỳ thanh toán tự động.',
+    description: 'Gửi tiết kiệm PP tại AYK Bank ngay hôm nay để được hưởng lãi suất hoàng gia cực hời lên tới 15% mỗi chu kỳ thanh toán tự động.',
     badgeColor: 'border-yellow-500/40 text-yellow-400 bg-yellow-950/20 shadow-[0_0_10px_rgba(234,179,8,0.2)]',
     linkText: 'GỬI TIẾT KIỆM',
     eventTime: 'Thời gian có hạn',
@@ -93,7 +93,7 @@ export default function PromoBanner() {
       <div className={`absolute inset-0 transition-all duration-1000 ease-out-expo select-none pointer-events-none ${imageLoaded ? 'opacity-85 scale-100' : 'opacity-0 scale-105'}`}>
         <img
           src="https://cdn-media.sforum.vn/storage/app/media/ctvseo_maihue/hinh-nen-1920-1080/hinh-nen-1920-1080-thumbnail.jpg"
-          alt="S88 Hero Banner"
+          alt="AYK Hero Banner"
           className="w-full h-full object-cover"
           referrerPolicy="no-referrer"
           onLoad={() => setImageLoaded(true)}
@@ -169,7 +169,7 @@ export default function PromoBanner() {
         <div className="flex items-center justify-between flex-wrap gap-4 pt-1 border-t border-white/5 text-[10px] font-mono">
           <div className="flex items-center gap-1.5 text-slate-400">
             <Megaphone className="w-3.5 h-3.5 text-yellow-500 animate-bounce" />
-            <span>Sự kiện đang phát sóng trực tiếp trên máy chủ S88</span>
+            <span>Sự kiện đang phát sóng trực tiếp trên máy chủ AYK</span>
           </div>
           
           <button className="inline-flex items-center gap-1 bg-cyan-400 hover:bg-cyan-300 text-black font-black uppercase py-2 px-4 rounded-xl text-[9px] tracking-widest cursor-pointer transition-all hover:shadow-[0_0_15px_rgba(6,182,212,0.4)] active:scale-95">

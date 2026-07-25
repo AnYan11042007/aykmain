@@ -30,21 +30,23 @@ body {
     background: var(--bg-deep); 
     color: var(--text-main); 
     overflow-x: hidden; 
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Global Centered Overlay for Modals */
 .overlay {
     position: fixed;
     inset: 0;
-    background-color: rgba(0, 0, 0, 0.85);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+    background-color: rgba(0, 0, 0, 0.88);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     display: flex;
     align-items: center;
     justify-content: center;
     z-index: 5000;
-    padding: 12px;
+    padding: 8px;
     overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Custom Scrollbar */
@@ -60,7 +62,12 @@ body {
     background-size: cover;
     background-position: center;
     background-repeat: no-repeat;
-    background-attachment: fixed;
+}
+
+@media (min-width: 768px) {
+    .bg-matrix {
+        background-attachment: fixed;
+    }
 }
 
 /* Impact / Slash CSS Animation Overlay for Hunt action */

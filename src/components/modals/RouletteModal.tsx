@@ -130,7 +130,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
           sender: uid,
           senderName: user?.name || 'High Roller',
           receiver: 'SYSTEM_ROULETTE',
-          receiverName: 'Đấu Trường Roulette S88',
+          receiverName: 'Đấu Trường Roulette AYK',
           amount: bet.amount,
           message: `Cược Roulette: Ô [${getSpotLabel(bet.choice)}]`,
           time: new Date().toLocaleString('vi-VN'),
@@ -239,7 +239,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
         // Save payout transaction history for win
         await push(ref(db, 'transactions'), {
           sender: 'SYSTEM_ROULETTE',
-          senderName: 'Đấu Trường Roulette S88',
+          senderName: 'Đấu Trường Roulette AYK',
           receiver: uid,
           receiverName: user?.name || 'High Roller',
           amount: totalPayout,
@@ -462,7 +462,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
 
           {/* THE BETTING SPOTS LAYOUT */}
           <div className="space-y-2">
-            <span className="text-[#8b949e] font-mono text-[9px] uppercase font-bold tracking-wider block text-left">BẢN CƯỢC TIÊU CHUẨN ROULETTE S88:</span>
+            <span className="text-[#8b949e] font-mono text-[9px] uppercase font-bold tracking-wider block text-left">BẢN CƯỢC TIÊU CHUẨN ROULETTE AYK:</span>
             
             <div className="grid grid-cols-3 gap-2">
               <button

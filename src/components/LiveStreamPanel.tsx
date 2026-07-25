@@ -7,9 +7,12 @@ import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, push, update, onValue } from 'firebase/database';
 import { db } from '../firebase';
 import { User } from '../types';
+import { incrementMissionProgress } from '../utils/missions';
+import { getTodayVNString, getVNTimeString } from '../utils/date';
 import { 
   Tv, Users, Send, Coins, Flame, Trophy, Play, Info, AlertCircle, 
-  Sparkles, Volume2, Compass, Maximize2, Minimize2, ExternalLink, X, HelpCircle, Clock
+  Sparkles, Volume2, Compass, Maximize2, Minimize2, ExternalLink, X, HelpCircle, Clock,
+  MessageSquare, Zap, Crown, Award, Heart, ThumbsUp
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -22,7 +25,7 @@ interface LiveStreamPanelProps {
 type GameType = 'taixiu' | 'crash' | 'penalty' | 'horse' | 'claw' | 'fcmobile' | 'dragontiger';
 
 const BOT_NAMES = [
-  'ĐạiGiaQuận1', 'HọcThầnS88', 'LắcKinhKông', 'ThầnBàiĐấtCảng', 
+  'ĐạiGiaQuận1', 'HọcThầnAYK', 'LắcKinhKông', 'ThầnBàiĐấtCảng', 
   'HípPro99', 'BạchThủLô', 'KiềuNữBếnTre', 'MạnhThườngQuân',
   'CậuCảHảiPhòng', 'CòBayLả', 'TùngSơnBóngĐá', 'LuffyXìDách',
   'HeoConLonTon', 'DũngSĩGồngLãi', 'ThầyHuấnDạyVăn', 'GiaCátDự'
@@ -488,8 +491,47 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   const [cheatDtDragonSuit, setCheatDtDragonSuit] = useState<string>('♥');
   const [cheatDtTigerSuit, setCheatDtTigerSuit] = useState<string>('♠');
   
-  // Realtime messages restricted strictly to latest 10 messages for neatness
-  const [chatMessages, setChatMessages] = useState<Array<{ sender: string; message: string; isUser?: boolean; isSystem?: boolean; time: string }>>([]);
+  // Synchronized Realtime Chat Messages from Firebase DB 'live_arena_chat'
+  interface LiveChatMessage {
+    id?: string;
+    uid?: string;
+    sender: string;
+    message: string;
+    time: string;
+    timestamp: number;
+    isUser?: boolean;
+    isSystem?: boolean;
+    isBet?: boolean;
+    isWin?: boolean;
+    betAmount?: number;
+    betChoice?: string;
+    game?: string;
+    role?: string;
+    level?: number;
+    badge?: string;
+  }
+
+  const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
+
+  useEffect(() => {
+    const chatRef = ref(db, 'live_arena_chat');
+    const unsubscribe = onValue(chatRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list: LiveChatMessage[] = Object.entries(data).map(([id, val]: [string, any]) => ({
+          id,
+          ...val,
+          isUser: val.uid === uid
+        }));
+        list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        setChatMessages(list.slice(-35)); // Keep latest 35 messages
+      } else {
+        setChatMessages([]);
+      }
+    });
+
+    return () => unsubscribe();
+  }, [uid]);
 
   const [isAdminMode, setIsAdminMode] = useState(false);
   useEffect(() => {
@@ -502,49 +544,42 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  
   // Track Picture-in-Picture mode
   const [isPipActive, setIsPipActive] = useState<boolean>(() => {
     return localStorage.getItem('s88_live_pip_active') === 'true';
   });
-
-  // AI User Chat Simulation
   useEffect(() => {
-    const chatTemplates = [
-      "Ván này vào cửa nào anh em?",
-      "Vãi, bẻ cầu rồi",
-      "All in anh em ơi!",
-      "Nhà cái nay dễ bắt bài",
-      "Ván sau x2 lên",
-      "Thôi nghỉ thôi",
-      "Vừa ăn to xong haha",
-      "Sao lag thế nhỉ",
-      "Game mượt ghê",
-      "Thằng kia đánh láo thật",
-      "Cửa này sáng này",
-      "Sợ thật, hên quá",
-      "Lại về bờ rồi",
-      "Mới nạp thêm 50k",
-      "Chốt lời nào"
-    ];
-
-    const chatInterval = setInterval(() => {
-      if (Math.random() < 0.6) {
+    const chatInterval = setInterval(async () => {
+      if (Math.random() < 0.35) {
         const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-        const msg = chatTemplates[Math.floor(Math.random() * chatTemplates.length)];
+        const msgList = BOT_COMMENTS[activeTab] || [
+          "Cầu này chuẩn quá anh em ơi!",
+          "All in cửa này ấm lòng!",
+          "Nhà cái lắc quả này tín ghê",
+          "Thêm cược gỡ gạc thôi nào",
+          "Vút bay luôn phi thuyền ơi"
+        ];
+        const msg = msgList[Math.floor(Math.random() * msgList.length)];
         const now = new Date();
-        const time = `${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
-        
-        setChatMessages(prev => {
-          const newMsg = { sender: bot, message: msg, time, isBot: true };
-          const updated = [...prev, newMsg];
-          return updated.slice(-10); // Strictly limit to last 10
-        });
+        const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+
+        try {
+          await push(ref(db, 'live_arena_chat'), {
+            sender: bot,
+            message: msg,
+            time,
+            timestamp: Date.now(),
+            role: 'BOT',
+            badge: 'AI VIP'
+          });
+        } catch (err) {
+          // Ignore
+        }
       }
-    }, 3000);
+    }, 4500);
 
     return () => clearInterval(chatInterval);
-  }, []);
+  }, [activeTab]);
 
 
   const [currentBetPlaced, setCurrentBetPlaced] = useState<{
@@ -1090,13 +1125,14 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           
           if (profit > 0) {
             await update(ref(db, `users/${uid}`), { pp: freshPP + profit });
+          }
 
-            // Increment daily missions Tai Xiu wins
-            const todayStr = new Date().toLocaleDateString('sv-SE');
-            const mRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
-            const mSnap = await get(mRef);
-            const currentWins = mSnap.val()?.taiXiuWins || 0;
-            await update(mRef, { taiXiuWins: currentWins + 1 });
+          if (uid) {
+            await incrementMissionProgress(uid, 'taixiu_play', 1);
+            if (won) {
+              await incrementMissionProgress(uid, 'taixiu_wins', 1);
+            }
+            await incrementMissionProgress(uid, 'game_play', 1);
           }
 
           await push(ref(db, 'game_logs'), {
@@ -1144,6 +1180,11 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       if (!hasCashedOut) {
         const handleLoseCrash = async () => {
           try {
+            if (uid) {
+              await incrementMissionProgress(uid, 'crash_rides', 1);
+              await incrementMissionProgress(uid, 'game_play', 1);
+            }
+
             await push(ref(db, 'game_logs'), {
               uid,
               name: user?.name || 'Sinh Viên',
@@ -1209,6 +1250,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
           }
 
+          if (uid) {
+            if (res.isGoal) {
+              await incrementMissionProgress(uid, 'penalty_goals', 1);
+            }
+            await incrementMissionProgress(uid, 'game_play', 1);
+          }
+
           await push(ref(db, 'game_logs'), {
             uid,
             name: user?.name || 'Sinh Viên',
@@ -1269,6 +1317,11 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
           }
 
+          if (uid) {
+            await incrementMissionProgress(uid, 'horse_rides', 1);
+            await incrementMissionProgress(uid, 'game_play', 1);
+          }
+
           await push(ref(db, 'game_logs'), {
             uid,
             name: user?.name || 'Sinh Viên',
@@ -1319,6 +1372,11 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           
           if (payout > 0) {
             await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
+          }
+
+          if (uid) {
+            await incrementMissionProgress(uid, 'claw_machine', 1);
+            await incrementMissionProgress(uid, 'game_play', 1);
           }
 
           await push(ref(db, 'game_logs'), {
@@ -1383,6 +1441,11 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
           }
 
+          if (uid) {
+            await incrementMissionProgress(uid, 'fcmobile_match', 1);
+            await incrementMissionProgress(uid, 'game_play', 1);
+          }
+
           await push(ref(db, 'game_logs'), {
             uid,
             name: user?.name || 'Sinh Viên',
@@ -1442,6 +1505,10 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
           if (payout > 0) {
             await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
+          }
+
+          if (uid) {
+            await incrementMissionProgress(uid, 'game_play', 1);
           }
 
           await push(ref(db, 'game_logs'), {
@@ -1551,7 +1618,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
       // If playing Crash, increment daily mission rides count
       if (activeTab === 'crash') {
-        const todayStr = new Date().toLocaleDateString('sv-SE');
+        const todayStr = getTodayVNString();
         const mRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
         const mSnap = await get(mRef);
         const currentRides = mSnap.val()?.crashRides || 0;
@@ -1577,17 +1644,23 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
         }
       ]);
 
-      setChatMessages((prev) => {
-        const updated = [
-          ...prev,
-          {
-            sender: 'Dealer Vy Vy 💖',
-            message: `Sếp vừa đặt cược ${amt.toLocaleString()} PP vào cửa [${betChoice}]! May mắn nha sếp!`,
-            isSystem: true,
-            time: 'Now'
-          }
-        ];
-        return updated.slice(-10);
+      // Push bet to synchronized live_arena_chat
+      const betChoiceText = betChoice.startsWith('HORSE_') ? `Ngựa #${betChoice.split('_')[1]}` : betChoice;
+      const now = new Date();
+      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      await push(ref(db, 'live_arena_chat'), {
+        uid: uid,
+        sender: user?.name || 'Sếp AYK',
+        message: `🎯 Chốt cược ${amt.toLocaleString()} PP vào [${betChoiceText}]!`,
+        isBet: true,
+        betAmount: amt,
+        betChoice: betChoiceText,
+        game: activeTab,
+        time,
+        timestamp: Date.now(),
+        role: user?.role || 'STUDENT',
+        level: user?.level || 1,
+        badge: 'PRO'
       });
     } catch (err) {
       alert('Lỗi kết nối máy chủ sòng bài!');
@@ -1622,6 +1695,17 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
         timestamp: Date.now()
       });
 
+      // Push win message to synchronized live chat
+      const now = new Date();
+      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      await push(ref(db, 'live_arena_chat'), {
+        sender: 'HỆ THỐNG ARENA AYK 🏆',
+        message: `🎉 ${user?.name || 'Sếp'} vừa chốt lời x${winMult}, ăn trọn +${payout.toLocaleString()} PP!`,
+        isWin: true,
+        time,
+        timestamp: Date.now()
+      });
+
       onShowResult(
         'RÚT QUÂN THÀNH CÔNG! 🚀',
         `Chúc mừng bạn chốt lời tại x${winMult}! Húp về +${payout.toLocaleString()} PP!`,
@@ -1634,41 +1718,42 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     }
   };
 
-  const handleSendChat = (e: React.FormEvent) => {
+  const handleSendChat = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
 
     const userMsg = chatInput;
     setChatInput('');
 
-    setChatMessages((prev) => {
-      const updated = [
-        ...prev,
-        {
-          sender: user?.name || 'Sinh Viên',
-          message: userMsg,
-          isUser: true,
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
-        }
-      ];
-      return updated.slice(-10);
-    });
+    try {
+      const now = new Date();
+      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      await push(ref(db, 'live_arena_chat'), {
+        uid: uid,
+        sender: user?.name || 'Sếp AYK',
+        message: userMsg,
+        time,
+        timestamp: Date.now(),
+        role: user?.role || 'STUDENT',
+        level: user?.level || 1,
+        badge: 'VIP'
+      });
 
-    if (userMsg.toLowerCase().includes('lắc') || userMsg.toLowerCase().includes('tài') || userMsg.toLowerCase().includes('xỉu')) {
-      setTimeout(() => {
-        setChatMessages((prev) => {
-          const updated = [
-            ...prev,
-            {
+      if (userMsg.toLowerCase().includes('lắc') || userMsg.toLowerCase().includes('tài') || userMsg.toLowerCase().includes('xỉu')) {
+        setTimeout(async () => {
+          try {
+            await push(ref(db, 'live_arena_chat'), {
               sender: 'Dealer Vy Vy 💖',
               message: 'Cầu đang chạy đẹp lắm nè sếp, đặt cược đi ạ!',
               isSystem: true,
-              time: 'Now'
-            }
-          ];
-          return updated.slice(-10);
-        });
-      }, 1000);
+              time: 'Now',
+              timestamp: Date.now()
+            });
+          } catch (e) {}
+        }, 1000);
+      }
+    } catch (err) {
+      console.error('Lỗi gửi chat:', err);
     }
   };
 
@@ -1703,7 +1788,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           </div>
 
           <div className="z-10 text-left">
-            <h4 className="text-white font-black text-[10px] uppercase tracking-wider">🎲 TÀI XỈU S88</h4>
+            <h4 className="text-white font-black text-[10px] uppercase tracking-wider">🎲 TÀI XỈU AYK</h4>
             <p className="text-[8px] text-slate-300 mt-0.5">Dealer Vy Vy lắc bát</p>
           </div>
         </motion.button>
@@ -1853,7 +1938,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           </div>
 
           <div className="z-10 text-left">
-            <h4 className="text-white font-black text-[10px] uppercase tracking-wider">🏟️ FC ARENA S88</h4>
+            <h4 className="text-white font-black text-[10px] uppercase tracking-wider">🏟️ FC ARENA AYK</h4>
             <p className="text-[8px] text-slate-300 mt-0.5">Đại chiến siêu cúp live</p>
           </div>
         </motion.button>
@@ -1916,7 +2001,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                     transition={{ repeat: Infinity, duration: 1.2 }}
                     className="w-1.5 h-1.5 rounded-full bg-white inline-block"
                   />
-                  LIVE STREAMS88
+                  LIVE STREAM AYK
                 </span>
                 <span className="py-1 px-2 bg-black/70 border border-white/10 text-white font-mono text-[9px] rounded-md flex items-center gap-1">
                   <Users className="w-3 h-3 text-red-500 animate-pulse" />
@@ -2017,7 +2102,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                     >
                       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.4)_0%,transparent_60%)] rounded-t-full" />
                       <div className="w-full h-1 bg-yellow-400/40 my-1 z-10" />
-                      <span className="text-white text-[8px] font-black font-sans tracking-widest z-10 text-shadow-sm">S88 ELITE</span>
+                      <span className="text-white text-[8px] font-black font-sans tracking-widest z-10 text-shadow-sm">AYK ELITE</span>
                       <div className="w-full h-1 bg-yellow-400/40 my-1 z-10" />
                     </motion.div>
 
@@ -2196,7 +2281,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                       }
                     >
                       <span className="text-3xl filter drop-shadow-md">🧤</span>
-                      <span className="text-[7px] font-mono font-black text-white bg-black/80 px-1.5 rounded border border-white/20 uppercase tracking-widest mt-1">S88-GK</span>
+                      <span className="text-[7px] font-mono font-black text-white bg-black/80 px-1.5 rounded border border-white/20 uppercase tracking-widest mt-1">AYK-GK</span>
                     </div>
 
                     {/* Soccer ball with glowing speed trails */}
@@ -2563,7 +2648,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-red-800 to-red-950 flex items-center justify-center border border-red-500/40 p-1">
                               <div className="w-full h-full border border-red-500/20 rounded-md flex flex-col items-center justify-center bg-black/50">
                                 <span className="text-xl sm:text-2xl animate-pulse">🐉</span>
-                                <span className="text-[6px] font-mono font-bold text-red-400 mt-1 uppercase tracking-wider">S88 DRAGON</span>
+                                <span className="text-[6px] font-mono font-bold text-red-400 mt-1 uppercase tracking-wider">AYK DRAGON</span>
                               </div>
                             </div>
                           )}
@@ -2621,7 +2706,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                             <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue-800 to-blue-950 flex items-center justify-center border border-blue-500/40 p-1">
                               <div className="w-full h-full border border-blue-500/20 rounded-md flex flex-col items-center justify-center bg-black/50">
                                 <span className="text-xl sm:text-2xl animate-pulse">🐯</span>
-                                <span className="text-[6px] font-mono font-bold text-blue-400 mt-1 uppercase tracking-wider">S88 TIGER</span>
+                                <span className="text-[6px] font-mono font-bold text-blue-400 mt-1 uppercase tracking-wider">AYK TIGER</span>
                               </div>
                             </div>
                           )}
@@ -2637,7 +2722,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
                     {/* Header overlay title */}
                     <div className="absolute top-8 py-1 px-4 bg-slate-950/95 border border-yellow-500/30 rounded-full text-[9px] font-mono font-black uppercase text-yellow-400 tracking-widest z-10">
-                      🐅 ĐẤU TRƯỜNG LONG TRANH HỔ ĐẤU S88
+                      🐅 ĐẤU TRƯỜNG LONG TRANH HỔ ĐẤU AYK
                     </div>
 
                     {dtPhase === 'BETTING' && (
@@ -2662,7 +2747,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                  activeTab === 'claw' ? clawTimerText : 
                  activeTab === 'fcmobile' ? fcTimerText : dtTimerText}
               </span>
-              <span className="text-white/40">Phát trực tiếp #S88-LIV-0{
+              <span className="text-white/40">Phát trực tiếp #AYK-LIV-0{
                 activeTab === 'taixiu' ? txCycleId : 
                 activeTab === 'crash' ? crashCycleId : 
                 activeTab === 'penalty' ? penCycleId : 
@@ -2674,71 +2759,159 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
           </div>
 
-        {/* RIGHT COLUMN: Chat Sidebar - STRICTLY strictly limited to last 10 messages (Span 4) */}
-        <div className="lg:col-span-4 flex flex-col glass-box border-white/5 overflow-hidden">
+        {/* RIGHT COLUMN: VIP Pro Synchronized Live Chat Sidebar (Span 4) */}
+        <div className="lg:col-span-4 flex flex-col glass-box border-amber-500/20 overflow-hidden bg-slate-950/90 shadow-[0_0_25px_rgba(245,158,11,0.1)] rounded-2xl">
           
-          <div className="bg-black/60 border-b border-white/5 py-3 px-4 flex justify-between items-center shrink-0">
-            <span className="font-mono text-[11px] font-black text-white tracking-wider flex items-center gap-1">
-              💬 PHÒNG CHÁT LIVE (MỚI NHẤT)
-            </span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          {/* Header */}
+          <div className="bg-gradient-to-r from-amber-950/60 via-slate-900 to-red-950/60 border-b border-amber-500/20 py-2.5 px-3 flex justify-between items-center shrink-0">
+            <div className="flex items-center gap-1.5">
+              <span className="p-1 rounded-md bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                <Crown className="w-3.5 h-3.5 animate-pulse" />
+              </span>
+              <span className="font-mono text-[11px] font-black text-amber-300 tracking-wider flex items-center gap-1 uppercase">
+                CHAT DÂN CHƠI VIP
+              </span>
+            </div>
+            <div className="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[9px] font-mono text-emerald-400 font-bold">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>{Math.floor(1280 + Math.random() * 45)} ONLINE</span>
+            </div>
           </div>
 
-          {/* Messages container - compact, vertical layout, exactly 10 latest messages shown */}
+          {/* Quick Reaction Emojis Bar */}
+          <div className="px-2 py-1.5 bg-black/40 border-b border-white/5 flex gap-1 overflow-x-auto scrollbar-none shrink-0 text-[10px]">
+            {[
+              { emoji: '🔥', label: 'Tất Tay' },
+              { emoji: '🎉', label: 'Lượm Tiền' },
+              { emoji: '🚀', label: 'Lên Bờ' },
+              { emoji: '💎', label: 'Mãi Đỉnh' },
+              { emoji: '💔', label: 'Bẻ Cầu' },
+            ].map((item, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={async () => {
+                  try {
+                    const now = new Date();
+                    const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                    await push(ref(db, 'live_arena_chat'), {
+                      uid: uid,
+                      sender: user?.name || 'Sếp AYK',
+                      message: `${item.emoji} ${item.label}`,
+                      time,
+                      timestamp: Date.now(),
+                      badge: 'VIP'
+                    });
+                  } catch (e) {}
+                }}
+                className="px-2 py-1 bg-white/5 hover:bg-amber-500/20 border border-white/10 hover:border-amber-500/40 rounded-lg text-white font-mono font-bold transition-all whitespace-nowrap active:scale-95 cursor-pointer flex items-center gap-1 text-[9px]"
+              >
+                <span>{item.emoji}</span>
+                <span className="text-amber-200/80">{item.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Messages container - compact, auto-scroll, live sync */}
           <div 
             ref={chatContainerRef}
-            className="flex-1 p-3 overflow-y-auto space-y-2 font-sans scrollbar-thin bg-black/20"
+            className="flex-1 p-2.5 overflow-y-auto space-y-2 font-sans scrollbar-thin bg-slate-950/60 max-h-[420px] lg:max-h-[500px]"
           >
             {chatMessages.map((msg, index) => {
-              if ((msg as any).isBotBet) {
+              // System Win Announcement
+              if (msg.isWin) {
                 return (
                   <motion.div 
-                    initial={{ opacity: 0, x: -5 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    key={index} 
-                    className="bg-cyan-950/80 border border-cyan-500/40 rounded-xl p-2 text-cyan-200 font-mono text-[10px] leading-relaxed shadow-[0_0_10px_rgba(6,182,212,0.15)]"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    key={msg.id || index} 
+                    className="bg-gradient-to-r from-amber-500/20 via-yellow-500/10 to-amber-500/20 border border-amber-500/40 rounded-xl p-2 text-amber-200 font-mono text-[10px] leading-snug shadow-[0_0_15px_rgba(245,158,11,0.2)]"
                   >
-                    <div className="flex items-center gap-1.5 mb-0.5">
-                      <span className="px-1.5 py-0.2 bg-cyan-500/20 text-cyan-300 font-black text-[8px] rounded uppercase border border-cyan-400/30">
-                        🤖 AI BOT
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="px-1.5 py-0.2 bg-amber-500/30 text-amber-300 font-black text-[8px] rounded uppercase border border-amber-400/40 flex items-center gap-1">
+                        <Trophy className="w-2.5 h-2.5 text-yellow-400" /> WINNER
                       </span>
-                      <strong className="font-bold text-white">{msg.sender}</strong>
+                      <span className="text-[8px] text-amber-400/60 font-mono">{msg.time}</span>
                     </div>
-                    <div className="text-amber-300 font-bold flex items-center gap-1">
-                      <span>🎲</span> {msg.message}
+                    <div className="font-bold text-yellow-300 flex items-center gap-1">
+                      {msg.message}
                     </div>
                   </motion.div>
                 );
               }
+
+              // Realtime Bet Announcement Card
+              if (msg.isBet) {
+                return (
+                  <motion.div 
+                    initial={{ opacity: 0, x: -5 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    key={msg.id || index} 
+                    className="bg-purple-950/60 border border-purple-500/40 rounded-xl p-2 text-purple-200 font-mono text-[10px] leading-snug shadow-[0_0_10px_rgba(168,85,247,0.15)]"
+                  >
+                    <div className="flex items-center justify-between mb-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="px-1.5 py-0.2 bg-purple-500/30 text-purple-300 font-black text-[8px] rounded uppercase border border-purple-400/40">
+                          🎯 ĐẶT CƯỢC
+                        </span>
+                        <strong className="font-bold text-white text-[10px]">{msg.sender}</strong>
+                      </div>
+                      <span className="text-[8px] text-purple-300/60">{msg.time}</span>
+                    </div>
+                    <div className="text-purple-300 font-bold">
+                      {msg.message}
+                    </div>
+                  </motion.div>
+                );
+              }
+
+              // System Dealer Message
               if (msg.isSystem) {
                 return (
                   <motion.div 
                     initial={{ opacity: 0, x: -5 }}
                     animate={{ opacity: 1, x: 0 }}
-                    key={index} 
-                    className="bg-white/5 border border-white/5 rounded-lg p-2 text-[#ff4500] font-mono text-[10px] leading-relaxed"
+                    key={msg.id || index} 
+                    className="bg-pink-950/50 border border-pink-500/30 rounded-xl p-2 text-pink-200 font-mono text-[10px] leading-snug"
                   >
-                    <strong className="font-bold mr-1">{msg.sender}:</strong>
-                    {msg.message}
+                    <div className="flex items-center justify-between mb-0.5">
+                      <span className="px-1.5 py-0.2 bg-pink-500/20 text-pink-300 font-black text-[8px] rounded uppercase border border-pink-400/30">
+                        Dealer Vy Vy 💖
+                      </span>
+                      <span className="text-[8px] text-pink-300/60">{msg.time}</span>
+                    </div>
+                    <div className="text-white/90 font-medium">{msg.message}</div>
                   </motion.div>
                 );
               }
+
+              // Standard User Chat Message
               return (
                 <motion.div 
                   initial={{ opacity: 0, y: 5 }}
                   animate={{ opacity: 1, y: 0 }}
-                  key={index} 
-                  className={`flex flex-col gap-0.5 max-w-[90%] ${
+                  key={msg.id || index} 
+                  className={`flex flex-col gap-0.5 max-w-[92%] ${
                     msg.isUser ? 'ml-auto items-end' : 'mr-auto items-start'
                   }`}
                 >
-                  <span className="text-[9px] text-[#8b949e] font-mono font-bold">
-                    {msg.sender}
-                  </span>
-                  <div className={`py-1.5 px-2.5 rounded-xl leading-relaxed text-[11px] font-medium whitespace-pre-line ${
+                  <div className="flex items-center gap-1 text-[8px] text-slate-400 font-mono">
+                    <span className={`px-1 py-0.2 rounded font-black text-[7px] ${
+                      msg.role === 'BOT' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+                      msg.isUser ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                      'bg-slate-800 text-slate-300'
+                    }`}>
+                      {msg.badge || (msg.role === 'BOT' ? 'BOT AI' : 'VIP')}
+                    </span>
+                    <strong className={`font-bold ${msg.isUser ? 'text-amber-400' : 'text-slate-200'}`}>{msg.sender}</strong>
+                    <span className="text-slate-500 text-[7px]">{msg.time}</span>
+                  </div>
+                  <div className={`py-1.5 px-2.5 rounded-xl leading-relaxed text-[11px] font-medium whitespace-pre-line shadow-sm ${
                     msg.isUser 
-                      ? 'bg-red-600 text-white rounded-tr-none' 
-                      : 'bg-black/50 border border-[#30363d] text-white rounded-tl-none'
+                      ? 'bg-gradient-to-r from-amber-600 to-red-600 text-white rounded-tr-none font-semibold' 
+                      : msg.role === 'BOT'
+                      ? 'bg-slate-900 border border-cyan-500/30 text-cyan-100 rounded-tl-none'
+                      : 'bg-slate-900/90 border border-slate-800 text-slate-100 rounded-tl-none'
                   }`}>
                     {msg.message}
                   </div>
@@ -2747,23 +2920,23 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             })}
           </div>
 
-          {/* Compact Input */}
+          {/* Compact Input Form */}
           <form 
             onSubmit={handleSendChat}
-            className="p-2.5 bg-black/40 border-t border-white/5 flex gap-2 shrink-0 font-mono text-xs"
+            className="p-2 bg-slate-950 border-t border-amber-500/20 flex gap-1.5 shrink-0 font-mono text-xs"
           >
             <input
               type="text"
-              placeholder="Nhập nội dung chát..."
-              className="flex-1 bg-black/50 border border-[#30363d] rounded-lg px-2.5 py-1.5 text-[11px] text-white placeholder-white/30 focus:outline-none focus:border-red-500"
+              placeholder="Nhập nội dung gáy cùng anh em..."
+              className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-[11px] text-white placeholder-slate-500 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500/50"
               value={chatInput}
               onChange={(e) => setChatInput(e.target.value)}
             />
             <button
               type="submit"
-              className="px-3 bg-red-600 hover:bg-red-500 text-white rounded-lg transition-all cursor-pointer flex items-center justify-center"
+              className="px-3.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-black rounded-xl transition-all cursor-pointer flex items-center justify-center shadow-lg active:scale-95"
             >
-              <Send className="w-3.5 h-3.5" />
+              <Send className="w-3.5 h-3.5 text-slate-950" />
             </button>
           </form>
 
@@ -3780,13 +3953,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
               <h3 className="text-yellow-400 font-black text-sm uppercase tracking-wider mb-4 flex items-center gap-2 border-b border-white/10 pb-3">
                 <HelpCircle className="w-5 h-5 text-yellow-400" />
                 Luật Chơi: {
-                  activeTab === 'taixiu' ? '🎲 TÀI XỈU S88' :
-                  activeTab === 'crash' ? '🚀 KHÔNG CHIẾN S88' :
+                  activeTab === 'taixiu' ? '🎲 TÀI XỈU AYK' :
+                  activeTab === 'crash' ? '🚀 KHÔNG CHIẾN AYK' :
                   activeTab === 'penalty' ? '⚽ SÚT PHẠT 3D' :
                   activeTab === 'horse' ? '🐎 ĐUA NGỰA LIVE' :
                   activeTab === 'claw' ? '🧸 GẮP THÚ LIVE' :
                   activeTab === 'dragontiger' ? '🐉 RỒNG HỔ LIVE' :
-                  '🏟️ FC ARENA S88'
+                  '🏟️ FC ARENA AYK'
                 }
               </h3>
 
@@ -3801,7 +3974,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
                 {activeTab === 'crash' && (
                   <>
-                    <p>• Phi thuyền S88 sẽ cất cánh bay cao và số nhân (multiplier) giải thưởng tăng dần liên tục theo đồ thị leo dốc.</p>
+                    <p>• Phi thuyền AYK sẽ cất cánh bay cao và số nhân (multiplier) giải thưởng tăng dần liên tục theo đồ thị leo dốc.</p>
                     <p>• Người chơi có thể ấn nút <strong className="text-emerald-400">NHẢY DÙ / CHỐT LỜI</strong> bất cứ lúc nào khi phi thuyền đang bay để rút tiền ngay lập tức.</p>
                     <p>• <strong className="text-red-400">Luật tử vong (CRASH)</strong>: Phi thuyền sẽ bị chiến đấu cơ của quân địch bắn nổ ngẫu nhiên. Nếu phi thuyền phát nổ trước khi bạn kịp ấn nhảy dù, bạn sẽ mất trắng 100% số tiền cược.</p>
                     <p>• Số nhân nổ bí ẩn dao động từ <strong className="text-yellow-400">x0.01 cực nhanh</strong> cho tới cơ hội nổ ở số nhân cực khủng <strong className="text-cyan-400">x50, x100</strong>!</p>

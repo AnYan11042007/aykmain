@@ -111,7 +111,7 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
   const startEdit = (student: DetailedStudent) => {
     setEditingStudentId(student.id);
     setEditName(student.name || '');
-    setEditClass(student.class || 'S88-SE1');
+    setEditClass(student.class || 'AYK-SE1');
     setEditPass(student.pass || '123456');
     setEditPP(student.pp || 0);
     setEditLevel(student.level || 1);
@@ -349,7 +349,7 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
                       </div>
 
                       <div>
-                        <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Level S88:</label>
+                        <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Level AYK:</label>
                         <input
                           type="number"
                           className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-yellow-500 font-bold text-xs"

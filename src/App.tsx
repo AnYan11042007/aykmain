@@ -8,6 +8,8 @@ import { get, ref, onValue, set, onDisconnect, push, update } from 'firebase/dat
 import { db } from './firebase';
 import { User } from './types';
 
+import { getTodayVNString, getYesterdayVNString } from './utils/date';
+
 // Core layout components
 import SecureLogin from './components/SecureLogin';
 import Sidebar from './components/Sidebar';
@@ -22,7 +24,7 @@ import RankingsPortal from './components/RankingsPortal';
 import AdminPortal from './components/AdminPortal';
 import LuckyWheel from './components/LuckyWheel';
 import DailyMissionsPortal from './components/DailyMissionsPortal';
-import S88NewsPortal from './components/S88NewsPortal';
+import AYKNewsPortal from './components/AYKNewsPortal';
 import WorldHuntingPortal from './components/WorldHuntingPortal';
 import TransactionHistoryPortal from './components/TransactionHistoryPortal';
 import ProfileModal from './components/modals/ProfileModal';
@@ -42,6 +44,7 @@ import BlackjackModal from './components/modals/BlackjackModal';
 import TienLenModal from './components/modals/TienLenModal';
 import RouletteModal from './components/modals/RouletteModal';
 import WorldCardBattleModal from './components/modals/WorldCardBattleModal';
+import Cyber3DArenaModal from './components/modals/Cyber3DArenaModal';
 import AIBotSimulation from './components/AIBotSimulation';
 
 // Winnings Confetti trigger import
@@ -49,7 +52,7 @@ import confetti from 'canvas-confetti';
 
 // Import motion for fluid dragging animations and icons for PIP
 import { motion, AnimatePresence } from 'motion/react';
-import { Tv, Maximize2, X, Flame, Sparkles, Menu } from 'lucide-react';
+import { Tv, Maximize2, X, Flame, Sparkles, Menu, Newspaper, Crosshair, Gamepad2, Target, Trophy } from 'lucide-react';
 
 const safeLocalStorageGet = (key: string): string | null => {
   try {
@@ -122,17 +125,20 @@ export default function App() {
     };
     window.addEventListener('resize', handleResize);
 
-    // Keep clock updating for PIP virtual rendering
-    const timer = setInterval(() => {
-      setPipTime(Date.now());
-    }, 200);
+    // Keep clock updating for PIP virtual rendering only when PIP is active
+    let timer: any = null;
+    if (isPipActive) {
+      timer = setInterval(() => {
+        setPipTime(Date.now());
+      }, 1000);
+    }
 
     return () => {
       window.removeEventListener('s88_pip_update', handlePipUpdate);
       window.removeEventListener('resize', handleResize);
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
     };
-  }, []);
+  }, [isPipActive]);
 
   // Function to close PIP
   const handleClosePip = () => {
@@ -245,20 +251,15 @@ export default function App() {
   useEffect(() => {
     if (!uid || !user) return;
     const updateStreak = async () => {
-      const todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+      const todayStr = getTodayVNString(); // YYYY-MM-DD (Asia/Ho_Chi_Minh ICT)
+      const yesterdayStr = getYesterdayVNString();
       const lastLogin = user.lastLoginDate;
       if (lastLogin === todayStr) return; // Already processed today
 
       let newStreak = 1;
       if (lastLogin) {
-        const lastDate = new Date(lastLogin);
-        const todayDate = new Date(todayStr);
-        const diffDays = Math.round((todayDate.getTime() - lastDate.getTime()) / (1000 * 3600 * 24));
-
-        if (diffDays === 1) {
+        if (lastLogin === yesterdayStr) {
           newStreak = (user.streak_days || 0) + 1;
-        } else if (diffDays === 0) {
-          newStreak = user.streak_days || 1;
         } else {
           newStreak = 1;
         }
@@ -411,10 +412,10 @@ export default function App() {
 
       {/* Main viewport panels */}
       <main className="flex-1 min-h-screen pl-0 md:pl-72 transition-all duration-300">
-        <div className={`max-w-7xl mx-auto px-4 md:px-8 py-6 md:py-8 transition-all duration-300 ${
+        <div className={`max-w-7xl mx-auto px-2 sm:px-4 md:px-8 py-4 sm:py-6 md:py-8 pb-28 md:pb-8 transition-all duration-300 ${
           isPipActive && currentTab !== 'casino'
             ? 'mt-[290px] md:mt-0'
-            : 'mt-16 md:mt-0'
+            : 'mt-14 md:mt-0'
         }`}>
           
           {/* DESKTOP HEADER STATUS & STREAK BAR */}
@@ -424,9 +425,6 @@ export default function App() {
                 <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
                 <span>CHUỖI ĐĂNG NHẬP: <strong className="text-white font-black">{user?.streak_days || 1} NGÀY</strong></span>
               </div>
-              
-              {/* Background Music Player in Header */}
-              <BackgroundMusic />
             </div>
 
             <div className="flex items-center gap-3">
@@ -443,7 +441,7 @@ export default function App() {
           </div>
           
           {currentTab === 'news' && (
-            <S88NewsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+            <AYKNewsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
           )}
 
           {currentTab === 'hunting' && (
@@ -606,6 +604,18 @@ export default function App() {
           onShowResult={handleShowGameResult}
         />
       )}
+
+      {/* Cyber 3D Arena Dragon Fighter Game */}
+      {activeGameKey === 'cyber_3d_arena' && (
+        <Cyber3DArenaModal
+          uid={uid}
+          user={user}
+          onClose={() => setActiveGameKey('')}
+          onShowResult={handleShowGameResult}
+        />
+      )}
+
+
 
       {/* 1v1 Rock Paper Scissors multiplayer room */}
       {activeRpsRoomId && (
@@ -968,6 +978,67 @@ export default function App() {
           </div>
         </div>
       )}
+
+      {/* Mobile Bottom Quick Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 inset-x-0 z-[90] bg-[#0a0a0c]/95 border-t border-amber-500/20 backdrop-blur-xl px-1 py-1.5 flex items-center justify-around font-mono shadow-[0_-5px_20px_rgba(0,0,0,0.8)] select-none">
+        <button
+          onClick={() => setCurrentTab('news')}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+            currentTab === 'news' ? 'text-cyan-400 bg-cyan-500/10 font-black scale-105' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Newspaper className="w-4 h-4" />
+          <span className="text-[9px] uppercase tracking-tighter">Tin Tức</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('hunting')}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+            currentTab === 'hunting' ? 'text-[#ff003c] bg-red-500/10 font-black scale-105' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Crosshair className="w-4 h-4 text-[#ff003c]" />
+          <span className="text-[9px] uppercase tracking-tighter">Săn Boss</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('games')}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+            currentTab === 'games' ? 'text-purple-400 bg-purple-500/10 font-black scale-105' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Gamepad2 className="w-4 h-4 text-purple-400" />
+          <span className="text-[9px] uppercase tracking-tighter">Giải Trí</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('missions')}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+            currentTab === 'missions' ? 'text-cyan-400 bg-cyan-500/10 font-black scale-105' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Target className="w-4 h-4 text-cyan-400" />
+          <span className="text-[9px] uppercase tracking-tighter">Nhiệm Vụ</span>
+        </button>
+
+        <button
+          onClick={() => setCurrentTab('casino')}
+          className={`flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl transition-all cursor-pointer ${
+            currentTab === 'casino' ? 'text-yellow-400 bg-yellow-500/10 font-black scale-105' : 'text-slate-400 hover:text-white'
+          }`}
+        >
+          <Trophy className="w-4 h-4 text-yellow-400" />
+          <span className="text-[9px] uppercase tracking-tighter">Đấu Trường</span>
+        </button>
+
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          className="flex flex-col items-center gap-0.5 px-2 py-1 rounded-xl text-slate-400 hover:text-white active:scale-95 cursor-pointer"
+        >
+          <Menu className="w-4 h-4" />
+          <span className="text-[9px] uppercase tracking-tighter">Tất Cả</span>
+        </button>
+      </div>
 
       {/* Profile Modal */}
       {isProfileOpen && (

@@ -8,6 +8,7 @@ import { get, ref, onValue, update, remove } from 'firebase/database';
 import { db } from '../firebase';
 import { BookOpen, Landmark, Coins, Trophy, LogOut, Music, Music2, User as UserIcon, ShieldAlert, MessageSquare, ShoppingBag, Award, Shield, Sparkles, X, Target, Newspaper, Crosshair, History, Settings, Volume2, VolumeX, Link as LinkIcon, Play, Pause, Gamepad2, Swords } from 'lucide-react';
 import { User } from '../types';
+import BackgroundMusic from './BackgroundMusic';
 
 interface SidebarProps {
   uid: string;
@@ -84,6 +85,7 @@ export default function Sidebar({
 
   // Preset music tracks
   const PRESET_TRACKS = [
+    { title: '🎵 EdgeOne 2vao2 Audio (Hot)', url: 'https://reliable-copper-mypwzva5.edgeone.dev/' },
     { title: 'Cyberpunk Synthwave - SoundHelix #1', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' },
     { title: 'Arcade Gaming Beat - SoundHelix #8', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3' },
     { title: 'Epic Symphony - SoundHelix #16', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-16.mp3' },
@@ -194,12 +196,12 @@ export default function Sidebar({
           backgroundPosition: 'center',
         }}
         className={`
-        glass-box flex flex-col justify-between select-none p-5 border border-amber-500/20 shadow-[0_0_30px_rgba(0,0,0,0.8)]
+        glass-box flex flex-col justify-between select-none p-4 sm:p-5 border-r border-y border-amber-500/20 shadow-[0_0_30px_rgba(0,0,0,0.8)]
         /* Desktop Sticky Layout */
-        md:sticky md:top-5 md:h-[calc(100vh-40px)] md:w-64 md:translate-x-0 md:opacity-100 md:pointer-events-auto md:z-30
+        md:sticky md:top-5 md:h-[calc(100vh-40px)] md:w-64 md:translate-x-0 md:opacity-100 md:pointer-events-auto md:z-30 md:rounded-2xl
         /* Mobile Slide-over Drawer Layout */
-        fixed inset-y-4 left-4 z-[101] w-64 h-[calc(100vh-32px)] transition-all duration-300
-        ${isMobileOpen ? 'translate-x-0 opacity-100 pointer-events-auto' : '-translate-x-[280px] md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto'}
+        fixed inset-y-0 left-0 z-[101] w-72 max-w-[85vw] h-full transition-all duration-300 rounded-r-2xl
+        ${isMobileOpen ? 'translate-x-0 opacity-100 pointer-events-auto shadow-2xl' : '-translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto'}
       `}>
         <div className="flex-1 overflow-y-auto pr-1 scrollbar-none flex flex-col">
           {/* Brand header with mobile close option */}
@@ -444,51 +446,52 @@ export default function Sidebar({
           </nav>
         </div>
 
-        {/* Music Toggle & Selector Modal */}
-        <div className="space-y-2 mt-auto pt-4 border-t border-[#30363d]/50 font-mono shrink-0">
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={toggleMusic}
-              className={`flex-1 py-2.5 px-3 rounded-lg flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest uppercase transition-all border cursor-pointer ${
-                isMusicPlaying
-                  ? 'border-[#ffd700] text-[#ffd700] bg-[#ffd700]/10 text-glow-gold'
-                  : 'border-[#30363d] text-[#8b949e] hover:text-white'
-              }`}
-            >
-              {isMusicPlaying ? (
-                <>
-                  <Music2 className="w-3.5 h-3.5 animate-bounce" /> [ TẮT NHẠC ]
-                </>
-              ) : (
-                <>
-                  <Music className="w-3.5 h-3.5" /> [ BẬT NHẠC ]
-                </>
-              )}
-            </button>
+        {/* Compact Music Toggle & Selector */}
+        <div className="space-y-2 mt-auto pt-3 border-t border-[#30363d]/50 font-mono shrink-0">
+          <div className="bg-slate-950/80 border border-white/10 rounded-xl p-2 space-y-1.5 backdrop-blur-md">
+            <div className="flex items-center justify-between gap-1.5">
+              {/* Web MP3 Play/Pause Toggle */}
+              <button
+                onClick={toggleMusic}
+                title={isMusicPlaying ? 'Tắt Nhạc Nền Web' : 'Bật Nhạc Nền Web'}
+                className={`px-2 py-1 rounded-lg flex items-center gap-1 text-[10px] font-extrabold uppercase transition-all cursor-pointer border shrink-0 ${
+                  isMusicPlaying
+                    ? 'border-emerald-500/50 bg-emerald-500/10 text-emerald-400'
+                    : 'border-white/10 bg-white/5 text-slate-400 hover:text-white'
+                }`}
+              >
+                {isMusicPlaying ? (
+                  <>
+                    <Music2 className="w-3 h-3 text-emerald-400 animate-bounce" />
+                    <span>NHẠC</span>
+                  </>
+                ) : (
+                  <>
+                    <Music className="w-3 h-3" />
+                    <span>BẬT</span>
+                  </>
+                )}
+              </button>
 
-            <button
-              onClick={() => setShowMusicModal(true)}
-              title="Đổi Bài Hát & Thêm Link Nhạc"
-              className="py-2.5 px-2.5 bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 hover:text-white rounded-lg flex items-center justify-center cursor-pointer transition-all shrink-0"
-            >
-              <Settings className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: '10s' }} />
-            </button>
+              {/* Lo-Fi Synth Button integrated down here */}
+              <BackgroundMusic showLabel={true} className="text-[10px] py-1 px-2 rounded-lg" />
+
+              {/* Custom Track Selector Settings */}
+              <button
+                onClick={() => setShowMusicModal(true)}
+                title="Đổi Bài Hát & MP3 Link"
+                className="p-1.5 bg-slate-900 border border-cyan-500/30 hover:border-cyan-400 text-cyan-400 hover:text-white rounded-lg flex items-center justify-center cursor-pointer transition-all shrink-0"
+              >
+                <Settings className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Compact Track Title Indicator */}
+            <div className="text-[9px] text-slate-400 flex items-center justify-center gap-1 truncate px-1 pt-0.5">
+              <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${isMusicPlaying ? 'bg-emerald-400 animate-ping' : 'bg-slate-600'}`} />
+              <span className="truncate text-slate-300 font-sans">{musicTitle}</span>
+            </div>
           </div>
-
-          {/* Currently playing track marquee badge */}
-          <div className="text-[10px] text-slate-400 text-center truncate px-1 flex items-center justify-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block shrink-0" />
-            <span className="truncate">{musicTitle}</span>
-          </div>
-
-          {onOpenIdeas && (
-            <button
-              onClick={onOpenIdeas}
-              className="w-full py-2.5 px-3 bg-cyan-950/30 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500 hover:text-black rounded-lg flex items-center justify-center gap-2 text-[11px] font-black tracking-wider uppercase cursor-pointer transition-all hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]"
-            >
-              <Sparkles className="w-3.5 h-3.5 animate-pulse" /> 💡 [ 50 Ý TƯỞNG S88 ]
-            </button>
-          )}
 
           {!showLogoutConfirm ? (
             <button

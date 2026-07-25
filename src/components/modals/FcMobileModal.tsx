@@ -8,6 +8,7 @@ import { get, ref, update, push } from 'firebase/database';
 import { db } from '../../firebase';
 import { X, Trophy, Activity, MessageSquare, Play, HelpCircle, Users, Coins } from 'lucide-react';
 import { User } from '../../types';
+import { getTodayVNString } from '../../utils/date';
 import { motion, AnimatePresence } from 'motion/react';
 import { incrementMissionProgress } from '../../utils/missions';
 
@@ -414,7 +415,7 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
 
       // Daily mission update
       try {
-        const todayStr = new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+        const todayStr = getTodayVNString(); // YYYY-MM-DD (Asia/Ho_Chi_Minh ICT)
         const missionRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
         const mSnap = await get(missionRef);
         const currentCrash = mSnap.val()?.crashRides || 0;

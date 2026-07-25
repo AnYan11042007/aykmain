@@ -248,9 +248,30 @@ const playShopPurchaseSound = () => {
   } catch (err) {}
 };
 
+interface DailyHunterStat {
+  uid: string;
+  displayName: string;
+  killCount: number;
+  totalRewardPP: number;
+  lastKillTime?: number;
+}
+
+interface RareToast {
+  id: string;
+  title: string;
+  monsterName: string;
+  icon: string;
+  rewardPP: number;
+  color: string;
+}
+
 export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHuntingPortalProps) {
   // Selected Zone state (1: Tân Thủ, 2: Đại Dương, 3: Hang Rồng Boss)
   const [activeZone, setActiveZone] = useState<1 | 2 | 3>(1);
+
+  // Realtime Daily Top 3 Hunters & Rare Kill Toast Popups
+  const [top3DailyHunters, setTop3DailyHunters] = useState<DailyHunterStat[]>([]);
+  const [rareToasts, setRareToasts] = useState<RareToast[]>([]);
 
   // Arrow angle 0 to 180 degrees sweep
   const [arrowAngle, setArrowAngle] = useState(90);
@@ -341,6 +362,23 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
     return () => clearInterval(timer);
   }, [buffSecondsLeft, activeBuff]);
 
+  // Realtime Listener for Daily Kills Top 3 Leaderboard
+  useEffect(() => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const leaderboardRef = ref(db, `daily_hunting_leaderboard/${todayStr}`);
+    const unsub = onValue(leaderboardRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list: DailyHunterStat[] = Object.values(data);
+        list.sort((a, b) => b.killCount - a.killCount || b.totalRewardPP - a.totalRewardPP);
+        setTop3DailyHunters(list.slice(0, 3));
+      } else {
+        setTop3DailyHunters([]);
+      }
+    });
+    return () => unsub();
+  }, []);
+
   // Slash Impact Animation trigger state
   const [showSlashOverlay, setShowSlashOverlay] = useState(false);
 
@@ -392,6 +430,34 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
   const [qteStreak, setQteStreak] = useState(0);
 
   const QTE_KEYS = ['A', 'S', 'D', 'W', 'J', 'K', 'L', '7', '8', '9'];
+
+  // Keyboard Listener for Spacebar Shooting on PC/Laptop
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (
+        document.activeElement?.tagName === 'INPUT' ||
+        document.activeElement?.tagName === 'TEXTAREA' ||
+        showQTEModal ||
+        showBossChallenge ||
+        showRulesModal ||
+        showShopModal
+      ) {
+        return;
+      }
+
+      if (e.code === 'Space' || e.key === ' ') {
+        e.preventDefault();
+        if (energy < SHOT_ENERGY_COST) {
+          return;
+        }
+        incrementMissionProgress(uid, 'world_hunting');
+        fireShotInternal(false);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [energy, arrowAngle, bulletCost, useCustomBet, customBulletCost, localPP, activeZone, showQTEModal, showBossChallenge, showRulesModal, showShopModal]);
 
   // Start QTE Reflex Mini-Game Sequence (3 seconds duration)
   const startQTEReflexChallenge = () => {
@@ -540,7 +606,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
     }
 
     if (boss) {
-      recordBossDamage(user?.name || 'Sếp S88', ultDamage, true);
+      recordBossDamage(user?.name || 'Sếp AYK', ultDamage, true);
       const isKillHit = boss.hp <= ultDamage;
       setBeasts((prev) =>
         prev.map((b) => {
@@ -669,7 +735,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
         const botNames = [
           '🐉 Thần Bài Sài Gòn', '💎 Đại Gia Quận 1', '🔥 Nam Cương 88', 
           '👑 Hoàng Tử Lắc Bát', '🎯 Thánh Soi Cầu', '🚀 Pro_Hunter_99',
-          '⚡ Thần Súng S88', '🏆 Cao Thủ Săn Boss', '💥 Lắc Là Húp'
+          '⚡ Thần Súng AYK', '🏆 Cao Thủ Săn Boss', '💥 Lắc Là Húp'
         ];
         const randomBot = botNames[Math.floor(Math.random() * botNames.length)];
         
@@ -981,7 +1047,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
                 }
                 const dmg = bullet.isPlayer ? calculatedDmg : 250;
                 if (beast.tier === 'BOSS' || beast.maxHp >= 100000000) {
-                  recordBossDamage(bullet.shooterName || 'Sếp S88', dmg, bullet.isPlayer);
+                  recordBossDamage(bullet.shooterName || 'Sếp AYK', dmg, bullet.isPlayer);
                 }
                 const newHp = Math.max(0, beast.hp - dmg);
 
@@ -1118,6 +1184,46 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
             `ĐÃ HẠ GỤC BÁ CHỦ ${beast.icon} ${beast.name} TẠI HANG RỒNG!\nKho Báu Khổng Lồ: +${beast.rewardPP.toLocaleString()} PP!`,
             true
           );
+        }
+
+        // Record Daily Kill in Realtime Leaderboard
+        try {
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const userStatRef = ref(db, `daily_hunting_leaderboard/${todayStr}/${uid}`);
+          get(userStatRef).then((snap) => {
+            let currentKills = 0;
+            let currentTotalPP = 0;
+            if (snap.exists()) {
+              const val = snap.val();
+              currentKills = val.killCount || 0;
+              currentTotalPP = val.totalRewardPP || 0;
+            }
+            update(userStatRef, {
+              uid,
+              displayName: user?.name || 'Thợ Săn',
+              killCount: currentKills + 1,
+              totalRewardPP: currentTotalPP + beast.rewardPP,
+              lastKillTime: Date.now(),
+            });
+          });
+        } catch (err) {
+          console.error('Lỗi cập nhật BXH ngày:', err);
+        }
+
+        // Trigger Rare Beast Kill Toast Notification
+        if (beast.tier === 'RARE' || beast.tier === 'EPIC' || beast.tier === 'BOSS' || beast.rewardPP >= 100000) {
+          const toastItem: RareToast = {
+            id: `toast_${Date.now()}_${Math.random()}`,
+            title: beast.tier === 'BOSS' ? '👑 BÁ CHỦ THẾ GIỚI BỊ HẠ' : beast.tier === 'EPIC' ? '⚡ DIỆT HÙNG THÚ EPIC' : '🔥 DIỆT QUÁI HIẾM',
+            monsterName: beast.name,
+            icon: beast.icon,
+            rewardPP: beast.rewardPP,
+            color: beast.tier === 'BOSS' ? '#ffd700' : beast.tier === 'EPIC' ? '#ff00aa' : '#00f0ff',
+          };
+          setRareToasts((prev) => [...prev.slice(-3), toastItem]);
+          setTimeout(() => {
+            setRareToasts((prev) => prev.filter((t) => t.id !== toastItem.id));
+          }, 3500);
         }
       } catch (err) {
         console.error(err);
@@ -1267,6 +1373,72 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
               <Trophy className="w-6 h-6 text-amber-400 drop-shadow-[0_0_10px_rgba(251,191,36,0.8)]" />
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* REALTIME TOP 3 DAILY HUNTERS LEADERBOARD CARD */}
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-slate-950 border-2 border-amber-500/50 p-4 rounded-2xl shadow-[0_0_25px_rgba(251,191,36,0.15)] font-mono space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-amber-500/20 pb-2">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-5 h-5 text-amber-400 animate-bounce shrink-0" />
+            <h3 className="text-xs sm:text-sm font-black text-amber-300 uppercase tracking-wider flex items-center gap-2">
+              🏆 BẢNG XẾP HẠNG TOP 3 THỢ SẮN TRONG NGÀY ({new Date().toLocaleDateString('vi-VN')})
+            </h3>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-[10px] text-cyan-400 font-bold bg-cyan-950/80 px-2.5 py-1 rounded-full border border-cyan-500/40">
+              ⚡ REALTIME FIREBASE
+            </span>
+            <span className="text-[10px] text-amber-300 font-bold bg-amber-950/80 px-2.5 py-1 rounded-full border border-amber-500/40">
+              ⌨️ PHÍM [SPACEBAR] BẮN NHANH
+            </span>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {top3DailyHunters.length === 0 ? (
+            <div className="col-span-3 py-3 text-center text-slate-400 text-xs font-sans">
+              Chưa có thợ săn nào ghi danh trong ngày hôm nay! Hãy bấm [Spacebar] bắn quái đầu tiên!
+            </div>
+          ) : (
+            top3DailyHunters.map((hunter, idx) => {
+              const isMe = hunter.uid === uid;
+              const ranks = [
+                { rank: '🥇', label: 'TOP 1 THÁI SƠN', bg: 'from-amber-950/80 to-yellow-950/60', border: 'border-amber-400', badge: 'bg-amber-400 text-black', text: 'text-amber-300' },
+                { rank: '🥈', label: 'TOP 2 CAO THỦ', bg: 'from-slate-900 to-slate-950', border: 'border-slate-400/80', badge: 'bg-slate-300 text-black', text: 'text-slate-200' },
+                { rank: '🥉', label: 'TOP 3 TIÊN PHONG', bg: 'from-amber-950/30 to-slate-950', border: 'border-amber-700/80', badge: 'bg-amber-700 text-white', text: 'text-amber-400' }
+              ];
+              const r = ranks[idx] || ranks[2];
+
+              return (
+                <div
+                  key={hunter.uid}
+                  className={`p-3 rounded-xl border bg-gradient-to-b ${r.bg} ${r.border} flex items-center justify-between gap-3 relative overflow-hidden transition-all ${
+                    isMe ? 'ring-2 ring-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.4)]' : ''
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 overflow-hidden">
+                    <span className="text-xl shrink-0">{r.rank}</span>
+                    <div className="overflow-hidden">
+                      <div className={`text-xs font-black truncate flex items-center gap-1.5 ${r.text}`}>
+                        {hunter.displayName} {isMe && <span className="text-[9px] bg-cyan-500 text-black px-1.5 rounded font-bold">BẠN</span>}
+                      </div>
+                      <div className="text-[10px] text-slate-300 font-sans mt-0.5">
+                        Đã hạ: <strong className="text-white font-bold">{hunter.killCount} quái</strong>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="text-right shrink-0">
+                    <div className="text-[11px] font-black text-emerald-400">
+                      +{(hunter.totalRewardPP || 0).toLocaleString()}
+                    </div>
+                    <div className="text-[9px] text-slate-400">PP THƯỞNG</div>
+                  </div>
+                </div>
+              );
+            })
+          )}
         </div>
       </div>
 
@@ -1797,7 +1969,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
                     .map((item, index) => {
                       const rankIcons = ['🥇', '🥈', '🥉'];
                       const rankDisplay = rankIcons[index] || `#${index + 1}`;
-                      const isMe = item.isPlayer || item.name === (user?.name || 'Sếp S88');
+                      const isMe = item.isPlayer || item.name === (user?.name || 'Sếp AYK');
 
                       return (
                         <div
@@ -2126,6 +2298,32 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
           </div>
         </div>
       )}
+
+      {/* FLOATING RARE BEAST KILL TOAST POPUPS OVERLAY */}
+      <div className="fixed bottom-6 right-6 z-[6000] flex flex-col gap-2.5 max-w-sm pointer-events-none font-mono">
+        {rareToasts.map((toast) => (
+          <div
+            key={toast.id}
+            style={{ borderColor: toast.color }}
+            className="bg-slate-950/95 border-2 rounded-2xl p-3.5 shadow-2xl backdrop-blur-md animate-bounce flex items-center gap-3 text-left pointer-events-auto shadow-[0_0_25px_rgba(0,240,255,0.3)]"
+          >
+            <div className="w-10 h-10 rounded-xl bg-black/80 flex items-center justify-center text-2xl shrink-0 border border-white/20">
+              {toast.icon}
+            </div>
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-wider" style={{ color: toast.color }}>
+                {toast.title}
+              </div>
+              <div className="text-xs font-bold text-white mt-0.5">
+                {toast.monsterName}
+              </div>
+              <div className="text-xs font-black text-emerald-400 mt-0.5">
+                Thưởng +{toast.rewardPP.toLocaleString()} PP!
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

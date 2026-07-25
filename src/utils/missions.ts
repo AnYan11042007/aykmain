@@ -64,7 +64,7 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   {
     id: 'm_ai',
     title: 'Trò Chuyện Gia Sư AI',
-    description: 'Trò chuyện hỏi đáp với AI Gia Sư S88 2 câu hỏi.',
+    description: 'Trò chuyện hỏi đáp với AI Gia Sư AYK 2 câu hỏi.',
     type: 'ai_chat',
     target: 2,
     reward: 800
@@ -72,7 +72,7 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   {
     id: 'm_horse',
     title: 'Kỵ Sĩ Đường Đua',
-    description: 'Tham gia 1 trận cược Đua Ngựa Thần Tốc S88.',
+    description: 'Tham gia 1 trận cược Đua Ngựa Thần Tốc AYK.',
     type: 'horse_rides',
     target: 1,
     reward: 800
@@ -86,32 +86,32 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
     reward: 1200
   },
   {
-    id: 'm_rps',
-    title: 'Oẳn Tù Tì Xanh Chín',
-    description: 'Thi đấu 1 trận Oẳn Tù Tì Xanh Chín với sinh viên khác.',
-    type: 'rps_match',
-    target: 1,
-    reward: 800
-  },
-  {
-    id: 'm_bj',
-    title: 'Sòng Bài Xì Dách Blackjack',
-    description: 'Thi đấu 1 ván Xì Dách Blackjack S88.',
-    type: 'bj_match',
+    id: 'm_academic_quiz',
+    title: 'Học Bá Tri Thức',
+    description: 'Trả lời đúng 1 câu hỏi Trắc Nghiệm Tri Thức ở Góc Học Tập.',
+    type: 'quiz_answer',
     target: 1,
     reward: 1000
   },
   {
-    id: 'm_tienlen',
-    title: 'Sát Thủ Tiến Lên Miền Nam',
-    description: 'Thi đấu 1 ván Tiến Lên Miền Nam.',
-    type: 'tienlen_match',
+    id: 'm_claw_master',
+    title: 'Bậc Thầy Gắp Thú AYK',
+    description: 'Trải nghiệm 2 ván Gắp Thú Bằng Bông săn gấu bông.',
+    type: 'claw_machine',
+    target: 2,
+    reward: 1000
+  },
+  {
+    id: 'm_fcmobile_star',
+    title: 'Siêu Sao FC Mobile AYK',
+    description: 'Thi đấu 1 trận FC Mobile Bóng Đá AYK.',
+    type: 'fcmobile_match',
     target: 1,
     reward: 1000
   },
   {
     id: 'm_claw',
-    title: 'Gắp Thú Bằng Bông S88',
+    title: 'Gắp Thú Bằng Bông AYK',
     description: 'Trải nghiệm 1 ván Gắp Thú Bằng Bông săn quà.',
     type: 'claw_machine',
     target: 1,
@@ -119,17 +119,17 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   },
   {
     id: 'm_fcmobile',
-    title: 'Sân Cỏ FC Mobile S88',
-    description: 'Thi đấu 1 trận FC Mobile Bóng Đa S88.',
+    title: 'Sân Cỏ FC Mobile AYK',
+    description: 'Thi đấu 1 trận FC Mobile Bóng Đá AYK.',
     type: 'fcmobile_match',
     target: 1,
     reward: 900
   },
   {
-    id: 'm_roulette',
-    title: 'Vòng Quay Cò Quay Roulette',
-    description: 'Đặt cược 1 ván Cò Quay Roulette.',
-    type: 'roulette_spin',
+    id: 'm_penalty_master',
+    title: 'Xạ Thủ Penalty 3D',
+    description: 'Sút thành công 1 quả Penalty 3D.',
+    type: 'penalty_goals',
     target: 1,
     reward: 800
   },
@@ -143,8 +143,8 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   },
   {
     id: 'm_game_master',
-    title: 'Cao Thủ Game S88',
-    description: 'Chơi tổng cộng 3 ván minigame bất kỳ trên S88.',
+    title: 'Cao Thủ Game AYK',
+    description: 'Chơi tổng cộng 3 ván minigame bất kỳ trên AYK.',
     type: 'game_play',
     target: 3,
     reward: 1500
@@ -183,10 +183,23 @@ export const DEFAULT_MISSIONS_POOL: Mission[] = [
   }
 ];
 
+const OBSOLETE_TYPES = [
+  'bank_deposit', 
+  'check_in', 
+  'marketplace_buy', 
+  'rps_match', 
+  'bj_match', 
+  'tienlen_match', 
+  'roulette_spin'
+];
+
+function isValidMissionType(type: string): boolean {
+  return !OBSOLETE_TYPES.includes(type);
+}
+
 // Helper to seed pool if missing or update with valid pool
 export async function seedMissionsPool() {
   const poolRef = ref(db, 'daily_missions_pool');
-  const snap = await get(poolRef);
   const initialPool: { [id: string]: Mission } = {};
   DEFAULT_MISSIONS_POOL.forEach((m) => {
     initialPool[m.id] = m;
@@ -202,7 +215,7 @@ export async function getMissionsPool(): Promise<Mission[]> {
   if (poolSnap.exists()) {
     const val = poolSnap.val();
     const list: Mission[] = Array.isArray(val) ? val : Object.values(val);
-    const validList = list.filter((m) => m && m.type !== 'bank_deposit' && m.type !== 'check_in' && m.type !== 'marketplace_buy');
+    const validList = list.filter((m) => m && isValidMissionType(m.type));
     if (validList.length >= 5) return validList;
   }
   return DEFAULT_MISSIONS_POOL;
@@ -249,9 +262,11 @@ export async function rerandomizeUserMissions(uid: string): Promise<UserMission[
   return userMissions;
 }
 
-// Get the standardized current date string YYYY-MM-DD
+import { getTodayVNString } from './date';
+
+// Get the standardized current date string YYYY-MM-DD (Vietnam ICT UTC+7)
 export function getTodayString(): string {
-  return new Date().toLocaleDateString('sv-SE'); // YYYY-MM-DD
+  return getTodayVNString();
 }
 
 // Ensure and retrieve user missions of today (20 random missions)
@@ -263,9 +278,9 @@ export async function getOrInitializeUserMissions(uid: string): Promise<UserMiss
   if (snap.exists()) {
     const data = snap.val();
     const existingList: UserMission[] = Array.isArray(data) ? data : Object.values(data);
-    // Filter out obsolete non-playable mission types like bank_deposit and check_in
+    // Filter out obsolete non-playable mission types
     const cleanedList = existingList.filter(
-      (m) => m && m.type !== 'bank_deposit' && m.type !== 'check_in' && m.type !== 'marketplace_buy'
+      (m) => m && isValidMissionType(m.type)
     );
     if (cleanedList.length === existingList.length && cleanedList.length > 0) {
       return cleanedList;
@@ -300,7 +315,7 @@ export async function getOrInitializeUserMissions(uid: string): Promise<UserMiss
   let pool: Mission[] = [];
   if (poolSnap.exists()) {
     pool = Object.values(poolSnap.val() as { [id: string]: Mission });
-    pool = pool.filter((m) => m && m.type !== 'bank_deposit' && m.type !== 'check_in' && m.type !== 'marketplace_buy');
+    pool = pool.filter((m) => m && isValidMissionType(m.type));
   }
   if (pool.length < 5) {
     pool = DEFAULT_MISSIONS_POOL;
@@ -330,20 +345,23 @@ export async function incrementMissionProgress(uid: string, missionType: string,
     const userMissionsRef = ref(db, `users/${uid}/daily_missions/${todayStr}/missions_list`);
     const snap = await get(userMissionsRef);
 
+    let list: UserMission[] = [];
     if (!snap.exists()) {
-      // Lazy initialize if not already done
-      await getOrInitializeUserMissions(uid);
-      return;
+      // Lazy initialize if not already done, then continue to process
+      list = await getOrInitializeUserMissions(uid);
+    } else {
+      const val = snap.val();
+      list = Array.isArray(val) ? val : Object.values(val);
     }
 
-    const list: UserMission[] = Object.values(snap.val());
+    if (!list || list.length === 0) return;
+
     let updated = false;
 
     // List of types considered minigame activities
     const gameTypes = [
       'taixiu_wins', 'taixiu_play', 'crash_rides', 'penalty_goals', 'horse_rides',
-      'card_battle', 'rps_match', 'bj_match', 'tienlen_match', 'claw_machine',
-      'fcmobile_match', 'roulette_spin', 'world_hunting', 'wheel_spins'
+      'card_battle', 'claw_machine', 'fcmobile_match', 'world_hunting', 'wheel_spins'
     ];
 
     const isGameActivity = gameTypes.includes(missionType) || missionType === 'game_play';
@@ -443,9 +461,13 @@ export async function claimMissionReward(uid: string, missionId: string) {
 
   if (newXP >= nextLevelXP) {
     updates.xp = newXP - nextLevelXP;
+    updates.bbp = newXP;
+    updates.bpXP = newXP;
     updates.level = currentLevel + 1;
   } else {
     updates.xp = newXP;
+    updates.bbp = newXP;
+    updates.bpXP = newXP;
   }
 
   await update(uRef, updates);

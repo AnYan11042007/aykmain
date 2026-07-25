@@ -56,7 +56,7 @@ interface CommentItem {
   heartedBy?: Record<string, boolean>;
 }
 
-interface S88NewsPortalProps {
+interface AYKNewsPortalProps {
   uid: string;
   user: User | null;
   onShowResult: (title: string, message: string, isWin: boolean) => void;
@@ -101,7 +101,7 @@ const DEFAULT_NEWS: NewsItem[] = [
   }
 ];
 
-export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortalProps) {
+export default function AYKNewsPortal({ uid, user, onShowResult }: AYKNewsPortalProps) {
   const [newsList, setNewsList] = useState<NewsItem[]>([]);
   const [filterCategory, setFilterCategory] = useState<'ALL' | 'SCHOOL' | 'SYSTEM' | 'EVENT'>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
@@ -167,7 +167,7 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
     const commentObj: CommentItem = {
       id: commentId,
       authorId: uid,
-      authorName: user?.name || 'Sinh viên S88',
+      authorName: user?.name || 'Sinh viên AYK',
       authorAvatar: user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
       text: textToSend.trim(),
       timestamp: Date.now(),
@@ -290,7 +290,7 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
       title: titleInput.trim(),
       content: contentInput.trim(),
       category: categoryInput,
-      author: user?.name ? `${user.name} (${user.role === 'ADMIN' ? 'QTV' : 'Giáo Viên'})` : 'BAN GIÁM HIỆU S88',
+      author: user?.name ? `${user.name} (${user.role === 'ADMIN' ? 'QTV' : 'Giáo Viên'})` : 'BAN GIÁM HIỆU AYK',
       timestamp: Date.now(),
       likes: 0,
       views: 1,
@@ -734,7 +734,7 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
               <Megaphone className="w-5 h-5 text-[#00f0ff]" /> SOẠN THÔNG BÁO MỚI (QTV / GIÁO VIÊN)
             </h2>
             <p className="text-[10px] text-slate-400 uppercase mb-4">
-              Đăng tin tức công khai lên toàn bộ sinh viên trường S88
+              Đăng tin tức công khai lên toàn bộ sinh viên trường AYK
             </p>
 
             <form onSubmit={handleCreateNews} className="space-y-4">
@@ -758,7 +758,7 @@ export default function S88NewsPortal({ uid, user, onShowResult }: S88NewsPortal
                 >
                   <option value="SCHOOL">THÔNG BÁO NHÀ TRƯỜNG</option>
                   <option value="SYSTEM">CẬP NHẬT HỆ THỐNG</option>
-                  <option value="EVENT">SỰ KIỆN S88 ARENA</option>
+                  <option value="EVENT">SỰ KIỆN AYK ARENA</option>
                 </select>
               </div>
 
