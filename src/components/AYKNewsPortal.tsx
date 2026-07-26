@@ -320,7 +320,7 @@ export default function AYKNewsPortal({ uid, user, onShowResult }: AYKNewsPortal
   });
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto font-sans text-left">
+    <div className="space-y-6 w-full font-sans text-left">
       {/* Header Banner */}
       <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-slate-950 p-6 md:p-8 shadow-[0_0_40px_rgba(0,240,255,0.1)]">
         <div className="absolute inset-0 opacity-40 select-none pointer-events-none">

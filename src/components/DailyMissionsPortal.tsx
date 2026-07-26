@@ -398,7 +398,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
   });
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 font-mono pb-12">
+    <div className="w-full space-y-6 font-mono pb-12">
       {/* Top Banner Header */}
       <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-cyan-950 via-slate-900 to-amber-950 p-6 md:p-8 border border-cyan-500/30 shadow-2xl">
         <div className="absolute top-0 right-0 w-80 h-80 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />

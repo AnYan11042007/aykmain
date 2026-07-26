@@ -1321,7 +1321,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
   const activeZoneBeasts = beasts.filter((b) => b.zoneId === activeZone);
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto font-mono text-left">
+    <div className="space-y-6 w-full font-mono text-left">
       {/* Top Banner Header */}
       <div className="relative overflow-hidden rounded-2xl border border-cyan-500/40 bg-slate-950 p-6 md:p-8 shadow-[0_0_50px_rgba(0,240,255,0.25)]">
         <div className="absolute inset-0 opacity-40 select-none pointer-events-none">

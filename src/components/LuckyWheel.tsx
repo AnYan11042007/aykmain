@@ -356,7 +356,7 @@ export default function LuckyWheel({ uid, user, onShowResult }: LuckyWheelProps)
   const activeSegments = segments.length >= 2 ? segments : DEFAULT_SEGMENTS;
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto pb-12 font-mono select-none">
+    <div className="space-y-6 w-full pb-12 font-mono select-none">
       {/* Top Banner Header */}
       <div className="glass-box p-6 border-[#ffd700]/30 bg-yellow-950/5 relative overflow-hidden flex flex-col md:flex-row md:items-center justify-between gap-6">
         <div>

@@ -411,8 +411,8 @@ export default function App() {
       />
 
       {/* Main viewport panels */}
-      <main className="flex-1 min-h-screen pl-0 md:pl-72 transition-all duration-300">
-        <div className={`max-w-7xl mx-auto px-2 sm:px-4 md:px-8 py-4 sm:py-6 md:py-8 pb-28 md:pb-8 transition-all duration-300 ${
+      <main className="flex-1 min-h-screen pl-0 md:pl-68 lg:pl-72 transition-all duration-300 w-full overflow-x-hidden">
+        <div className={`w-full px-2 sm:px-4 md:px-6 lg:px-8 py-4 sm:py-6 md:py-8 pb-28 md:pb-8 transition-all duration-300 ${
           isPipActive && currentTab !== 'casino'
             ? 'mt-[290px] md:mt-0'
             : 'mt-14 md:mt-0'

@@ -196,9 +196,9 @@ export default function Sidebar({
           backgroundPosition: 'center',
         }}
         className={`
-        glass-box flex flex-col justify-between select-none p-4 sm:p-5 border-r border-y border-amber-500/20 shadow-[0_0_30px_rgba(0,0,0,0.8)]
-        /* Desktop Sticky Layout */
-        md:sticky md:top-5 md:h-[calc(100vh-40px)] md:w-64 md:translate-x-0 md:opacity-100 md:pointer-events-auto md:z-30 md:rounded-2xl
+        glass-box flex flex-col justify-between select-none p-4 sm:p-5 border-r border-amber-500/20 shadow-[0_0_30px_rgba(0,0,0,0.8)]
+        /* Desktop Fixed Layout */
+        md:fixed md:top-0 md:left-0 md:h-screen md:w-64 md:translate-x-0 md:opacity-100 md:pointer-events-auto md:z-30 md:rounded-none md:border-y-0
         /* Mobile Slide-over Drawer Layout */
         fixed inset-y-0 left-0 z-[101] w-72 max-w-[85vw] h-full transition-all duration-300 rounded-r-2xl
         ${isMobileOpen ? 'translate-x-0 opacity-100 pointer-events-auto shadow-2xl' : '-translate-x-full md:translate-x-0 opacity-0 md:opacity-100 pointer-events-none md:pointer-events-auto'}
