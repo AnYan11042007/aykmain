@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
 import { X, Shield, Zap, Swords, Heart, Sparkles, Eye, Trophy, RefreshCw, Send, Volume2, Users, Bot, BarChart2, Layers, Clock, Info, History, Flag } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { db } from '../../firebase';
@@ -12,6 +13,70 @@ interface WorldCardBattleModalProps {
   onClose: () => void;
   onShowResult?: (title: string, msg: string, isSuccess: boolean) => void;
 }
+
+// VICTORY CELEBRATION FALLING PARTICLES OVERLAY
+const VictoryParticlesOverlay = () => {
+  const particles = Array.from({ length: 32 });
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-30">
+      {particles.map((_, i) => {
+        const left = (i * 3.1) % 100;
+        const delay = (i % 10) * 0.25;
+        const duration = 2.2 + (i % 5) * 0.4;
+        const size = 12 + (i % 4) * 6;
+        const colors = ['#facc15', '#38bdf8', '#e879f9', '#f43f5e', '#34d399', '#fbbf24'];
+        const color = colors[i % colors.length];
+        const icons = ['✨', '⭐', '🪙', '🏆', '💎', '🎉'];
+        return (
+          <div
+            key={`vic_p_${i}`}
+            className="absolute -top-6 animate-falling-particle font-black font-mono text-center select-none"
+            style={{
+              left: `${left}%`,
+              animationDelay: `${delay}s`,
+              animationDuration: `${duration}s`,
+              fontSize: `${size}px`,
+              color,
+              filter: `drop-shadow(0 0 10px ${color})`
+            }}
+          >
+            {icons[i % icons.length]}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
+
+// DEFEAT DRAMATIC DARK VIGNETTE & EMBERS OVERLAY
+const DefeatVignetteOverlay = () => {
+  const embers = Array.from({ length: 28 });
+  return (
+    <div className="absolute inset-0 pointer-events-none overflow-hidden z-30 bg-[radial-gradient(ellipse_at_center,_transparent_20%,_rgba(0,0,0,0.85)_80%,_rgba(153,27,27,0.7)_100%)]">
+      {embers.map((_, i) => {
+        const left = (i * 3.5) % 100;
+        const delay = (i % 8) * 0.35;
+        const duration = 2.8 + (i % 4) * 0.5;
+        const icons = ['🔥', '💀', '🥀', '⚡'];
+        return (
+          <div
+            key={`def_p_${i}`}
+            className="absolute -top-6 animate-falling-particle font-bold font-mono text-rose-500/90 select-none"
+            style={{
+              left: `${left}%`,
+              animationDelay: `${delay}s`,
+              animationDuration: `${duration}s`,
+              fontSize: `${12 + (i % 3) * 5}px`,
+              filter: 'drop-shadow(0 0 8px #ef4444)'
+            }}
+          >
+            {icons[i % icons.length]}
+          </div>
+        );
+      })}
+    </div>
+  );
+};
 
 export interface CardItem {
   id: string;
@@ -33,6 +98,231 @@ export interface CardItem {
 
 // FULL CARD POOL WITH ULTIMATE SS CARD
 export const FULL_CARD_POOL: CardItem[] = [
+  {
+    id: 'c_img1',
+    name: 'NÉ ĐẠN BÁ ĐẠO',
+    role: 'SUPPORT',
+    roleName: 'Siêu Thần Né Đạn',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 250,
+    def: 250,
+    skillName: 'NÉ ĐẠN & PHẢN PHÁO TỐI THƯỢNG',
+    skillDesc: 'CỰC BÁ SS! Né 100% đòn đánh, nhận +220 Giáp, hồi +200 HP & giáng 250 Sát Thương Phản Pháo bộc phá đối thủ!',
+    energyCost: 1,
+    color: 'from-cyan-400 via-sky-500 via-indigo-600 to-emerald-400',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcStvit7iYF4iufhLQ7TxfRU2hIG8UqOCb2vy4V4LeSuRA&s=10'
+  },
+  {
+    id: 'c_img2',
+    name: 'THÁNH MEME CƯỜI BÁ',
+    role: 'SUPPORT',
+    roleName: 'Meme Hài Hước',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 240,
+    def: 260,
+    skillName: 'CƯỜI HÀI GÂY CHOÁNG BẤT TỬ',
+    skillDesc: 'CỰC BÁ SS! Khiến đối thủ mất lượt vì cười, hồi +220 HP & +200 Giáp phòng thủ kiên cố!',
+    energyCost: 1,
+    color: 'from-amber-400 via-yellow-400 via-orange-500 to-rose-500',
+    avatarUrl: 'https://cellphones.com.vn/sforum/wp-content/uploads/2024/01/anh-hai-32.jpg'
+  },
+  {
+    id: 'c_img3',
+    name: 'CƯƠNG THI BIẾN HÌNH',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Hút Máu',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 210,
+    def: 180,
+    skillName: 'HÚT MÁU ÂM DƯƠNG BỘC PHÁ',
+    skillDesc: 'Phẩm Cấp S! Gây 210 sát thương bộc phá & chuyển 100% sát thương thành sinh lực HP!',
+    energyCost: 2,
+    color: 'from-purple-600 via-indigo-700 to-slate-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRBje8iRph_Z444qdbZP9mkmwWl-Y3qXB4C9xrW00HiKfZQPpKr1a5a9150&s=10'
+  },
+  {
+    id: 'c_img4',
+    name: 'TÁO BÁO BỘC PHÁ',
+    role: 'ATTACK',
+    roleName: 'Sát Thương Bộc Phá',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 230,
+    def: 140,
+    skillName: 'BOM TÁO NGUYÊN TỬ XUYÊN GIÁP',
+    skillDesc: 'Phẩm Cấp S! Nổ 230 sát thương Xuyên Giáp đối thủ không thể cản phá!',
+    energyCost: 2,
+    color: 'from-red-500 via-rose-600 to-amber-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT_hl6-AA8LGRsWHGSGCPiSVJdBmhuWr_CFXEL9krx5Sw&s=10'
+  },
+  {
+    id: 'c_img5',
+    name: 'MÈO THẦN TỐC ĐỘ',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Tốc Độ',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 140,
+    def: 190,
+    skillName: 'MÈO NÉ ĐÒN THẦN TỐC',
+    skillDesc: 'Phẩm Cấp A! Tăng +190 Giáp phòng thủ thần tốc & hồi +90 HP sinh lực.',
+    energyCost: 1,
+    color: 'from-sky-400 via-cyan-600 to-blue-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRci8p64vbTT9kzqW3O4MgrULVbWRL5cJuJJS6b1jMvQA&s=10'
+  },
+  {
+    id: 'c_img6',
+    name: 'BIỂU CẢM BÁ ĐẠO',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Hỗ Trợ',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 160,
+    def: 200,
+    skillName: 'KHIÊU KHÍCH CHẤN ĐỘNG',
+    skillDesc: 'Phẩm Cấp S! Hồi +160 HP & giảm 50% sức tấn công đối thủ trong 2 lượt tiếp theo!',
+    energyCost: 2,
+    color: 'from-pink-500 via-purple-600 to-indigo-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQwUOp7DdXqD6OuppJ50-4mB1k82LiWqyxBISptHhD4uQ&s=10'
+  },
+  {
+    id: 'c_img7',
+    name: 'SIÊU NHÂN MÈO MEME',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Chí Mạng',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 220,
+    def: 150,
+    skillName: 'CÚ ĐẤM MÈO MEME SIÊU CẤP',
+    skillDesc: 'Phẩm Cấp S! Đấm 220 Sát thương chí mạng bộc phá giáp đối thủ!',
+    energyCost: 2,
+    color: 'from-yellow-400 via-amber-600 to-red-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQBTr9yyFPH1munygpQGog5SA2rxnD8SEiMMlkmcyKRFySXUOb7lrx4OEs&s=10'
+  },
+  {
+    id: 'c_img8',
+    name: 'THÁNH SOI CẦU HÀI',
+    role: 'SUPPORT',
+    roleName: 'Nhìn Thấu Đối Thủ',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 260,
+    def: 240,
+    skillName: 'NHÌN THẤU CẦU KÈO DIỆT THẾ',
+    skillDesc: 'CỰC BÁ SS! Nhìn thấu bộ bài đối thủ, tăng +250 sát thương lượt sau & hồi +180 HP!',
+    energyCost: 1,
+    color: 'from-emerald-400 via-teal-500 to-cyan-900',
+    avatarUrl: 'https://img.tripi.vn/cdn-cgi/image/width=700,height=700/https://gcs.tripi.vn/public-tripi/tripi-feed/img/482748RXj/anh-mo-ta.png'
+  },
+  {
+    id: 'c_img9',
+    name: 'THẦN BÀI LẮC BÁT',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Năng Lượng',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 215,
+    def: 160,
+    skillName: 'BÁ BÀI XÚC XẮC BÁ CHỦ',
+    skillDesc: 'Phẩm Cấp S! Giáng 215 sát thương bộc phát & hồi phục +3 Năng Lượng cho ta!',
+    energyCost: 2,
+    color: 'from-amber-400 via-orange-600 to-purple-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSa-gQC3gXAq51I7LzJ0SNkLQjpIn0vdVtGbtlp0dK4dQ&s=10'
+  },
+  {
+    id: 'c_img10',
+    name: 'CHỦ SẢNH THẦN THOẠI',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Tuyệt Đối',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 150,
+    def: 220,
+    skillName: 'KHIÊN KIM CƯƠNG BẢO VỆ',
+    skillDesc: 'Phẩm Cấp S! Tăng +220 Giáp kiên cố & hồi +100 HP!',
+    energyCost: 2,
+    color: 'from-blue-400 via-indigo-600 to-slate-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRza9TXkVJoG79dWvDet_GkNMMnLD2ImkKYsShCzfziiA&s=10'
+  },
+  {
+    id: 'c_img11',
+    name: 'MÈO ẢO THUẬT GIA',
+    role: 'SUPPORT',
+    roleName: 'Tráo Bài Thần Tốc',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 130,
+    def: 170,
+    skillName: 'ẢO THUẬT TRÁO BÀI HỒI XUÂN',
+    skillDesc: 'Phẩm Cấp A! Hồi +130 HP & rút ngay 2 lá bài mới vào tay!',
+    energyCost: 1,
+    color: 'from-fuchsia-500 via-pink-600 to-purple-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSAygY6x25yWIAaU3tTb7HA2uroeP1Z5mx6n8ScStoU1A&s=10'
+  },
+  {
+    id: 'c_img12',
+    name: 'CHÚ CHÓ ANH HÙNG',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Độc Đáo',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 180,
+    def: 130,
+    skillName: 'CÚ TÁP ANH HÙNG BỘC PHÁ',
+    skillDesc: 'Phẩm Cấp A! Gây 180 sát thương bộc phát & tăng +60 Giáp phòng thủ.',
+    energyCost: 2,
+    color: 'from-rose-500 via-red-600 to-amber-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTRlVuRJsWH-sz6MjYfiPsRItwkSckdKJnU97G5dpuX2A&s=10'
+  },
+  {
+    id: 'c_img13',
+    name: 'THẤT BẠI LÀ MẸ THÀNH CÔNG',
+    role: 'SUPPORT',
+    roleName: 'Bất Tử Phản Đòn',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 170,
+    def: 210,
+    skillName: 'HỒI SINH TẬN CÙNG & PHẢN ĐÒN',
+    skillDesc: 'Phẩm Cấp S! Hồi +170 HP, chặn sát thương tử vong & phản 120 sát thương đối thủ!',
+    energyCost: 2,
+    color: 'from-yellow-400 via-emerald-600 to-slate-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTXyMIV_ZeVZrnXpTfSbIT7nt_VAQuIj0MZflHZpyfb8Q&s=10'
+  },
+  {
+    id: 'c_img14',
+    name: 'SẾP BỐ GIÀ AYK',
+    role: 'SUPPORT',
+    roleName: 'Lệnh Bố Già Diệt Thế',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 270,
+    def: 270,
+    skillName: 'BÁ CHỦ BỐ GIÀ THẦN THOẠI',
+    skillDesc: 'CỰC BÁ SS! Hồi +250 HP, tăng +250 Giáp & gây 270 Sát Thương bộc phá Xuyên Giáp!',
+    energyCost: 1,
+    color: 'from-amber-300 via-rose-500 via-purple-600 to-cyan-500',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTfSp_KGdQxK2VqtTiYh0hLDEVJYouGtkJAJYKtx8Trug&s=10'
+  },
+  {
+    id: 'c_img15',
+    name: 'BẢO VẬT PHÙ THỦY',
+    role: 'DEFENSE',
+    roleName: 'Khiên Băng Ảo Thuật',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 130,
+    def: 200,
+    skillName: 'KHIÊN BĂNG PHÙ THỦY BẢO VỆ',
+    skillDesc: 'Phẩm Cấp A! Tạo +200 Giáp phòng thủ kiên cố & hồi +80 HP sinh lực.',
+    energyCost: 1,
+    color: 'from-cyan-400 via-blue-600 to-purple-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcR81bbCyFj7tvr__3EqsTyC78VHCtFq52ISVpz_EROlBA&s=10'
+  },
   {
     id: 'c_ss1',
     name: 'AYK THẦN RỒNG TỐI THƯỢNG',
@@ -1682,14 +1972,351 @@ export const FULL_CARD_POOL: CardItem[] = [
     energyCost: 3,
     color: 'from-yellow-400 via-amber-500 to-rose-950',
     avatarUrl: getCardImageSvg('c100')
+  },
+  // --- 21 NEW FUNCTIONAL CARDS WITH USER PROVIDED AVATAR URLS ---
+  {
+    id: 'c_new1',
+    name: 'AYK BÁ CHỦ TỐI THƯỢNG',
+    role: 'SUPPORT',
+    roleName: 'Cực Bá Tối Thượng',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 260,
+    def: 260,
+    skillName: 'THẦN QUANG VÔ CỰC DIỆT THẾ',
+    skillDesc: 'CỰC BÁ SS! Hồi +200 HP, +200 Giáp, hồi +3 NL & giáng 260 Sát Thương Bộc Phá Xuyên Giáp!',
+    energyCost: 0,
+    color: 'from-amber-300 via-rose-500 via-purple-600 to-cyan-400',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSdUmuS9cLt9emu0Y84ZNhKYZvQDTAqMzoz2jVAlKREMQ&s=10'
+  },
+  {
+    id: 'c_new2',
+    name: 'MA VƯƠNG CHIẾN THẦN',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Bá Đạo',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 220,
+    def: 160,
+    skillName: 'TRẢM HỒN PHÁ GIÁP',
+    skillDesc: 'Phẩm Cấp S! Chém 220 Sát Thương bộc phá, phá giáp đối thủ & hồi +60 HP!',
+    energyCost: 2,
+    color: 'from-red-600 via-amber-600 to-slate-900',
+    avatarUrl: 'https://staticg.sportskeeda.com/editor/2022/05/d3c05-16518804878373-1920.jpg'
+  },
+  {
+    id: 'c_new3',
+    name: 'PHƯỢNG HOÀNG BẤT TỬ',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Hồi Sinh',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 160,
+    def: 220,
+    skillName: 'TÁI SINH TRONG BÃO LỬA',
+    skillDesc: 'Phẩm Cấp S! Hồi ngay +150 HP, tăng +180 Giáp & nạp +2 Năng Lượng!',
+    energyCost: 2,
+    color: 'from-orange-500 via-amber-600 to-rose-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQfDnYibMeF0bNIYb1ahteR_sUCkWrlipNm4s0fNJ_5_wI8uAnKcelTnSc&s=10'
+  },
+  {
+    id: 'c_new4',
+    name: 'SẤM THẦN NGÂN HÀ',
+    role: 'ATTACK',
+    roleName: 'Sấm Sét Bộc Phá',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 215,
+    def: 150,
+    skillName: 'LÔI PHẠT VŨ TRỤ',
+    skillDesc: 'Phẩm Cấp S! Oanh kích 215 Sát thương điện giật & gây choáng đối thủ!',
+    energyCost: 2,
+    color: 'from-yellow-400 via-amber-600 to-indigo-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQocw8TjiDJez4l425CfiVwthc8TgUHKkdc8rOMpsnK1A&s=10'
+  },
+  {
+    id: 'c_new5',
+    name: 'THÁNH GIÁP VĨNH CỬU',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Tuyệt Đối',
+    rarity: 'S',
+    rarityName: 'Huyền Thoại (S)',
+    atk: 140,
+    def: 230,
+    skillName: 'KHIÊN THÁNH VÔ ĐỊCH',
+    skillDesc: 'Phẩm Cấp S! Tăng +230 Giáp kiên cố, hồi +100 HP & phản đòn 80 sát thương!',
+    energyCost: 2,
+    color: 'from-sky-400 via-blue-600 to-slate-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRaNZloCP1_pMXqTgt4hiH2L92SRO9fBPTX_VLtkzAWNQ&s=10'
+  },
+  {
+    id: 'c_new6',
+    name: 'RỒNG BĂNG VÔ CỰC',
+    role: 'ATTACK',
+    roleName: 'Băng Trảm Bộc Phá',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 175,
+    def: 125,
+    skillName: 'BĂNG BÃO TỐ OANH KÍCH',
+    skillDesc: 'Phẩm Cấp A! Giáng 175 Sát thương băng giá & hồi +60 HP.',
+    energyCost: 2,
+    color: 'from-cyan-400 via-blue-600 to-slate-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQPpaUkKVHwov-lTdPBbUtAaVaPZRpz3js7P-knYlXbIQ&s=10'
+  },
+  {
+    id: 'c_new7',
+    name: 'SÁT THỦ ẢO ẢNH',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Chí Mạng',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 180,
+    def: 110,
+    skillName: 'ẢO ẢNH TRẢM HỒN',
+    skillDesc: 'Phẩm Cấp A! Đâm lén 180 Sát thương chí mạng xuyên 30% Giáp!',
+    energyCost: 2,
+    color: 'from-purple-600 via-pink-700 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQi4vNmBXPlQ-EXRQvzLKgOSPaaTPYzl7gWpBdGGzzyBg&s=10'
+  },
+  {
+    id: 'c_new8',
+    name: 'THÁNH QUANG BẢO HỘ',
+    role: 'DEFENSE',
+    roleName: 'Khiên Thần Hộ Thể',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 120,
+    def: 180,
+    skillName: 'THÁNH HÀO QUANG CHE CHỞ',
+    skillDesc: 'Phẩm Cấp A! Nhận +180 Giáp bảo hộ & hồi phục +80 HP.',
+    energyCost: 2,
+    color: 'from-amber-400 via-yellow-500 to-stone-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTe6s4eIo52fvb4hYN9jhcfSpMqhgNyicl0573rxVzv2w&s=10'
+  },
+  {
+    id: 'c_new9',
+    name: 'PHÙ THỦY THỜI KHÔNG',
+    role: 'SUPPORT',
+    roleName: 'Tráo Đổi Năng Lượng',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 130,
+    def: 150,
+    skillName: 'MA TRẬN NĂNG LƯỢNG',
+    skillDesc: 'Phẩm Cấp A! Hồi +100 HP, nạp +2 Năng Lượng & nhận +70 Giáp!',
+    energyCost: 1,
+    color: 'from-emerald-500 via-teal-700 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQKbHn0rOJKsPX-M8mL7PggvrZdOCUi9JT7jTwtB66ooA&s=10'
+  },
+  {
+    id: 'c_new10',
+    name: 'CUỒNG PHÁO THƯỢNG CỔ',
+    role: 'SPECIAL',
+    roleName: 'Oanh Kích Bộc Phá',
+    rarity: 'A',
+    rarityName: 'Sử Thi (A)',
+    atk: 165,
+    def: 135,
+    skillName: 'BẢO TỐ HẠT NHÂN',
+    skillDesc: 'Phẩm Cấp A! Giáng 165 Sát thương & nạp +1 Năng Lượng.',
+    energyCost: 2,
+    color: 'from-orange-600 via-red-700 to-stone-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTu1I4CdOHuNxGf0N1SQMkUq9ZZ_JfcHYQ1RAsHCaBybA&s=10'
+  },
+  {
+    id: 'c_new11',
+    name: 'CHIẾN BINH PHONG TỐ',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Nhanh',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 135,
+    def: 95,
+    skillName: 'PHONG TRẢM LIÊN HOÀN',
+    skillDesc: 'Phẩm Cấp B! Giáng 135 Sát thương tốc độ & hồi +40 HP.',
+    energyCost: 1,
+    color: 'from-teal-500 via-emerald-700 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcT5PyOUOn9qH6GFyyW0YzkHaa4IHu0gGg5I5FQ3vU6Uog&s=10'
+  },
+  {
+    id: 'c_new12',
+    name: 'KHIÊN NHAM THẠCH',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Đá',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 85,
+    def: 145,
+    skillName: 'THÀNH TRÌ CỔ ĐẠI',
+    skillDesc: 'Phẩm Cấp B! Nhận +145 Giáp đá kiên cố & phản 40 sát thương.',
+    energyCost: 1,
+    color: 'from-amber-800 via-stone-900 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQB7EEDWHbD1Hu0g6KnAq3Seuwm0Z82C15fnyY1MSPaZQ&s=10'
+  },
+  {
+    id: 'c_new13',
+    name: 'DƯỢC SĨ HỒI XUÂN',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Hồi Phục',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 90,
+    def: 110,
+    skillName: 'THẦN DƯỢC HỒI SINH',
+    skillDesc: 'Phẩm Cấp B! Hồi ngay +90 HP & gia tăng +1 Năng Lượng.',
+    energyCost: 1,
+    color: 'from-green-500 via-teal-700 to-slate-950',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSqu4UcZZJBiLV5jCgUeZBOXUySL8VYznDwoLGaAxqaRw&s=10'
+  },
+  {
+    id: 'c_new14',
+    name: 'LƯỠI LIÊM BÓNG ĐÊM',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Hút Hồn',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 140,
+    def: 85,
+    skillName: 'TRẢM HỒN ÂM PHỦ',
+    skillDesc: 'Phẩm Cấp B! Giáng 140 Sát thương & hút +35 HP đối thủ.',
+    energyCost: 2,
+    color: 'from-indigo-700 via-purple-900 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSjLbVGBc8l6mHI2h0nc4_wamtLLwkxbvTZ6OZkruGqCQ&s=10'
+  },
+  {
+    id: 'c_new15',
+    name: 'THẦN HỎA HOÀNG KIM',
+    role: 'SPECIAL',
+    roleName: 'Đặc Biệt',
+    rarity: 'B',
+    rarityName: 'Hiếm (B)',
+    atk: 125,
+    def: 105,
+    skillName: 'HỎA DIỆM BỘC PHÁ',
+    skillDesc: 'Phẩm Cấp B! Giáng 125 Sát thương & nhận +50 Giáp.',
+    energyCost: 1,
+    color: 'from-yellow-500 via-orange-600 to-stone-900',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQU58e45u4eaixc4HYhrOIyRra6d7u1awzMzQC5vcq3mQ&s=10'
+  },
+  {
+    id: 'c_new16',
+    name: 'QUYỀN VƯƠNG LẾN',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Cơ Bản',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 95,
+    def: 65,
+    skillName: 'CÚ ĐẤM BỘC PHÁ',
+    skillDesc: 'Phẩm Cấp C! Đấm giáng 95 Sát thương cơ bản.',
+    energyCost: 1,
+    color: 'from-orange-600 via-red-700 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRCFxQhIz5pvyeGAjTZ2dCCVYIQePFHgezHlIc_uLaKBg&s=10'
+  },
+  {
+    id: 'c_new17',
+    name: 'THÁNH BẢO SONG THÁNH',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Song Hồi',
+    rarity: 'SS',
+    rarityName: 'SS - TỐI THƯỢNG',
+    atk: 0,
+    def: 0,
+    skillName: 'THÁNH QUANG TÁI TẠO DUAL',
+    skillDesc: 'CỰC BÁ SS! 2 BÊN CÙNG HỒI PHỤC 300 HP VÀ 5 NĂNG LƯỢNG! SÀI 0 NL!',
+    energyCost: 0,
+    color: 'from-amber-300 via-yellow-400 via-emerald-400 to-cyan-400',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTDUby2bqVqzxV4bHaxcPVYMxE4wZNxS6l2MCVcvwy3sw&s=10'
+  },
+  {
+    id: 'c_new18',
+    name: 'KHIÊN GỖ THƯỢNG CỔ',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Cơ Bản',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 50,
+    def: 100,
+    skillName: 'DỰNG GIÁP GỖ',
+    skillDesc: 'Phẩm Cấp C! Nhận +80 Giáp gỗ bảo hộ.',
+    energyCost: 1,
+    color: 'from-amber-800 via-stone-900 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSVtugkAUCZYPQJDBMWteZdwk_iknLBicgWOTlsem-zBQ&s=10'
+  },
+  {
+    id: 'c_new19',
+    name: 'BÌNH MÁU NĂNG LƯỢNG',
+    role: 'SUPPORT',
+    roleName: 'Chức Năng Hồi Phục',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 40,
+    def: 60,
+    skillName: 'NẠP MÁU TỐC HÀN',
+    skillDesc: 'Phẩm Cấp C! Hồi +50 HP & nạp +1 Năng Lượng.',
+    energyCost: 1,
+    color: 'from-emerald-600 via-teal-700 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTZOcduekWJDlfu9TfcfVjh6as-W68iGLXvKiDiCiW-gw&s=10'
+  },
+  {
+    id: 'c_new20',
+    name: 'KIẾM THÉP SẮC LẸM',
+    role: 'ATTACK',
+    roleName: 'Tấn Công Sắc',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 100,
+    def: 50,
+    skillName: 'CHÉM KIẾM THÉP',
+    skillDesc: 'Phẩm Cấp C! Vung kiếm gây 100 Sát thương.',
+    energyCost: 1,
+    color: 'from-slate-600 via-zinc-700 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSodLAiYZ1j98kbgo-fOIcrFJLAR8fbzjg3UbSgAd8XYQ&s=10'
+  },
+  {
+    id: 'c_new21',
+    name: 'KHIÊN ĐỒNG KIÊN CỐ',
+    role: 'DEFENSE',
+    roleName: 'Phòng Thủ Đồng',
+    rarity: 'C',
+    rarityName: 'Thường (C)',
+    atk: 45,
+    def: 105,
+    skillName: 'KHIÊN ĐỒNG HỘ THỂ',
+    skillDesc: 'Phẩm Cấp C! Nhận +85 Giáp đồng kiên cố.',
+    energyCost: 1,
+    color: 'from-stone-600 via-slate-800 to-black',
+    avatarUrl: 'https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS2XW9oU_MSBO6n8jy40y8HWBtCEO5pERtgjrHQ6wbb0g&s=10'
   }
 ];
 
-// 100+ BALANCED CARDS ARENA DECK FOR MATCH PLAY
+// OFFICIAL CARD DRAW PROBABILITY DROP RATES IN MATCH
+export const CARD_DRAW_RATES = [
+  { rarity: 'SS', rate: 0.03, percent: '3%', name: 'SS - Tối Thượng (Siêu Hiếm)', color: 'text-amber-300 font-bold border-amber-300/50 bg-amber-500/20' },
+  { rarity: 'S',  rate: 0.12, percent: '12%', name: 'S - Huyền Thoại', color: 'text-rose-400 font-bold border-rose-400/50 bg-rose-500/20' },
+  { rarity: 'A',  rate: 0.25, percent: '25%', name: 'A - Sử Thi', color: 'text-purple-400 font-bold border-purple-400/50 bg-purple-500/20' },
+  { rarity: 'B',  rate: 0.30, percent: '30%', name: 'B - Hiếm', color: 'text-sky-400 font-bold border-sky-400/50 bg-sky-500/20' },
+  { rarity: 'C',  rate: 0.30, percent: '30%', name: 'C - Thường', color: 'text-slate-300 font-bold border-slate-400/50 bg-slate-500/20' }
+];
+
+// 120+ BALANCED CARDS ARENA DECK FOR MATCH PLAY
 export const CARD_DECK: CardItem[] = FULL_CARD_POOL;
 
 export const drawRandomCard = (): CardItem => {
-  const card = CARD_DECK[Math.floor(Math.random() * CARD_DECK.length)];
+  const rand = Math.random();
+  let selectedRarity = 'C';
+  let cumulative = 0;
+  for (const r of CARD_DRAW_RATES) {
+    cumulative += r.rate;
+    if (rand <= cumulative) {
+      selectedRarity = r.rarity;
+      break;
+    }
+  }
+  const matchingCards = CARD_DECK.filter((c) => c.rarity === selectedRarity);
+  const pool = matchingCards.length > 0 ? matchingCards : CARD_DECK;
+  const card = pool[Math.floor(Math.random() * pool.length)];
   return { 
     ...card, 
     instanceId: `${card.id}_${Math.random().toString(36).substring(2, 8)}`,
@@ -1923,6 +2550,27 @@ export const applyCardSkillEffect = (card: CardItem, me: any, opp: any, roleAdv:
   let energyRestore = 0;
 
   // EXTREME OVERPOWERED SS CARD LOGIC
+  if (card.id === 'c_new17' || card.name === 'THÁNH BẢO SONG THÁNH') {
+    const oppHeal = 300;
+    const selfHealAmt = 300;
+    const finalSelfHp = Math.min(500, (me?.hp || 300) + selfHealAmt);
+    const finalOppHp = Math.min(500, (opp?.hp || 300) + oppHeal);
+    const finalSelfEnergy = 5;
+    const finalOppEnergy = 5;
+    logMsg = `🌟 [CỰC BÁ SS DUAL SONG THÁNH - ${me.name}] KÍCH HOẠT [${card.skillName}]! CẢ 2 BÊN CÙNG HỒI PHỤC +300 HP VÀ 5 NĂNG LƯỢNG THẦN TỐC!`;
+
+    return {
+      logMsg,
+      oppHp: finalOppHp,
+      oppShield: opp?.shield || 0,
+      selfHp: finalSelfHp,
+      selfShield: me?.shield || 0,
+      selfEnergy: finalSelfEnergy,
+      oppEnergy: finalOppEnergy,
+      isOpponentDead: false
+    };
+  }
+
   if (card.rarity === 'SS' || card.id === 'c_ss1') {
     energyRestore = 3;
     selfHeal = 200;
@@ -2383,19 +3031,76 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
       const betAmt = p1Obj?.bet || p2Obj?.bet || (roomData.totalPot ? Math.floor(roomData.totalPot / 2) : 5000);
 
-      // Update local user's PP in Firebase
-      if (uid) {
-        const isWin = winnerId === uid;
-        const userRef = ref(db, `users/${uid}`);
-        get(userRef).then((snap) => {
+      // Determine points delta for both players
+      if (p1Obj && p1Obj.id && !p1Obj.isBot) {
+        const isP1Win = winnerId === p1Obj.id;
+        const isOpponentAi = !p2Obj || p2Obj.isBot || p2Obj.id === 'bot_ai_master';
+        const p1CardDelta = isP1Win ? (isOpponentAi ? 1 : 3) : -1;
+
+        const p1Ref = ref(db, `users/${p1Obj.id}`);
+        get(p1Ref).then((snap) => {
           if (snap.exists()) {
-            const currentPP = snap.val().pp || 0;
-            const newPP = isWin ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
-            update(userRef, { pp: newPP }).catch(() => {});
+            const val = snap.val();
+            const currentPP = val.pp || 0;
+            const newPP = isP1Win ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
+            const currentCardPoints = val.cardPoints || 0;
+            const newCardPoints = Math.max(0, currentCardPoints + p1CardDelta);
+            
+            update(p1Ref, { 
+              pp: newPP,
+              cardPoints: newCardPoints,
+              cardWins: (val.cardWins || 0) + (isP1Win ? 1 : 0),
+              cardLosses: (val.cardLosses || 0) + (isP1Win ? 0 : 1)
+            }).catch(() => {});
           }
         }).catch(() => {});
 
-        // Log transaction history to user's financial ledger
+        if (p1Obj.id === uid && onShowResult) {
+          const ptText = p1CardDelta > 0 ? `+${p1CardDelta}` : `${p1CardDelta}`;
+          onShowResult(
+            isP1Win ? '🏆 BẠN THẮNG TRẬN ĐẤU THẺ!' : '💀 BẠN THẤT BẠI ĐẤU THẺ!',
+            isP1Win ? `Thưởng: +${betAmt.toLocaleString('vi-VN')} PP & ${ptText} Điểm Trùm Thẻ!` : `Phạt: -${betAmt.toLocaleString('vi-VN')} PP & ${ptText} Điểm Trùm Thẻ!`,
+            isP1Win
+          );
+        }
+      }
+
+      if (p2Obj && p2Obj.id && !p2Obj.isBot) {
+        const isP2Win = winnerId === p2Obj.id;
+        const isOpponentAi = !p1Obj || p1Obj.isBot || p1Obj.id === 'bot_ai_master';
+        const p2CardDelta = isP2Win ? (isOpponentAi ? 1 : 3) : -1;
+
+        const p2Ref = ref(db, `users/${p2Obj.id}`);
+        get(p2Ref).then((snap) => {
+          if (snap.exists()) {
+            const val = snap.val();
+            const currentPP = val.pp || 0;
+            const newPP = isP2Win ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
+            const currentCardPoints = val.cardPoints || 0;
+            const newCardPoints = Math.max(0, currentCardPoints + p2CardDelta);
+
+            update(p2Ref, { 
+              pp: newPP,
+              cardPoints: newCardPoints,
+              cardWins: (val.cardWins || 0) + (isP2Win ? 1 : 0),
+              cardLosses: (val.cardLosses || 0) + (isP2Win ? 0 : 1)
+            }).catch(() => {});
+          }
+        }).catch(() => {});
+
+        if (p2Obj.id === uid && onShowResult) {
+          const ptText = p2CardDelta > 0 ? `+${p2CardDelta}` : `${p2CardDelta}`;
+          onShowResult(
+            isP2Win ? '🏆 BẠN THẮNG TRẬN ĐẤU THẺ!' : '💀 BẠN THẤT BẠI ĐẤU THẺ!',
+            isP2Win ? `Thưởng: +${betAmt.toLocaleString('vi-VN')} PP & ${ptText} Điểm Trùm Thẻ!` : `Phạt: -${betAmt.toLocaleString('vi-VN')} PP & ${ptText} Điểm Trùm Thẻ!`,
+            isP2Win
+          );
+        }
+      }
+
+      // Log transaction history for local user
+      if (uid) {
+        const isWin = winnerId === uid;
         push(ref(db, `transactions/${uid}`), {
           id: `tx_card_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
           type: isWin ? 'INCOME' : 'EXPENSE',
@@ -2404,14 +3109,6 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
           unit: 'PP',
           timestamp: Date.now()
         }).catch(() => {});
-
-        if (onShowResult) {
-          onShowResult(
-            isWin ? '🏆 BẠN THẮNG TRẬN ĐẤU THẺ!' : '💀 BẠN THẤT BẠI ĐẤU THẺ!',
-            isWin ? `Thưởng chiến thắng: +${betAmt.toLocaleString('vi-VN')} PP!` : `Tiền cược đã mất: -${betAmt.toLocaleString('vi-VN')} PP!`,
-            isWin
-          );
-        }
       }
 
       if (p1Obj && p2Obj) {
@@ -4341,23 +5038,44 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         ) : (
           <div className="flex-1 relative">
             
-            {/* MATCH FINISHED OVERLAY BANNER WITH INSTANT RESET */}
+            {/* MATCH FINISHED OVERLAY BANNER WITH INSTANT RESET & CELEBRATION / DEFEAT PARTICLES */}
             {roomData?.status === 'FINISHED' && (
-              <div className="absolute inset-0 z-40 bg-black/90 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-6 text-center space-y-4 animate-fadeIn border-2 border-yellow-400/60 shadow-[0_0_50px_rgba(250,204,21,0.5)]">
-                <div className="p-4 bg-gradient-to-br from-yellow-500/20 to-amber-600/30 border border-yellow-400/50 rounded-full animate-bounce">
-                  <Trophy className="w-12 h-12 text-yellow-300 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]" />
+              <div className={`absolute inset-0 z-40 backdrop-blur-md rounded-2xl flex flex-col items-center justify-center p-6 text-center space-y-4 animate-fadeIn border-2 shadow-2xl relative overflow-hidden ${
+                roomData?.winnerId === uid
+                  ? 'bg-black/90 border-yellow-400/80 shadow-[0_0_60px_rgba(250,204,21,0.6)]'
+                  : 'bg-black/95 border-rose-600/80 shadow-[0_0_60px_rgba(225,29,72,0.8)]'
+              }`}>
+                {/* PARTICLES & VIGNETTE EFFECT */}
+                {roomData?.winnerId === uid ? <VictoryParticlesOverlay /> : <DefeatVignetteOverlay />}
+
+                <div className={`p-4 border rounded-full animate-bounce z-40 ${
+                  roomData?.winnerId === uid
+                    ? 'bg-gradient-to-br from-yellow-500/20 to-amber-600/30 border-yellow-400/50 shadow-[0_0_25px_rgba(250,204,21,0.8)]'
+                    : 'bg-gradient-to-br from-rose-600/20 to-red-800/30 border-rose-500/50 shadow-[0_0_25px_rgba(225,29,72,0.8)]'
+                }`}>
+                  <Trophy className={`w-12 h-12 ${roomData?.winnerId === uid ? 'text-yellow-300 drop-shadow-[0_0_15px_rgba(250,204,21,0.8)]' : 'text-rose-500 drop-shadow-[0_0_15px_rgba(225,29,72,0.8)]'}`} />
                 </div>
                 
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400 drop-shadow">
-                    {roomData?.winnerId === uid ? '🏆 BẠN ĐÃ CHIẾN THẮNG RỰC RỠ!' : roomData?.p2?.isBot && roomData?.winnerId === roomData?.p2?.id ? '💀 AI BOT TỐI THƯỢNG CHIẾN THẮNG!' : '🏆 TRẬN ĐẤU KẾT THÚC!'}
+                <div className="z-40">
+                  <h3 className={`text-xl sm:text-2xl font-black uppercase tracking-wider text-transparent bg-clip-text drop-shadow ${
+                    roomData?.winnerId === uid
+                      ? 'bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-400'
+                      : 'bg-gradient-to-r from-rose-500 via-red-400 to-rose-600'
+                  }`}>
+                    {roomData?.winnerId === uid
+                      ? '🏆 BẠN ĐÃ CHIẾN THẮNG RỰC RỠ!'
+                      : roomData?.p2?.isBot && roomData?.winnerId === roomData?.p2?.id
+                      ? '💀 AI BOT TỐI THƯỢNG CHIẾN THẮNG!'
+                      : '💀 RẤT TIẾC! BẠN ĐÃ THẤT BẠI!'}
                   </h3>
                   <p className="text-xs text-cyan-300 font-mono mt-1">
-                    {roomData?.winnerId === uid ? 'Chúc mừng bạn đã chinh phục Đấu Trường 1v1 AYK8686!' : 'Hãy chọn chiến thuật và loại thẻ thích hợp để tái đấu thắng AI Bot!'}
+                    {roomData?.winnerId === uid
+                      ? 'Chúc mừng bạn đã chinh phục Đấu Trường 1v1 AYK8686!'
+                      : 'Hãy nâng cấp bộ bài & điều chỉnh chiến thuật để tái đấu thắng ván tới!'}
                   </p>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-2 pt-2 w-full max-w-md">
+                <div className="flex flex-col sm:flex-row gap-2 pt-2 w-full max-w-md z-40">
                   <button
                     onClick={handleReturnToLobby}
                     className="flex-1 py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-600 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.6)] transition-all flex items-center justify-center gap-2 border border-emerald-300"
@@ -4435,64 +5153,88 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                 </button>
               </div>
 
-              {/* 2. CENTER BATTLE ARENA FIELD: Opponent Active Card -> Skill Animation Zone -> Your Active Card */}
-              <div className="bg-gradient-to-b from-purple-950/20 via-black to-slate-950 border border-purple-500/30 rounded-2xl p-3 space-y-3 relative overflow-hidden shadow-[0_0_20px_rgba(168,85,247,0.15)]">
+              {/* 2. CENTER BATTLE ARENA FIELD: Opponent 5 Cards -> Combat Clash Zone -> Player 5 Cards */}
+              <div className="bg-gradient-to-b from-purple-950/30 via-black to-slate-950 border border-purple-500/40 rounded-2xl p-3 space-y-3 relative overflow-hidden shadow-[0_0_25px_rgba(168,85,247,0.2)]">
                 
-                {/* OPPONENT ACTIVE CARD */}
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] font-mono font-bold text-rose-400 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Swords className="w-3 h-3 text-rose-500" /> THẺ ĐỐI THỦ (Active Card)
-                  </span>
-                  
-                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all cursor-pointer ${
-                    oppActiveCard?.rarity === 'SS'
-                      ? 'ss-card-glow ss-card-3d-hover text-white ring-2 ring-amber-300'
-                      : oppActiveCard?.rarity === 'S'
-                      ? 's-card-glow card-3d-hover text-white ring-1 ring-orange-400'
-                      : oppActiveCard?.rarity === 'A'
-                      ? 'a-card-glow card-3d-hover text-white ring-1 ring-purple-400'
-                      : roomData?.turn === oppPlayerKey && isAttacking
-                      ? 'animate-attack-slash card-3d-hover ring-2 ring-rose-400'
-                      : 'card-3d-hover border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)]'
-                  }`}>
-                    <RenderRarityParticles rarity={oppActiveCard?.rarity} />
-                    {/* Floating Damage Overlay for Opponent */}
-                    {damageFloats.filter((f) => f.target === oppPlayerKey).map((f) => (
-                      <div
-                        key={f.id}
-                        className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
-                      >
-                        <span>💥 -{f.damage}</span>
-                        {f.isCritical && <span className="text-[8px] text-yellow-300 font-bold uppercase">CRIT!</span>}
-                      </div>
-                    ))}
+                {/* OPPONENT 5 FACE-UP CARDS ROW */}
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between text-[9px] font-mono text-rose-300">
+                    <span className="font-bold uppercase flex items-center gap-1">
+                      <Swords className="w-3.5 h-3.5 text-rose-400" /> THẺ ĐỐI THỦ (5 THẺ BÀI)
+                    </span>
+                    <span className="text-[8px] text-rose-400 font-bold">👀 Công khai bài hai bên</span>
+                  </div>
 
-                    <div className="flex items-center justify-between w-full relative z-10 bg-rose-950/80 px-1.5 py-0.5 rounded border border-rose-500/30">
-                      <span className="text-[8px] font-bold text-rose-300 uppercase truncate">
-                        {oppActiveCard?.name || 'Thẻ Đối Thủ'}
-                      </span>
-                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(oppActiveCard?.rarity || 'C')}`}>
-                        {oppActiveCard?.rarity || 'C'}
-                      </span>
-                    </div>
+                  <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                    {oppHand.slice(0, 5).map((oppCard: any, idx: number) => {
+                      const isOppUsed = oppCard.used;
+                      const isOppActive = (oppPlayerObj?.activeCardIdx || 0) === idx;
 
-                    <div className="aspect-[3/4] h-24 sm:h-28 w-full rounded-lg overflow-hidden bg-slate-950 border border-rose-500/30 flex items-center justify-center relative z-10">
-                      <img
-                        src={oppActiveCard?.avatarUrl}
-                        alt={oppActiveCard?.name}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = getCardImageSvg(oppActiveCard?.id || 'c1');
-                        }}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
+                      return (
+                        <div key={`opp_card_${idx}`} className="relative group">
+                          <div className={`p-1 sm:p-1.5 rounded-xl border transition-all flex flex-col items-center justify-between h-24 sm:h-28 relative overflow-hidden select-none ${
+                            isOppUsed
+                              ? 'opacity-35 grayscale border-slate-900 bg-black/95 pointer-events-none'
+                              : isOppActive
+                              ? 'bg-rose-950 border-rose-400 text-white ring-2 ring-rose-400 shadow-[0_0_15px_rgba(244,63,94,0.8)] scale-105'
+                              : 'bg-slate-950/90 border-rose-500/40 text-slate-300 shadow-[0_0_10px_rgba(244,63,94,0.15)]'
+                          }`}>
+                            {/* Card Header & Rarity */}
+                            <div className="flex items-center justify-between w-full z-10">
+                              <span className="text-[7px] sm:text-[8px] font-mono font-black text-rose-300 uppercase">
+                                THẺ {idx + 1}
+                              </span>
+                              <span className={`text-[6px] sm:text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(oppCard?.rarity || 'C')}`}>
+                                {oppCard?.rarity || 'C'}
+                              </span>
+                            </div>
 
-                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {oppActiveCard?.atk} | DEF: {oppActiveCard?.def}</span>
+                            {/* Card Image */}
+                            <div className="aspect-[3/4] h-12 sm:h-14 w-full rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center my-0.5 relative z-10 border border-rose-500/30">
+                              <img
+                                src={oppCard?.avatarUrl}
+                                alt={oppCard?.name}
+                                onError={(e) => { (e.target as HTMLImageElement).src = getCardImageSvg(oppCard?.id); }}
+                                className="w-full h-full object-contain"
+                              />
+                              {isOppUsed && (
+                                <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                                  <span className="text-[7px] font-mono font-black text-slate-500 uppercase bg-black px-1 rounded border border-slate-800">
+                                    ⬛ ĐÃ DÙNG
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Card Name & Stats */}
+                            <div className="w-full text-center leading-none z-10">
+                              <strong className="block text-[7px] sm:text-[8px] uppercase font-bold truncate text-rose-200">
+                                {oppCard?.name}
+                              </strong>
+                              <span className="text-[6px] sm:text-[7px] font-mono text-yellow-400 block font-bold mt-0.5">
+                                ⚔️{oppCard?.atk} | 🛡️{oppCard?.def}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
 
-                {/* ⚔ KHU VỰC ANIMATION KỸ NĂNG, COMBOS & DAMAGE FLOATS */}
-                <div className="p-2.5 bg-black/80 border border-cyan-500/30 rounded-xl text-center space-y-1 relative min-h-[50px] flex flex-col items-center justify-center overflow-hidden">
+                {/* ⚔ KHU VỰC ANIMATION TẤN CÔNG & COMBAT LOGS */}
+                <div className="p-2.5 bg-black/90 border border-cyan-500/40 rounded-xl text-center space-y-1 relative min-h-[55px] flex flex-col items-center justify-center overflow-hidden shadow-[inset_0_0_15px_rgba(0,240,255,0.15)]">
+                  {/* Floating Damage Overlay */}
+                  {damageFloats.map((f) => (
+                    <div
+                      key={f.id}
+                      className="absolute -top-3 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-sm sm:text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/95 px-2.5 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_20px_rgba(239,68,68,0.9)]"
+                    >
+                      <span>💥 -{f.damage} HP</span>
+                      {f.isCritical && <span className="text-[8px] text-yellow-300 font-bold uppercase">CRIT!</span>}
+                    </div>
+                  ))}
+
                   {/* Combo Synergy Badge */}
                   {(() => {
                     const activeCombo = getComboEffect(currentSelectedCard, myHand);
@@ -4506,68 +5248,15 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                     );
                   })()}
 
-                  <p className="text-[10px] font-mono text-cyan-200 leading-relaxed max-w-lg mx-auto">
-                    {roomData?.combatLogs?.[(roomData?.combatLogs?.length || 0) - 1] || '⚔️ Đấu Trường đã sẵn sàng... Hãy chọn kỹ năng tấn công!'}
+                  <p className="text-[10px] sm:text-[11px] font-mono text-cyan-200 leading-relaxed max-w-lg mx-auto font-bold">
+                    {roomData?.combatLogs?.[(roomData?.combatLogs?.length || 0) - 1] || '⚔️ Chọn 1 trong 5 thẻ bài bên dưới để thực hiện đòn đánh hoặc kích hoạt kỹ năng!'}
                   </p>
-                </div>
-
-                {/* YOUR ACTIVE CARD */}
-                <div className="flex flex-col items-center">
-                  <span className="text-[9px] font-mono font-bold text-cyan-300 uppercase tracking-wider mb-1 flex items-center gap-1">
-                    <Sparkles className="w-3 h-3 text-cyan-400" /> THẺ CỦA BẠN (Active Card)
-                  </span>
-
-                  <div className={`p-2 rounded-xl border bg-black/80 relative overflow-hidden flex flex-col items-center justify-between space-y-1 w-32 sm:w-36 transition-all cursor-pointer ${
-                    myActiveCard?.rarity === 'SS'
-                      ? 'ss-card-glow ss-card-3d-hover text-white ring-2 ring-amber-300'
-                      : myActiveCard?.rarity === 'S'
-                      ? 's-card-glow card-3d-hover text-white ring-1 ring-orange-400'
-                      : myActiveCard?.rarity === 'A'
-                      ? 'a-card-glow card-3d-hover text-white ring-1 ring-purple-400'
-                      : roomData?.turn === myPlayerKey && isAttacking
-                      ? 'animate-attack-slash card-3d-hover ring-2 ring-cyan-400'
-                      : 'card-3d-hover border-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.3)]'
-                  }`}>
-                    <RenderRarityParticles rarity={myActiveCard?.rarity} />
-                    {/* Floating Damage Overlay for Player */}
-                    {damageFloats.filter((f) => f.target === myPlayerKey).map((f) => (
-                      <div
-                        key={f.id}
-                        className="absolute -top-2 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-float-damage font-black font-mono text-base text-red-500 drop-shadow-[0_0_12px_rgba(255,0,0,1)] tracking-wider flex items-center gap-1 bg-black/90 px-2 py-0.5 rounded-full border border-red-500/80 shadow-[0_0_15px_rgba(239,68,68,0.8)]"
-                      >
-                        <span>💥 -{f.damage}</span>
-                        {f.isCritical && <span className="text-[8px] text-yellow-300 font-bold uppercase">CRIT!</span>}
-                      </div>
-                    ))}
-
-                    <div className="flex items-center justify-between w-full relative z-10 bg-cyan-950/80 px-1.5 py-0.5 rounded border border-cyan-500/30">
-                      <span className="text-[8px] font-bold text-cyan-300 uppercase truncate">
-                        {myActiveCard?.name || 'Thẻ Của Bạn'}
-                      </span>
-                      <span className={`text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(myActiveCard?.rarity || 'C')}`}>
-                        {myActiveCard?.rarity || 'C'}
-                      </span>
-                    </div>
-
-                    <div className="aspect-[3/4] h-24 sm:h-28 w-full rounded-lg overflow-hidden bg-slate-950 border border-cyan-500/30 flex items-center justify-center relative z-10">
-                      <img
-                        src={myActiveCard?.avatarUrl}
-                        alt={myActiveCard?.name}
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = getCardImageSvg(myActiveCard?.id || 'c1');
-                        }}
-                        className="w-full h-full object-contain"
-                      />
-                    </div>
-
-                    <span className="text-[8.5px] font-mono text-yellow-400 font-bold block">ATK: {myActiveCard?.atk} | DEF: {myActiveCard?.def}</span>
-                  </div>
                 </div>
 
               </div>
 
-              {/* 3. YOUR STATUS & 5 HAND CARDS SELECTION AREA */}
-              <div className="bg-slate-950/90 border border-cyan-500/40 rounded-xl p-3 space-y-2 shadow-[0_0_15px_rgba(0,240,255,0.15)]">
+              {/* 3. PLAYER STATUS & 5 HAND CARDS SELECTION AREA */}
+              <div className="bg-slate-950/95 border border-cyan-500/40 rounded-xl p-3 space-y-2.5 shadow-[0_0_20px_rgba(0,240,255,0.15)]">
                 
                 {/* HP, Energy, Shield Bar */}
                 <div className="space-y-1 font-mono">
@@ -4593,83 +5282,120 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   </div>
                 </div>
 
-                {/* 5 HAND CARDS SELECTION ROW */}
-                <div className="space-y-1 pt-1">
-                  <div className="flex items-center justify-between text-[9px] font-mono text-slate-300">
+                {/* 5 HAND CARDS ROW: | THẺ 1 | THẺ 2 | THẺ 3 | THẺ 4 | THẺ 5 | (FACE-UP CARDS WITH SLIDE-IN ANIMATION) */}
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[9.5px] font-mono text-slate-300">
                     <span className="font-bold text-cyan-300 uppercase flex items-center gap-1">
-                      <Layers className="w-3.5 h-3.5 text-cyan-400" /> [Card1][Card2][Card3][Card4][Card5] THẺ TRÊN TAY
+                      <Layers className="w-3.5 h-3.5 text-cyan-400" /> | THẺ 1 | THẺ 2 | THẺ 3 | THẺ 4 | THẺ 5 | (BÀI CỦA BẠN)
                     </span>
-                    <span className="text-[8px] text-slate-400 font-bold">Chạm để đổi bài</span>
+                    <span className="text-[8px] text-amber-300 font-bold">⚡ Cả hai bên đều thấy bài nhau</span>
                   </div>
 
-                  <div className="flex gap-2 overflow-x-auto pb-1.5 pt-1 px-0.5 snap-x scrollbar-thin scrollbar-thumb-cyan-500/50">
-                    {myHand.map((card: any, idx: number) => {
-                      const isUsed = card.used;
-                      const isSelected = activeCardIdx === idx;
-                      const isEnergyLocked = myEnergy < card.energyCost;
+                  <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                    <AnimatePresence mode="popLayout">
+                      {myHand.slice(0, 5).map((card: any, idx: number) => {
+                        const isUsed = card.used;
+                        const isSelected = activeCardIdx === idx;
 
-                      return (
-                        <div
-                          key={card.instanceId || `my_card_${idx}`}
-                          className="w-20 sm:w-24 shrink-0 snap-center relative"
-                        >
-                          <div
-                            onClick={() => !isUsed && handleSelectCard(idx)}
-                            role="button"
-                            tabIndex={isUsed ? -1 : 0}
-                            className={`w-full p-1.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col items-center justify-between select-none ${
-                              isUsed
-                                ? 'opacity-30 grayscale border-slate-800 bg-slate-950 pointer-events-none'
-                                : isSelected
-                                ? 'bg-gradient-to-b from-purple-900/60 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-[1.03] card-3d-hover'
-                                : card.rarity === 'SS'
-                                ? 'ss-card-glow ss-card-3d-hover bg-slate-950 text-white ring-1 ring-amber-300'
-                                : card.rarity === 'S'
-                                ? 's-card-glow card-3d-hover bg-slate-950 text-white ring-1 ring-orange-400'
-                                : card.rarity === 'A'
-                                ? 'a-card-glow card-3d-hover bg-slate-950 text-white ring-1 ring-purple-400'
-                                : 'bg-black/80 border-white/10 text-slate-400 hover:border-cyan-400/50 card-3d-hover'
-                            }`}
+                        return (
+                          <motion.div
+                            key={card.instanceId || `my_card_${idx}`}
+                            initial={{ y: -60, opacity: 0, scale: 0.7 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            exit={{ y: 60, opacity: 0, scale: 0.5 }}
+                            transition={{
+                              duration: 0.35,
+                              delay: idx * 0.06,
+                              type: 'spring',
+                              stiffness: 300,
+                              damping: 22
+                            }}
+                            className="relative"
                           >
-                            <RenderRarityParticles rarity={card.rarity} />
-                            <span className={`absolute top-0.5 right-0.5 z-20 text-[6.5px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
-                              {card.rarity || 'C'}
-                            </span>
+                            <div
+                              onClick={() => !isUsed && handleSelectCard(idx)}
+                              role="button"
+                              tabIndex={isUsed ? -1 : 0}
+                              className={`w-full p-1 sm:p-1.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col items-center justify-between h-28 sm:h-32 select-none card-3d-hover ${
+                                isUsed
+                                  ? 'opacity-35 grayscale border-slate-900 bg-black/95 pointer-events-none'
+                                  : isSelected
+                                  ? 'bg-gradient-to-b from-purple-900/80 via-slate-900 to-black border-cyan-300 text-white ring-2 ring-cyan-300 shadow-[0_0_20px_rgba(0,240,255,0.8)] scale-105 z-20'
+                                  : 'bg-black/90 border-white/20 text-slate-300 hover:border-cyan-400/60 shadow-[0_0_10px_rgba(0,0,0,0.5)]'
+                              }`}
+                            >
+                              <RenderRarityParticles rarity={card.rarity} />
 
-                            <div className="aspect-[3/4] h-16 sm:h-20 w-full rounded-lg overflow-hidden bg-slate-950 mb-0.5 flex items-center justify-center relative">
-                              <img
-                                src={card.avatarUrl}
-                                alt={card.name}
-                                onError={(e) => {
-                                  (e.target as HTMLImageElement).src = getCardImageSvg(card.id);
-                                }}
-                                className="w-full h-full object-contain"
-                              />
-                            </div>
+                              {/* Card Top Label & Badge */}
+                              <div className="flex items-center justify-between w-full z-10">
+                                <span className="text-[7px] sm:text-[8px] font-mono font-black text-cyan-300 uppercase">
+                                  THẺ {idx + 1}
+                                </span>
+                                <span className={`text-[6px] sm:text-[7px] px-1 py-0.2 rounded border uppercase font-mono ${getRarityBadgeStyle(card.rarity || 'C')}`}>
+                                  {card.rarity || 'C'}
+                                </span>
+                              </div>
 
-                            <div className="w-full text-center leading-none">
-                              <strong className="block text-[8px] uppercase font-bold truncate text-white">{card.name}</strong>
-                              <span className="text-[7px] font-mono text-yellow-400 block font-bold mt-0.5">
-                                {card.atk}/{card.def}
-                              </span>
+                              {/* Card Image */}
+                              <div className="aspect-[3/4] h-14 sm:h-16 w-full rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center relative my-0.5 z-10 border border-cyan-500/30">
+                                <img
+                                  src={card.avatarUrl}
+                                  alt={card.name}
+                                  onError={(e) => { (e.target as HTMLImageElement).src = getCardImageSvg(card.id); }}
+                                  className="w-full h-full object-contain"
+                                />
+                                {isUsed && (
+                                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                                    <span className="text-[7px] font-mono font-black text-slate-500 uppercase bg-black px-1 rounded border border-slate-800">
+                                      ⬛ ĐÃ DÙNG
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Card Name & ATK / DEF */}
+                              <div className="w-full text-center leading-none z-10">
+                                <strong className="block text-[7.5px] sm:text-[8.5px] uppercase font-bold truncate text-white">
+                                  {card.name}
+                                </strong>
+                                <span className="text-[6.5px] sm:text-[7.5px] font-mono text-yellow-400 block font-bold mt-0.5">
+                                  ⚔️{card.atk} | 🛡️{card.def}
+                                </span>
+                              </div>
                             </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          </motion.div>
+                        );
+                      })}
+                    </AnimatePresence>
                   </div>
                 </div>
 
-                {/* READ CARD SKILL DESCRIPTION */}
-                <div className="p-2.5 bg-gradient-to-r from-slate-950 via-purple-950/40 to-slate-950 border border-cyan-500/40 rounded-xl text-[10px] font-mono space-y-1">
-                  <div className="flex items-center justify-between text-yellow-300 font-bold">
-                    <span>📖 Đọc kỹ năng thẻ: {currentSelectedCard?.skillName}</span>
-                    <span className="text-amber-400 bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded text-[9px]">
-                      Tốn: {currentSelectedCard?.energyCost || 2} NL
+                {/* 📖 CHỨC NĂNG BOX (HIỂN THỊ CHI TIẾT KỸ NĂNG THẺ BÀI ĐÃ CHỌN) */}
+                <div className="p-2.5 bg-gradient-to-r from-slate-950 via-purple-950/50 to-slate-950 border-2 border-cyan-400/60 rounded-xl text-[10px] font-mono space-y-1 shadow-[0_0_15px_rgba(0,240,255,0.2)]">
+                  <div className="flex items-center justify-between text-yellow-300 font-bold border-b border-cyan-500/30 pb-1">
+                    <span className="flex items-center gap-1.5 text-xs">
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-spin" />
+                      CHỨC NĂNG: [THẺ {activeCardIdx + 1}] {currentSelectedCard?.name}
+                    </span>
+                    <span className="text-amber-300 bg-amber-500/20 border border-amber-400/50 px-2 py-0.5 rounded text-[9.5px] font-black">
+                      ⚡ Tốn {currentSelectedCard?.energyCost || 1} NL
                     </span>
                   </div>
-                  <p className="text-slate-300 text-[9.5px] leading-relaxed">
-                    {currentSelectedCard?.skillDesc}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1 text-[9px] pt-0.5 text-slate-300">
+                    <div>
+                      Phẩm Cấp: <strong className="text-amber-300">{currentSelectedCard?.rarityName || currentSelectedCard?.rarity}</strong>
+                    </div>
+                    <div>
+                      Chỉ Số: <strong className="text-emerald-400">⚔️ {currentSelectedCard?.atk}</strong> | <strong className="text-cyan-400">🛡️ {currentSelectedCard?.def}</strong>
+                    </div>
+                    <div className="col-span-2 sm:col-span-1">
+                      Kỹ Năng: <strong className="text-cyan-300">{currentSelectedCard?.skillName}</strong>
+                    </div>
+                  </div>
+
+                  <p className="text-slate-200 text-[9.5px] leading-relaxed pt-0.5 bg-black/50 p-1.5 rounded border border-white/10">
+                    💡 <strong className="text-yellow-300">Mô Tả Chức Năng:</strong> {currentSelectedCard?.skillDesc}
                   </p>
                 </div>
 
@@ -4926,6 +5652,26 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
               >
                 <X className="w-5 h-5" />
               </button>
+            </div>
+
+            {/* Official Card Drop Rates Banner */}
+            <div className="p-3 bg-gradient-to-r from-purple-950/80 via-black to-slate-950 rounded-xl border border-amber-400/50 space-y-1.5 shadow-[0_0_20px_rgba(250,204,21,0.15)]">
+              <div className="flex items-center justify-between text-xs font-mono font-bold text-amber-300 uppercase">
+                <span className="flex items-center gap-1.5">
+                  📊 TỈ LỆ RÚT THẺ TRONG TRẬN (CARD DROP RATES)
+                </span>
+                <span className="text-[10px] text-cyan-300 font-normal">
+                  Tổng {FULL_CARD_POOL.length} Thẻ Đấu Trường
+                </span>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 text-center font-mono">
+                {CARD_DRAW_RATES.map((item) => (
+                  <div key={item.rarity} className={`p-1.5 rounded-lg border text-[10px] ${item.color}`}>
+                    <div className="font-black text-xs">{item.percent}</div>
+                    <div className="text-[9px] uppercase opacity-90">{item.name}</div>
+                  </div>
+                ))}
+              </div>
             </div>
 
             {/* Filter Tabs by Role and Rarity */}

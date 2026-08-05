@@ -33,7 +33,7 @@ const STICKERS = [
 ];
 
 export default function ChatPortal({ uid, user }: ChatPortalProps) {
-  const [activeChannel, setActiveChannel] = useState<'global' | 'class' | 'ai'>('global');
+  const [activeChannel, setActiveChannel] = useState<'global' | 'class' | 'ai' | 'arena'>('global');
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [isSending, setIsSending] = useState(false);
@@ -43,18 +43,35 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
   const [aiLoading, setAiLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Subscribe to Global or Class messages
+  // Subscribe to Global, Class, or Arena Live messages
   useEffect(() => {
     if (activeChannel === 'ai') return;
 
-    const channelNode = activeChannel === 'global' ? 'global_chat' : `class_chat/${user?.class || 'N_A'}`;
+    const channelNode = activeChannel === 'global' 
+      ? 'global_chat' 
+      : activeChannel === 'class' 
+        ? `class_chat/${user?.class || 'N_A'}` 
+        : 'live_arena_chat';
+
     const chatRef = ref(db, channelNode);
 
     const unsubscribe = onValue(chatRef, (snap) => {
       const list: ChatMessage[] = [];
       if (snap.exists()) {
         snap.forEach((child) => {
-          list.push({ id: child.key!, ...child.val() });
+          const val = child.val();
+          list.push({ 
+            id: child.key!, 
+            senderId: val.senderId || val.uid || 'system',
+            senderName: val.senderName || val.sender || 'Ẩn danh',
+            senderAvatar: val.senderAvatar,
+            senderTitle: val.senderTitle || val.badge,
+            senderFrame: val.senderFrame,
+            message: val.message,
+            time: val.time || 'vừa xong',
+            timestamp: val.timestamp || Date.now(),
+            sticker: val.sticker
+          });
         });
       }
       // Sort and keep latest 50
@@ -103,9 +120,16 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
 
     setIsSending(true);
     try {
-      const channelNode = activeChannel === 'global' ? 'global_chat' : `class_chat/${user?.class || 'N_A'}`;
-      const payload: ChatMessage = {
+      const channelNode = activeChannel === 'global' 
+        ? 'global_chat' 
+        : activeChannel === 'class' 
+          ? `class_chat/${user?.class || 'N_A'}` 
+          : 'live_arena_chat';
+
+      const payload: any = {
+        uid: uid,
         senderId: uid,
+        sender: user?.name || 'Sinh Viên',
         senderName: user?.name || 'Sinh Viên',
         senderAvatar: user?.avatar || '',
         senderTitle: (user as any)?.title || '',
@@ -113,7 +137,10 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
         message: msgText,
         time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         timestamp: Date.now(),
-        sticker: stickerStr || undefined
+        sticker: stickerStr || undefined,
+        role: user?.role || 'STUDENT',
+        level: user?.level || 1,
+        badge: user?.role === 'TEACHER' ? 'ADMIN' : 'VIP'
       };
 
       await push(ref(db, channelNode), payload);
@@ -148,6 +175,17 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
         </button>
 
         <button
+          onClick={() => setActiveChannel('arena')}
+          className={`p-3.5 rounded-xl font-mono text-xs text-left uppercase tracking-wider flex items-center gap-2.5 transition-all cursor-pointer ${
+            activeChannel === 'arena'
+              ? 'bg-amber-500/20 text-white border-l-4 border-amber-500 pl-4 font-bold'
+              : 'text-slate-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
+          }`}
+        >
+          <Sparkles className="w-4 h-4 text-amber-400" /> 🔥 Đấu Trường Live
+        </button>
+
+        <button
           onClick={() => setActiveChannel('class')}
           className={`p-3.5 rounded-xl font-mono text-xs text-left uppercase tracking-wider flex items-center gap-2.5 transition-all cursor-pointer ${
             activeChannel === 'class'
@@ -177,7 +215,7 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
           <div className="flex items-center gap-2">
             <span className="w-2.5 h-2.5 rounded-full bg-[#00ff80] animate-pulse"></span>
             <span className="font-mono text-xs font-black uppercase text-white tracking-widest">
-              {activeChannel === 'global' ? '🌍 Toàn hệ thống' : activeChannel === 'class' ? `🏫 Lớp ${user?.class}` : '🤖 Trợ lý AI Core'}
+              {activeChannel === 'global' ? '🌍 Toàn hệ thống' : activeChannel === 'arena' ? '🔥 Chat Đấu Trường Live' : activeChannel === 'class' ? `🏫 Lớp ${user?.class}` : '🤖 Trợ lý AI Core'}
             </span>
           </div>
           <span className="text-[10px] text-[#8b949e] font-mono uppercase">

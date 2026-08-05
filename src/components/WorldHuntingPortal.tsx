@@ -303,7 +303,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
   // Hunting Energy System (Max 100)
   const [energy, setEnergy] = useState(100);
   const MAX_ENERGY = 100;
-  const SHOT_ENERGY_COST = 10;
+  const SHOT_ENERGY_COST = 5;
 
   // Real-Time Economy & Difficulty Settings from Admin Portal
   const [huntingSettings, setHuntingSettings] = useState({
@@ -459,24 +459,21 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [energy, arrowAngle, bulletCost, useCustomBet, customBulletCost, localPP, activeZone, showQTEModal, showBossChallenge, showRulesModal, showShopModal]);
 
-  // Start QTE Reflex Mini-Game Sequence (3 seconds duration)
+  // Start QTE Reflex Mini-Game Sequence (6 seconds duration - easier reflex)
   const startQTEReflexChallenge = () => {
-    const pLevel = user?.level || Math.floor((user?.pp || 0) / 100000) + 1;
-    // High-level players require longer combos (6 to 8 keys), low-level players get 4 keys
-    const seqLength = pLevel >= 10 ? Math.min(8, 5 + Math.floor(pLevel / 6)) : 4;
-    const seq = Array.from({ length: seqLength }, () => QTE_KEYS[Math.floor(Math.random() * QTE_KEYS.length)]);
+    const seq = Array.from({ length: 4 }, () => QTE_KEYS[Math.floor(Math.random() * QTE_KEYS.length)]);
     setQteSequence(seq);
     setQteIndex(0);
-    setQteTimeLeft(3.0); // 3 seconds reflex challenge
+    setQteTimeLeft(6.0); // 6.0 seconds reflex challenge (easier)
     setShowQTEModal(true);
   };
 
-  // Trigger World Boss Spawn Event
+  // Trigger World Boss Spawn Event - Spawns randomly in ONE of the 3 zones
   const triggerWorldBossSpawn = () => {
     playWorldBossSpawnSound();
-    setActiveZone(3);
+    const randomZone = (Math.floor(Math.random() * 3) + 1) as 1 | 2 | 3;
     setBossDamageMap({}); // Reset World Boss damage leaderboard for new Boss
-    const calculatedHp = Math.floor(300000000 * (huntingSettings.bossHpMultiplier || 1.0));
+    const calculatedHp = Math.floor(30000000 * (huntingSettings.bossHpMultiplier || 1.0)); // 30M HP (easier)
     const bossBeast: Beast = {
       id: `world_boss_${Date.now()}`,
       name: 'BÁ CHỦ RỒNG THẦN CỔ ĐẠI',
@@ -489,7 +486,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
       vx: 0.2 * (huntingSettings.beastSpeedMultiplier || 1.0),
       vy: 0.1 * (huntingSettings.beastSpeedMultiplier || 1.0),
       tier: 'BOSS',
-      zoneId: 3
+      zoneId: randomZone
     };
     setBeasts((prev) => [...prev.filter((b) => b.tier !== 'BOSS'), bossBeast]);
     startQTEReflexChallenge();
@@ -1041,7 +1038,7 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
                 const critChance = activeBuff === 'CRIT_BOOST' ? 0.50 : 0.12;
                 const isCritShot = bullet.isCritical || (Math.random() < critChance); 
                 const critMultiplier = isCritShot ? (3.8 * roleCritBonus * randomVariance) : randomVariance;
-                let calculatedDmg = Math.max(50, Math.floor((bullet.bulletCost / 250) * critMultiplier));
+                let calculatedDmg = Math.max(200, Math.floor((bullet.bulletCost / 75) * critMultiplier));
                 if (activeBuff === 'DMG_2X') {
                   calculatedDmg *= 2;
                 }
@@ -1461,6 +1458,11 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
             <div className="text-[10px] text-slate-300 font-sans">
               Độ khó: DỄ • Cược: 1k - 100k PP
             </div>
+            {beasts.some((b) => b.tier === 'BOSS' && b.zoneId === 1) && (
+              <span className="text-[9px] font-black text-red-400 bg-red-950/80 border border-red-500/50 px-2 py-0.5 rounded animate-pulse inline-block">
+                🔥 BOSS ĐANG XUẤT HIỆN TẠI ĐÂY!
+              </span>
+            )}
           </div>
           {activeZone === 1 && <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-ping" />}
         </button>
@@ -1481,6 +1483,11 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
             <div className="text-[10px] text-slate-300 font-sans">
               Độ khó: TRUNG BÌNH • Cược: 10k - 10M PP
             </div>
+            {beasts.some((b) => b.tier === 'BOSS' && b.zoneId === 2) && (
+              <span className="text-[9px] font-black text-red-400 bg-red-950/80 border border-red-500/50 px-2 py-0.5 rounded animate-pulse inline-block">
+                🔥 BOSS ĐANG XUẤT HIỆN TẠI ĐÂY!
+              </span>
+            )}
           </div>
           {activeZone === 2 && <span className="w-2.5 h-2.5 rounded-full bg-amber-400 animate-ping" />}
         </button>
@@ -1490,17 +1497,22 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
           onClick={() => setActiveZone(3)}
           className={`p-4 rounded-2xl border transition-all text-left flex items-center justify-between cursor-pointer ${
             activeZone === 3
-              ? 'bg-gradient-to-r from-red-950 to-slate-900 border-red-500 shadow-[0_0_25px_rgba(255,0,60,0.5)] animate-pulse'
+              ? 'bg-gradient-to-r from-red-950 to-slate-900 border-red-500 shadow-[0_0_25px_rgba(255,0,60,0.5)]'
               : 'bg-slate-950/80 border-white/10 hover:border-white/30 text-slate-400'
           }`}
         >
           <div className="space-y-1">
             <div className="flex items-center gap-2 text-xs font-black uppercase text-red-500">
-              <Flame className="w-4 h-4 text-red-500 animate-bounce" /> KHU 3: HANG RỒNG (SĂN BOSS)
+              <Flame className="w-4 h-4 text-red-500 animate-bounce" /> KHU 3: HANG RỒNG CỔ ĐẠI
             </div>
             <div className="text-[10px] text-slate-300 font-sans">
               Độ khó: SIÊU KHÓ • Tự do đến TỶ PP
             </div>
+            {beasts.some((b) => b.tier === 'BOSS' && b.zoneId === 3) && (
+              <span className="text-[9px] font-black text-red-400 bg-red-950/80 border border-red-500/50 px-2 py-0.5 rounded animate-pulse inline-block">
+                🔥 BOSS ĐANG XUẤT HIỆN TẠI ĐÂY!
+              </span>
+            )}
           </div>
           {activeZone === 3 && <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />}
         </button>
@@ -1573,15 +1585,21 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
       </div>
 
       {/* World Boss Spawn Flashing Red Alert Banner */}
-      {(activeZone === 3 || beasts.some((b) => b.tier === 'BOSS')) && (
+      {beasts.some((b) => b.tier === 'BOSS') && (
         <div className="bg-gradient-to-r from-red-950 via-red-900 to-amber-950 border-2 border-red-500 text-red-100 p-3 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3 animate-pulse shadow-[0_0_35px_rgba(255,0,60,0.8)] font-mono text-xs">
           <div className="flex items-center gap-2 font-black uppercase text-red-400 text-xs sm:text-sm">
             <ShieldAlert className="w-6 h-6 text-red-500 animate-bounce shrink-0" />
-            <span>⚠️ CẢNH BÁO BOSS THẾ GIỚI: BÁ CHỦ RỒNG THẦN CỔ ĐẠI XUẤT HIỆN! TOÀN SERVER TẬP TRUNG TIÊU DIỆT!</span>
+            <span>⚠️ CẢNH BÁO BOSS THẾ GIỚI: BÁ CHỦ RỒNG THẦN CỔ ĐẠI XUẤT HIỆN TẠI KHU {beasts.find((b) => b.tier === 'BOSS')?.zoneId || 3}! CHUYỂN KHU ĐỂ TIÊU DIỆT!</span>
           </div>
-          <span className="text-[10px] bg-red-600 text-white px-3 py-1 rounded-lg uppercase font-black shrink-0 tracking-widest shadow-md">
-            🔥 GLOBAL BOSS LIVE
-          </span>
+          <button 
+            onClick={() => {
+              const bossZone = beasts.find((b) => b.tier === 'BOSS')?.zoneId;
+              if (bossZone) setActiveZone(bossZone as 1 | 2 | 3);
+            }}
+            className="text-[10px] bg-red-600 hover:bg-red-500 text-white px-3 py-1 rounded-lg uppercase font-black shrink-0 tracking-widest shadow-md cursor-pointer"
+          >
+            🔥 ĐẾN KHU BOSS NGAY
+          </button>
         </div>
       )}
 
@@ -1595,12 +1613,24 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
             onClick={handleCanvasTouchOrClick}
             onTouchStart={handleCanvasTouchOrClick}
             style={{
-              backgroundImage: "url('https://png.pngtree.com/thumb_back/fh260/background/20240329/pngtree-sea-fishes-in-the-deep-aquarium-sea-life-image_15662666.jpg')",
+              backgroundImage: `url('${
+                activeZone === 1
+                  ? 'https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=1200&auto=format&fit=crop&q=80'
+                  : activeZone === 2
+                  ? 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=1200&auto=format&fit=crop&q=80'
+                  : 'https://images.unsplash.com/photo-1578632767115-351597cf2477?w=1200&auto=format&fit=crop&q=80'
+              }')`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
             }}
-            className={`relative w-full h-[380px] sm:h-[480px] md:h-[540px] border-2 border-cyan-500/60 rounded-2xl overflow-hidden shadow-[inset_0_0_80px_rgba(0,240,255,0.3)] select-none cursor-crosshair touch-manipulation ${
-              (activeZone === 3 || beasts.some((b) => b.tier === 'BOSS')) ? 'screen-shake-effect border-red-500 shadow-[0_0_40px_rgba(255,0,60,0.6)]' : ''
+            className={`relative w-full h-[380px] sm:h-[480px] md:h-[540px] border-2 rounded-2xl overflow-hidden select-none cursor-crosshair touch-manipulation transition-all duration-300 ${
+              activeZone === 1
+                ? 'border-cyan-500/60 shadow-[inset_0_0_80px_rgba(0,240,255,0.3)]'
+                : activeZone === 2
+                ? 'border-amber-500/60 shadow-[inset_0_0_80px_rgba(251,191,36,0.3)]'
+                : 'border-red-500/60 shadow-[inset_0_0_80px_rgba(255,0,60,0.4)]'
+            } ${
+              beasts.some((b) => b.tier === 'BOSS' && b.zoneId === activeZone) ? 'screen-shake-effect border-red-500 shadow-[0_0_40px_rgba(255,0,60,0.8)]' : ''
             }`}
           >
             {/* Deep Ocean Aquarium Backdrop & Caustics */}

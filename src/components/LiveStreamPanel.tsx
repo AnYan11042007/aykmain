@@ -10,7 +10,7 @@ import { User } from '../types';
 import { incrementMissionProgress } from '../utils/missions';
 import { getTodayVNString, getVNTimeString } from '../utils/date';
 import { 
-  Tv, Users, Send, Coins, Flame, Trophy, Play, Info, AlertCircle, 
+  Tv, Users, Send, Coins, Flame, Trophy, Play, Info, AlertCircle, AlertTriangle,
   Sparkles, Volume2, Compass, Maximize2, Minimize2, ExternalLink, X, HelpCircle, Clock,
   MessageSquare, Zap, Crown, Award, Heart, ThumbsUp
 } from 'lucide-react';
@@ -28,7 +28,18 @@ const BOT_NAMES = [
   'ĐạiGiaQuận1', 'HọcThầnAYK', 'LắcKinhKông', 'ThầnBàiĐấtCảng', 
   'HípPro99', 'BạchThủLô', 'KiềuNữBếnTre', 'MạnhThườngQuân',
   'CậuCảHảiPhòng', 'CòBayLả', 'TùngSơnBóngĐá', 'LuffyXìDách',
-  'HeoConLonTon', 'DũngSĩGồngLãi', 'ThầyHuấnDạyVăn', 'GiaCátDự'
+  'HeoConLonTon', 'DũngSĩGồngLãi', 'ThầyHuấnDạyVăn', 'GiaCátDự',
+  'NamCương88', 'HoàngTửLắcBát', 'ThánhSoiCầu', 'ThợSănRồng',
+  'BáChủTàiXỉu', 'BéMiuMiu', 'CáoGiàVegas', 'BãoLộc88',
+  'BốGiàAYK', 'TayĐuaF1', 'VuaTiếnLên', 'PhápSưSoiCầu',
+  'MãnhHổCầnThơ', 'CửuLongVương', 'TỷPhúĐấtBắc', 'VuaPháLưới3D',
+  'XạThủSútPhạt', 'ChủSảnhCasino', 'ThiếuGiaHàThành', 'BáChủKhánĐài',
+  'QuânVươngRồng', 'ĐạiCườngVIP', 'AnAnXinhGái', 'BéBôngXìDách',
+  'SharkBình_S88', 'SếpTùng_MTP', 'KhánhThầnThánh', 'ThầnKêChợGạo',
+  'MinhCôngTử', 'DũngGiaoLưu', 'HoàngKimTự', 'TiếnDũng999',
+  'VuaSănHũ_HN', 'HoàngThầnLô', 'CậuBéChămChỉ', 'CôNàngTiềnTỷ',
+  'ThánhTấtTay', 'HùngCầuBệt', 'LongRồngThần', 'BìnhDươngStar',
+  'LanKiều_VIP', 'ThầyGiaoDịch', 'TríTuệMới', 'CaoThủ102'
 ];
 
 const BOT_COMMENTS: Record<GameType, string[]> = {
@@ -49,12 +60,12 @@ const BOT_COMMENTS: Record<GameType, string[]> = {
     'Tầm này gồng tới x3 là ấm rồi ae.',
     'Nhảy dù sớm cho an toàn, tham thì thâm.',
     'Ối giời ơi vừa bấm cược chưa kịp bay đã nổ x1.02, cay thế!',
-    'Không chiến sinh tử gồng lãi đỉnh cao quá!',
+    'Không chiến sinh tử gồng lãi né đạn đỉnh cao quá!',
     'Gồng x50 giàu sang luôn.',
-    'Tên lửa này chạy bằng cơm hay sao bay khỏe thế!',
+    'Tên lửa này né đạn dồn dập đỉnh quá ae ơi 🚀',
     'Rút sớm ăn chắc mặc bền ae ạ.',
     'Kỷ lục ván trước ai gồng x88 không?',
-    'Mạnh mẽ lên phi thuyền ơi, vút bay nào 🚀'
+    'Mạnh mẽ lên phi thuyền ơi, né đạn vút bay nào 🚀'
   ],
   penalty: [
     'Thủ môn đội bạn hôm nay ngáo ngơ quá, cứ sút góc trái là vào.',
@@ -428,6 +439,12 @@ const getSyncResultForCycle = (cycleId: number, type: GameType) => {
     const d3f = d3 < 1 ? 1 : d3 > 6 ? 6 : d3;
     return { dices: [d1f, d2f, d3f] };
   } else if (type === 'crash') {
+    const cheatKey = 's88_cheat_crash_' + cycleId;
+    const cheatVal = localStorage.getItem(cheatKey);
+    if (cheatVal) {
+      const parsed = parseFloat(cheatVal);
+      if (!isNaN(parsed) && parsed >= 1.0) return parsed;
+    }
     const baseChance = r1;
     let mult = 1.0;
     if (baseChance < 0.1) {
@@ -469,7 +486,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   const [activeTab, setActiveTab] = useState<GameType>('taixiu');
   const [betChoice, setBetChoice] = useState<string>('');
   const [betAmount, setBetAmount] = useState<string>('');
-  const [activeViewerCount, setActiveViewerCount] = useState<number>(195);
+  const [activeViewerCount, setActiveViewerCount] = useState<number>(2850);
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [chatInput, setChatInput] = useState<string>('');
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
@@ -524,7 +541,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           isUser: val.uid === uid
         }));
         list.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
-        setChatMessages(list.slice(-35)); // Keep latest 35 messages
+        setChatMessages(list.slice(-50)); // Keep latest 50 real-time chat messages
       } else {
         setChatMessages([]);
       }
@@ -655,11 +672,17 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
   const crashCycleDuration = 30000;
   const crashBettingSecs = 10;
-  const crashFlightSecs = 15;
 
   const crashCycleId = Math.floor(currentTime / crashCycleDuration);
   const crashTimeElapsed = currentTime % crashCycleDuration;
   const crashSecondsElapsed = crashTimeElapsed / 1000;
+
+  const currentCrashPoint = getSyncResultForCycle(crashCycleId, 'crash') as number;
+
+  const targetFlightSecs = Math.min(
+    18,
+    parseFloat((3.5 * Math.pow(Math.max(0.01, currentCrashPoint - 1.0), 1 / 2.2)).toFixed(2))
+  );
 
   let crashPhase: 'BETTING' | 'FLIGHT' | 'COOLDOWN' = 'BETTING';
   let crashTimerText = '';
@@ -669,13 +692,24 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     crashPhase = 'BETTING';
     crashCountdown = Math.ceil(crashBettingSecs - crashSecondsElapsed);
     crashTimerText = `Đặt cược: ${crashCountdown}s`;
-  } else if (crashSecondsElapsed < crashBettingSecs + crashFlightSecs) {
+  } else if (crashSecondsElapsed < crashBettingSecs + targetFlightSecs) {
     crashPhase = 'FLIGHT';
-    crashTimerText = 'PHI THUYỀN ĐANG BAY!';
+    crashTimerText = 'PHI THUYỀN ĐANG BAY & NÉ ĐẠN!';
   } else {
     crashPhase = 'COOLDOWN';
     crashCountdown = Math.ceil(crashCycleDuration / 1000 - crashSecondsElapsed);
     crashTimerText = `Chuẩn bị phóng: ${crashCountdown}s`;
+  }
+
+  let currentCrashMultiplier = 1.0;
+  if (crashPhase === 'FLIGHT') {
+    const flightElapsed = crashSecondsElapsed - crashBettingSecs;
+    currentCrashMultiplier = parseFloat((1.0 + Math.pow(flightElapsed / 3.5, 2.2)).toFixed(2));
+    if (currentCrashMultiplier >= currentCrashPoint) {
+      currentCrashMultiplier = currentCrashPoint;
+    }
+  } else if (crashPhase === 'COOLDOWN') {
+    currentCrashMultiplier = currentCrashPoint;
   }
 
   const penCycleDuration = 40000;
@@ -797,7 +831,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   }
 
   const currentTxResult = getSyncResultForCycle(txCycleId, 'taixiu') as { dices: number[] };
-  const currentCrashPoint = getSyncResultForCycle(crashCycleId, 'crash') as number;
   const currentPenResult = getSyncResultForCycle(penCycleId, 'penalty') as { target: number; dive: number; isGoal: boolean };
   const currentHorseResult = getSyncResultForCycle(horseCycleId, 'horse') as { winner: number };
   const currentClawResult = getSyncResultForCycle(clawCycleId, 'claw') as { success: boolean; prizeIndex: number };
@@ -869,9 +902,9 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       const now = Date.now();
       setCurrentTime(now);
       setActiveViewerCount((prev) => {
-        const diff = Math.floor(Math.random() * 5) - 2;
+        const diff = Math.floor(Math.random() * 9) - 4;
         const next = prev + diff;
-        return next < 160 ? 160 : next > 280 ? 280 : next;
+        return next < 2450 ? 2450 : next > 3850 ? 3850 : next;
       });
     }, 100);
 
@@ -883,27 +916,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
     return () => clearInterval(timer);
   }, []);
-
-  // Bot simulation chats (Keep only latest 10 items)
-  useEffect(() => {
-    const chatBotInterval = setInterval(() => {
-      const randomBot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-      const gameComments = BOT_COMMENTS[activeTab];
-      const randomComment = gameComments[Math.floor(Math.random() * gameComments.length)];
-      
-      setChatMessages((prev) => {
-        const updated = [...prev, {
-          sender: randomBot,
-          message: randomComment,
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-        }];
-        // Strictly keep only the last 10 messages as requested
-        return updated.slice(-10);
-      });
-    }, 4500);
-
-    return () => clearInterval(chatBotInterval);
-  }, [activeTab]);
 
   // Keep chat auto-scrolled
   useEffect(() => {
@@ -931,9 +943,8 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     dtPhaseRef.current = dtPhase;
   }, [txPhase, crashPhase, penPhase, horsePhase, clawPhase, fcPhase, dtPhase]);
 
-  // Synchronized Live Betting Board Simulation
+  // Synchronized Real-Time Firebase Bets Board Subscription
   useEffect(() => {
-    // Determine the current cycle ID of the active game
     let currentCycle = 0;
     if (activeTab === 'taixiu') currentCycle = txCycleId;
     else if (activeTab === 'crash') currentCycle = crashCycleId;
@@ -943,108 +954,150 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     else if (activeTab === 'fcmobile') currentCycle = fcCycleId;
     else if (activeTab === 'dragontiger') currentCycle = dtCycleId;
 
-    // Reset live bets at the start of a round/cycle
-    // If the user has an active bet for this round, preserve it!
-    const userActiveBet = currentBetPlaced && 
-                          currentBetPlaced.game === activeTab && 
-                          currentBetPlaced.cycleId === currentCycle
-                            ? {
-                                sender: user?.name || 'Sinh Viên',
-                                amount: currentBetPlaced.amount,
-                                choice: currentBetPlaced.choice,
-                                isUser: true
-                              }
-                            : null;
+    const betsRef = ref(db, `live_arena_bets/${activeTab}/${currentCycle}`);
+    const unsubscribe = onValue(betsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const list: LiveBet[] = Object.values(data).map((val: any) => ({
+          sender: val.sender,
+          amount: val.amount,
+          choice: val.choice,
+          isUser: val.uid === uid,
+          isBot: val.isBot
+        }));
+        setLiveBets(list);
+      } else {
+        setLiveBets([]);
+      }
+    });
 
-    // Populate initial randomized seed bets right away
-    const initialBets: LiveBet[] = [];
-    if (userActiveBet) {
-      initialBets.push(userActiveBet);
-    }
+    return () => unsubscribe();
+  }, [activeTab, txCycleId, crashCycleId, penCycleId, horseCycleId, clawCycleId, fcCycleId, dtCycleId, uid]);
 
-    const seedCount = Math.floor(Math.random() * 4) + 4; // 4 to 7 starting bets
-    const choices = activeTab === 'taixiu' ? ['TAI', 'XIU', 'TRIPLE_1', 'TRIPLE_6'] :
-                    activeTab === 'crash' ? ['CRASH_RIDE'] :
-                    activeTab === 'penalty' ? ['GOAL', 'MISS', 'QUAD_0', 'QUAD_1', 'QUAD_2', 'QUAD_3', 'QUAD_4'] :
-                    activeTab === 'horse' ? ['HORSE_1', 'HORSE_2', 'HORSE_3', 'HORSE_4'] :
-                    activeTab === 'claw' ? ['CLAW_WIN', 'CLAW_LOSE'] :
-                    activeTab === 'dragontiger' ? ['DRAGON', 'TIGER', 'TIE'] :
-                    ['FC_BLUE', 'FC_RED', 'FC_DRAW'];
+  // Multi-Game Background Bot Bets Simulation synced into Firebase Realtime Database
+  useEffect(() => {
+    const gameList: GameType[] = ['taixiu', 'crash', 'penalty', 'horse', 'claw', 'fcmobile', 'dragontiger'];
 
     const getBotBetAmount = () => {
       const roll = Math.random();
-      if (roll < 0.85) {
-        // Normal cược under 100k
-        return Math.floor(Math.random() * 90 + 2) * 1000;
-      } else if (roll < 0.95) {
-        // Vài m (1M to 5M)
-        return (Math.floor(Math.random() * 5) + 1) * 1000000;
-      } else if (roll < 0.99) {
-        // Vài chục m (10M to 50M)
-        return (Math.floor(Math.random() * 5) + 1) * 10000000;
-      } else {
-        // Tròn 1 Tỷ PP (1,000,000,000)
-        return 1000000000;
-      }
+      if (roll < 0.60) return (Math.floor(Math.random() * 9) + 1) * 10000; // 10k - 90k
+      if (roll < 0.88) return (Math.floor(Math.random() * 20) + 1) * 50000; // 50k - 1M
+      if (roll < 0.97) return (Math.floor(Math.random() * 10) + 1) * 1000000; // 1M - 10M
+      return (Math.floor(Math.random() * 5) + 1) * 10000000; // 10M - 50M
     };
 
-    for (let i = 0; i < seedCount; i++) {
-      const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-      const amount = getBotBetAmount();
-      // Weigh TRIPLE bets slightly lower for bot realism
-      let choice = choices[Math.floor(Math.random() * choices.length)];
-      if (activeTab === 'taixiu' && (choice === 'TRIPLE_1' || choice === 'TRIPLE_6') && Math.random() > 0.1) {
-        choice = Math.random() > 0.5 ? 'TAI' : 'XIU';
-      }
-      initialBets.push({ sender: bot, amount, choice, isBot: true });
-    }
-    setLiveBets(initialBets);
+    const choicesMap: Record<GameType, string[]> = {
+      taixiu: ['TAI', 'XIU', 'TRIPLE_1', 'TRIPLE_6'],
+      crash: ['CRASH_RIDE'],
+      penalty: ['GOAL', 'MISS', 'QUAD_0', 'QUAD_1', 'QUAD_2', 'QUAD_3', 'QUAD_4'],
+      horse: ['HORSE_1', 'HORSE_2', 'HORSE_3', 'HORSE_4'],
+      claw: ['CLAW_WIN', 'CLAW_LOSE'],
+      dragontiger: ['DRAGON', 'TIGER', 'TIE'],
+      fcmobile: ['FC_BLUE', 'FC_RED', 'FC_DRAW']
+    };
 
-    // Periodically feed new bets when in the BETTING phase
-    const betTickInterval = setInterval(() => {
-      let isBettingPhase = false;
-      if (activeTab === 'taixiu') isBettingPhase = txPhaseRef.current === 'BETTING';
-      else if (activeTab === 'crash') isBettingPhase = crashPhaseRef.current === 'BETTING';
-      else if (activeTab === 'penalty') isBettingPhase = penPhaseRef.current === 'BETTING';
-      else if (activeTab === 'horse') isBettingPhase = horsePhaseRef.current === 'BETTING';
-      else if (activeTab === 'claw') isBettingPhase = clawPhaseRef.current === 'BETTING';
-      else if (activeTab === 'fcmobile') isBettingPhase = fcPhaseRef.current === 'BETTING';
-      else if (activeTab === 'dragontiger') isBettingPhase = dtPhaseRef.current === 'BETTING';
+    const activeCycleMap: Record<GameType, number> = {
+      taixiu: txCycleId,
+      crash: crashCycleId,
+      penalty: penCycleId,
+      horse: horseCycleId,
+      claw: clawCycleId,
+      fcmobile: fcCycleId,
+      dragontiger: dtCycleId
+    };
 
-      if (isBettingPhase && Math.random() < 0.75) {
-        const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-        const amount = getBotBetAmount();
-        let choice = choices[Math.floor(Math.random() * choices.length)];
-        if (activeTab === 'taixiu' && (choice === 'TRIPLE_1' || choice === 'TRIPLE_6') && Math.random() > 0.1) {
-          choice = Math.random() > 0.5 ? 'TAI' : 'XIU';
+    const phaseMap: Record<GameType, boolean> = {
+      taixiu: txPhaseRef.current === 'BETTING',
+      crash: crashPhaseRef.current === 'BETTING',
+      penalty: penPhaseRef.current === 'BETTING',
+      horse: horsePhaseRef.current === 'BETTING',
+      claw: clawPhaseRef.current === 'BETTING',
+      fcmobile: fcPhaseRef.current === 'BETTING',
+      dragontiger: dtPhaseRef.current === 'BETTING'
+    };
+
+    const seededCyclesRef = (window as any)._s88_seeded_cycles || {};
+    (window as any)._s88_seeded_cycles = seededCyclesRef;
+
+    const betTickInterval = setInterval(async () => {
+      for (const gType of gameList) {
+        if (!phaseMap[gType]) continue;
+        const cId = activeCycleMap[gType];
+        const seedKey = `${gType}_${cId}`;
+
+        // Seed initial batch if new cycle starts to make board instantly crowded
+        if (!seededCyclesRef[seedKey]) {
+          seededCyclesRef[seedKey] = true;
+          const choices = choicesMap[gType];
+          const initialBotsCount = Math.floor(Math.random() * 6) + 10; // 10 - 15 bots
+          for (let i = 0; i < initialBotsCount; i++) {
+            const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+            const amount = getBotBetAmount();
+            let choice = choices[Math.floor(Math.random() * choices.length)];
+            if (gType === 'taixiu' && (choice === 'TRIPLE_1' || choice === 'TRIPLE_6') && Math.random() > 0.15) {
+              choice = Math.random() > 0.5 ? 'TAI' : 'XIU';
+            }
+            try {
+              await push(ref(db, `live_arena_bets/${gType}/${cId}`), {
+                uid: 'bot',
+                sender: bot,
+                amount,
+                choice,
+                timestamp: Date.now() - Math.floor(Math.random() * 4000),
+                isBot: true
+              });
+            } catch (e) {}
+          }
         }
 
-        // Push bot bet to chat room for live bustling feel
-        if (Math.random() < 0.65) {
-          setChatMessages((cPrev) => {
-            const updated = [...cPrev, {
-              sender: bot,
-              message: `đã đặt cược ${amount.toLocaleString()} PP vào cửa [${choice}] 🔥`,
-              isBotBet: true,
-              time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
-            }];
-            return updated.slice(-10);
-          });
-        }
+        // Active ongoing bot bets
+        if (Math.random() < 0.80) {
+          const numBetsThisTick = Math.random() < 0.35 ? 2 : 1;
+          const choices = choicesMap[gType];
 
-        setLiveBets((prev) => {
-          // Find if there is a user bet in the existing list
-          const userBet = prev.find(b => b.isUser);
-          const botsOnly = prev.filter(b => !b.isUser);
-          const newBotBet = { sender: bot, amount, choice, isBot: true };
-          const updatedBots = [...botsOnly, newBotBet].slice(-14);
-          return userBet ? [userBet, ...updatedBots] : updatedBots;
-        });
+          for (let k = 0; k < numBetsThisTick; k++) {
+            const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
+            const amount = getBotBetAmount();
+            let choice = choices[Math.floor(Math.random() * choices.length)];
+            if (gType === 'taixiu' && (choice === 'TRIPLE_1' || choice === 'TRIPLE_6') && Math.random() > 0.15) {
+              choice = Math.random() > 0.5 ? 'TAI' : 'XIU';
+            }
+
+            try {
+              await push(ref(db, `live_arena_bets/${gType}/${cId}`), {
+                uid: 'bot',
+                sender: bot,
+                amount,
+                choice,
+                timestamp: Date.now(),
+                isBot: true
+              });
+
+              // Announce bot bet in live_arena_chat for current activeTab
+              if (gType === activeTab && Math.random() < 0.20) {
+                const now = new Date();
+                const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+                await push(ref(db, 'live_arena_chat'), {
+                  sender: bot,
+                  message: `đã đặt cược ${amount.toLocaleString()} PP vào cửa [${choice}] 🔥`,
+                  isBet: true,
+                  betAmount: amount,
+                  betChoice: choice,
+                  game: activeTab,
+                  time,
+                  timestamp: Date.now(),
+                  role: 'BOT',
+                  badge: 'AI VIP'
+                });
+              }
+            } catch (err) {}
+          }
+        }
       }
-    }, 1800);
+    }, 600);
 
     return () => clearInterval(betTickInterval);
-  }, [activeTab, txCycleId, crashCycleId, penCycleId, horseCycleId, clawCycleId, fcCycleId, dtCycleId, currentBetPlaced, user]);
+  }, [activeTab, txCycleId, crashCycleId, penCycleId, horseCycleId, clawCycleId, fcCycleId, dtCycleId]);
 
 
   // Broadcast PIP state changes dynamically
@@ -1073,17 +1126,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
 
 
-  let currentCrashMultiplier = 1.0;
-  if (crashPhase === 'FLIGHT') {
-    const flightElapsed = crashSecondsElapsed - crashBettingSecs;
-    currentCrashMultiplier = parseFloat((1.0 + Math.pow(flightElapsed / 3.5, 2.2)).toFixed(2));
-    if (currentCrashMultiplier >= currentCrashPoint) {
-      currentCrashMultiplier = currentCrashPoint;
-    }
-  } else if (crashPhase === 'COOLDOWN') {
-    currentCrashMultiplier = currentCrashPoint;
-  }
-
   // Auto-evaluation logic on phase change
   useEffect(() => {
     if (!currentBetPlaced || currentBetPlaced.game !== 'taixiu') return;
@@ -1094,7 +1136,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       return;
     }
 
-    if (txPhase === 'REVEAL' && currentBetPlaced && currentBetPlaced.cycleId === txCycleId && !currentBetPlaced.evaluated) {
+    if ((txPhase === 'COOLDOWN' || (txPhase === 'REVEAL' && txSecondsElapsed >= txBettingSecs + txShakingSecs + 4)) && currentBetPlaced && currentBetPlaced.cycleId === txCycleId && !currentBetPlaced.evaluated) {
       const dices = currentTxResult.dices;
       const sum = dices[0] + dices[1] + dices[2];
       const isTriple = dices[0] === dices[1] && dices[1] === dices[2];
@@ -1170,47 +1212,89 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   useEffect(() => {
     if (!currentBetPlaced || currentBetPlaced.game !== 'crash') return;
     if (crashPhase === 'BETTING') {
-      setHasCashedOut(false);
       if (currentBetPlaced && currentBetPlaced.cycleId !== crashCycleId) {
         setCurrentBetPlaced(null);
       }
+      return;
     }
 
     if (crashPhase === 'COOLDOWN' && currentBetPlaced && currentBetPlaced.cycleId === crashCycleId && !currentBetPlaced.evaluated) {
-      if (!hasCashedOut) {
-        const handleLoseCrash = async () => {
-          try {
-            if (uid) {
-              await incrementMissionProgress(uid, 'crash_rides', 1);
-              await incrementMissionProgress(uid, 'game_play', 1);
-            }
-
-            await push(ref(db, 'game_logs'), {
-              uid,
-              name: user?.name || 'Sinh Viên',
-              game: 'Live Phi Thuyền Crash',
-              bet: currentBetPlaced.amount,
-              pnl: -currentBetPlaced.amount,
-              result: 'Thua (Crash)',
-              time: new Date().toLocaleString('vi-VN'),
-              timestamp: Date.now()
-            });
-
-            onShowResult(
-              'PHI THUYỀN BỊ BẮN HỎNG 💥',
-              `Phi thuyền đã phát nổ tại ${currentCrashPoint}x trước khi bạn kịp chốt lời! Mất cọc ${currentBetPlaced.amount.toLocaleString()} PP.`,
-              false
-            );
-
-            setCurrentBetPlaced((prev) => prev ? { ...prev, evaluated: true } : null);
-          } catch (err) {
-            console.error(err);
+      const handleCrashBoom = async () => {
+        try {
+          if (uid) {
+            await incrementMissionProgress(uid, 'game_play', 1);
           }
-        };
-        handleLoseCrash();
-      }
+
+          await push(ref(db, 'game_logs'), {
+            uid,
+            name: user?.name || 'Sinh Viên',
+            game: 'Live Phi Thuyền Crash',
+            bet: currentBetPlaced.amount,
+            pnl: -currentBetPlaced.amount,
+            result: 'Thua',
+            time: new Date().toLocaleString('vi-VN'),
+            timestamp: Date.now()
+          });
+
+          onShowResult(
+            'PHI THUYỀN NỔ TUNG - THẤT BẠI 💥',
+            `Phi thuyền đã bị đạn nổ tung tại mốc ${currentCrashPoint}x trước khi bạn kịp nhảy dù!\n\nMất cược: -${currentBetPlaced.amount.toLocaleString()} PP.`,
+            false
+          );
+
+          setCurrentBetPlaced((prev) => prev ? { ...prev, evaluated: true } : null);
+        } catch (err) {
+          console.error(err);
+        }
+      };
+
+      handleCrashBoom();
     }
-  }, [crashPhase, currentBetPlaced, crashCycleId, hasCashedOut, uid, user]);
+  }, [crashPhase, currentBetPlaced, crashCycleId, uid, user]);
+
+  const handleCrashCashout = async () => {
+    if (!currentBetPlaced || currentBetPlaced.game !== 'crash' || currentBetPlaced.evaluated) return;
+    if (crashPhase !== 'FLIGHT') {
+      alert('Không thể chốt lãi lúc này!');
+      return;
+    }
+
+    const mult = currentCrashMultiplier;
+    const payout = Math.floor(currentBetPlaced.amount * mult);
+    const netProfit = payout - currentBetPlaced.amount;
+
+    try {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      const freshPP = uSnap.val()?.pp || 0;
+
+      await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
+
+      if (uid) {
+        await incrementMissionProgress(uid, 'game_play', 1);
+      }
+
+      await push(ref(db, 'game_logs'), {
+        uid,
+        name: user?.name || 'Sinh Viên',
+        game: 'Live Phi Thuyền Crash',
+        bet: currentBetPlaced.amount,
+        pnl: netProfit,
+        result: 'Thắng',
+        time: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+      });
+
+      onShowResult(
+        'PHI THUYỀN - CHỐT LÃI THÀNH CÔNG 🚀',
+        `Bạn đã nhảy dù né đạn thành công ở mốc [ ${mult}x ]!\n\nThắng lớn: +${payout.toLocaleString()} PP (Lãi thuần: +${netProfit.toLocaleString()} PP).`,
+        true
+      );
+
+      setCurrentBetPlaced((prev) => prev ? { ...prev, evaluated: true } : null);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   useEffect(() => {
     if (!currentBetPlaced || currentBetPlaced.game !== 'penalty') return;
@@ -1221,7 +1305,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       return;
     }
 
-    if (penPhase === 'SHOOTING' && currentBetPlaced && currentBetPlaced.cycleId === penCycleId && !currentBetPlaced.evaluated) {
+    if (penPhase === 'COOLDOWN' && currentBetPlaced && currentBetPlaced.cycleId === penCycleId && !currentBetPlaced.evaluated) {
       const res = currentPenResult;
       
       const isCorrectChoice = (
@@ -1300,7 +1384,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       return;
     }
 
-    if (horsePhase === 'RACING' && currentBetPlaced && currentBetPlaced.cycleId === horseCycleId && !currentBetPlaced.evaluated) {
+    if (horsePhase === 'COOLDOWN' && currentBetPlaced && currentBetPlaced.cycleId === horseCycleId && !currentBetPlaced.evaluated) {
       const res = currentHorseResult;
       const chosenHorse = parseInt(currentBetPlaced.choice.split('_')[1]);
       const won = res.winner === chosenHorse;
@@ -1357,7 +1441,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       return;
     }
 
-    if (clawPhase === 'DROPPING' && currentBetPlaced && currentBetPlaced.cycleId === clawCycleId && !currentBetPlaced.evaluated) {
+    if (clawPhase === 'COOLDOWN' && currentBetPlaced && currentBetPlaced.cycleId === clawCycleId && !currentBetPlaced.evaluated) {
       const res = currentClawResult;
       const isWinChoice = currentBetPlaced.choice === 'CLAW_WIN';
       const won = (isWinChoice && res.success) || (!isWinChoice && !res.success);
@@ -1421,7 +1505,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       return;
     }
 
-    if (fcPhase === 'PLAYING' && currentBetPlaced && currentBetPlaced.cycleId === fcCycleId && !currentBetPlaced.evaluated) {
+    if (fcPhase === 'COOLDOWN' && currentBetPlaced && currentBetPlaced.cycleId === fcCycleId && !currentBetPlaced.evaluated) {
       const res = currentFcResult;
       let matchWinner = 'FC_DRAW';
       if (res.blueScore > res.redScore) matchWinner = 'FC_BLUE';
@@ -1484,7 +1568,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       return;
     }
 
-    if (dtPhase === 'REVEAL' && currentBetPlaced && currentBetPlaced.cycleId === dtCycleId && !currentBetPlaced.evaluated) {
+    if ((dtPhase === 'COOLDOWN' || (dtPhase === 'REVEAL' && dtSecondsElapsed >= dtBettingSecs + 5)) && currentBetPlaced && currentBetPlaced.cycleId === dtCycleId && !currentBetPlaced.evaluated) {
       const res = currentDtResult;
       const dVal = res.dragonVal;
       const tVal = res.tigerVal;
@@ -1633,16 +1717,15 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
         game: activeTab
       });
 
-      // Insert user bet into the list
-      setLiveBets((prev) => [
-        ...prev,
-        {
-          sender: user?.name || 'Sinh Viên',
-          amount: amt,
-          choice: betChoice,
-          isUser: true
-        }
-      ]);
+      // Push user bet to synchronized Realtime Database 'live_arena_bets'
+      await push(ref(db, `live_arena_bets/${activeTab}/${currentCycle}`), {
+        uid: uid,
+        sender: user?.name || 'Sếp AYK',
+        amount: amt,
+        choice: betChoice,
+        timestamp: Date.now(),
+        isBot: false
+      });
 
       // Push bet to synchronized live_arena_chat
       const betChoiceText = betChoice.startsWith('HORSE_') ? `Ngựa #${betChoice.split('_')[1]}` : betChoice;
@@ -1664,57 +1747,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       });
     } catch (err) {
       alert('Lỗi kết nối máy chủ sòng bài!');
-    }
-  };
-
-  const handleCrashCashout = async () => {
-    if (crashPhase !== 'FLIGHT' || !currentBetPlaced || currentBetPlaced.cycleId !== crashCycleId || currentBetPlaced.evaluated || hasCashedOut) return;
-
-    if (currentCrashMultiplier >= currentCrashPoint) {
-      alert('Tên lửa đã nổ!');
-      return;
-    }
-
-    setHasCashedOut(true);
-    const winMult = currentCrashMultiplier;
-    const payout = Math.floor(currentBetPlaced.amount * winMult);
-
-    try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      const freshPP = uSnap.val()?.pp || 0;
-      await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
-
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Live Phi Thuyền Crash',
-        bet: currentBetPlaced.amount,
-        pnl: payout - currentBetPlaced.amount,
-        result: `Thắng (Chốt x${winMult})`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
-
-      // Push win message to synchronized live chat
-      const now = new Date();
-      const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-      await push(ref(db, 'live_arena_chat'), {
-        sender: 'HỆ THỐNG ARENA AYK 🏆',
-        message: `🎉 ${user?.name || 'Sếp'} vừa chốt lời x${winMult}, ăn trọn +${payout.toLocaleString()} PP!`,
-        isWin: true,
-        time,
-        timestamp: Date.now()
-      });
-
-      onShowResult(
-        'RÚT QUÂN THÀNH CÔNG! 🚀',
-        `Chúc mừng bạn chốt lời tại x${winMult}! Húp về +${payout.toLocaleString()} PP!`,
-        true
-      );
-
-      setCurrentBetPlaced((prev) => prev ? { ...prev, evaluated: true } : null);
-    } catch (err) {
-      console.error(err);
     }
   };
 
@@ -1793,7 +1825,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           </div>
         </motion.button>
 
-        {/* Gồng Lãi Stream Thumbnail */}
+        {/* Phi Thuyền Crash Stream Thumbnail */}
         <motion.button
           whileHover={{ scale: 1.02, y: -2 }}
           whileTap={{ scale: 0.98 }}
@@ -1813,13 +1845,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
               FLYING
             </span>
             <span className="text-[7px] text-white/70 font-bold bg-black/40 py-0.5 px-1 rounded">
-              842 xem
+              1,980 xem
             </span>
           </div>
 
           <div className="z-10 text-left">
-            <h4 className="text-white font-black text-[10px] uppercase tracking-wider">🚀 KHÔNG CHIẾN</h4>
-            <p className="text-[8px] text-slate-300 mt-0.5">Phi thuyền bay x100</p>
+            <h4 className="text-white font-black text-[10px] uppercase tracking-wider">🚀 KHÔNG CHIẾN NÉ ĐẠN</h4>
+            <p className="text-[8px] text-slate-300 mt-0.5">Phi thuyền bay & né đạn x100</p>
           </div>
         </motion.button>
 
@@ -1986,16 +2018,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       {/* Grid container: balanced, sleek, bento layout */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
         
-        {/* Stream & Betting HUD container (Span 8) */}
-        
         {/* Stream Player (Span 8) */}
-        {/* Main stream player screen */}
-          <div className="lg:col-span-8 relative aspect-video w-full rounded-2xl bg-black border border-white/5 overflow-hidden flex flex-col justify-between p-4 shadow-2xl group">
+        <div className="lg:col-span-8 relative aspect-video w-full rounded-2xl bg-black border border-white/5 overflow-hidden flex flex-col justify-between p-4 shadow-2xl group">
             
             {/* Stream HUD */}
             <div className="z-10 flex justify-between items-start w-full">
               <div className="flex items-center gap-2">
-                <span className="py-1 px-2.5 bg-red-600 text-white font-black text-[9px] uppercase tracking-wider rounded-md flex items-center gap-1.5">
+                <span className="py-1 px-2.5 bg-red-600 text-white font-black text-[9px] uppercase tracking-wider rounded-md flex items-center gap-1.5 shadow-md">
                   <motion.span 
                     animate={{ scale: [1, 1.3, 1] }}
                     transition={{ repeat: Infinity, duration: 1.2 }}
@@ -2003,14 +2032,14 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                   />
                   LIVE STREAM AYK
                 </span>
-                <span className="py-1 px-2 bg-black/70 border border-white/10 text-white font-mono text-[9px] rounded-md flex items-center gap-1">
-                  <Users className="w-3 h-3 text-red-500 animate-pulse" />
+                <span className="py-1 px-2.5 bg-black/80 border border-white/10 text-white font-mono text-[9px] rounded-md flex items-center gap-1.5 backdrop-blur-md">
+                  <Users className="w-3.5 h-3.5 text-red-500 animate-pulse" />
                   {activeViewerCount} người xem
                 </span>
                 
                 <button
                   onClick={() => setShowRulesModal(true)}
-                  className="py-1 px-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-mono text-[9px] font-black rounded-md flex items-center gap-1 cursor-pointer transition-all uppercase tracking-wider"
+                  className="py-1 px-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-mono text-[9px] font-black rounded-md flex items-center gap-1 cursor-pointer transition-all uppercase tracking-wider shadow-md"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
                   Luật chơi
@@ -2023,15 +2052,15 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                   className={`py-1 px-2.5 rounded-md text-[9px] font-mono font-bold uppercase cursor-pointer flex items-center gap-1 transition-all ${
                     isPipActive 
                       ? 'bg-red-600/20 border border-red-500 text-red-400 text-glow-red' 
-                      : 'bg-black/60 border border-white/10 text-white hover:bg-white/10'
+                      : 'bg-black/60 border border-white/10 text-white hover:bg-white/10 backdrop-blur-md'
                   }`}
                   title="Bật/Tắt chế độ xem thu nhỏ góc màn hình (PIP)"
                 >
                   <Maximize2 className="w-3 h-3" />
                   {isPipActive ? 'PIP: BẬT' : 'CHẾ ĐỘ PIP'}
                 </button>
-                <span className="py-1 px-2 bg-black/60 border border-white/10 text-white font-mono text-[9px] rounded-md">
-                  1080P HD
+                <span className="py-1 px-2.5 bg-black/80 border border-white/10 text-white font-mono text-[9px] rounded-md backdrop-blur-md font-bold">
+                  1080P HD 60FPS
                 </span>
               </div>
             </div>
@@ -2041,51 +2070,66 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
               
               {/* TAI XIU STAGE */}
               {activeTab === 'taixiu' && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#0c0d14] to-[#1a1c29]">
+                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#090b14] via-[#111425] to-[#1a1e36]">
                   {/* Cyber Casino grid lines & glowing radial overlay */}
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.015)_1px,transparent_1px)] bg-[size:20px_20px] opacity-40" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,0,98,0.06)_0%,transparent_70%)]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(0,240,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(0,240,255,0.02)_1px,transparent_1px)] bg-[size:24px_24px] opacity-60" />
+                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,180,0,0.08)_0%,transparent_70%)]" />
+
+                  {/* Audio Equalizer bars to signal live dealer audio */}
+                  <div className="absolute top-4 right-4 flex items-end gap-0.5 h-4 bg-slate-950/70 py-1 px-2 rounded-full border border-white/10 backdrop-blur-md">
+                    <span className="w-0.5 h-2 bg-emerald-400 rounded-full animate-[bounce_0.6s_infinite]" />
+                    <span className="w-0.5 h-3 bg-emerald-400 rounded-full animate-[bounce_0.4s_infinite_delay-100]" />
+                    <span className="w-0.5 h-1.5 bg-emerald-400 rounded-full animate-[bounce_0.8s_infinite_delay-200]" />
+                    <span className="text-[7px] text-emerald-400 font-mono font-bold ml-1">AUDIO LIVE</span>
+                  </div>
 
                   {/* Dealer Info HUD */}
-                  <div className="absolute bottom-4 left-4 flex items-center gap-3 bg-slate-950/80 backdrop-blur-md border border-white/10 py-1.5 px-3 rounded-2xl shadow-xl">
+                  <div className="absolute bottom-4 left-4 flex items-center gap-3 bg-slate-950/85 backdrop-blur-md border border-amber-500/30 py-1.5 px-3 rounded-2xl shadow-2xl">
                     <div className="relative">
                       <img 
                         src="https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&h=80" 
                         alt="Dealer" 
-                        className="w-8 h-8 rounded-full border border-red-500/60 object-cover shadow-md"
+                        className="w-9 h-9 rounded-full border-2 border-amber-400 object-cover shadow-md"
                       />
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-emerald-500 border-2 border-slate-950 rounded-full animate-pulse" />
                     </div>
                     <div className="flex flex-col">
-                      <span className="text-[7px] text-[#8b949e] font-bold uppercase tracking-wider">DEALER LYNA</span>
+                      <span className="text-[8px] text-amber-300 font-black uppercase tracking-wider flex items-center gap-1">
+                        <Sparkles className="w-2.5 h-2.5 text-amber-400" /> DEALER LYNA
+                      </span>
                       <span className="text-[9px] text-white font-medium">
-                        {txPhase === 'BETTING' ? 'Đặt Tài/Xỉu lượm lúa ạ! 🎲' : txPhase === 'SHAKING' ? 'Em lắc mạnh tay nha...' : 'Cùng ngắm kết quả!'}
+                        {txPhase === 'BETTING' ? '🎲 Đặt Tài hay Xỉu nào các sếp ơi!' : txPhase === 'SHAKING' ? '🔥 Em lắc tay thật đều đây ạ...' : '🎉 Chúc mừng các sếp thắng lớn!'}
                       </span>
                     </div>
                   </div>
 
                   {/* VIP Table Center Ring */}
-                  <div className="relative w-44 h-44 flex items-center justify-center">
-                    {/* Golden luxury felt ring */}
-                    <div className="absolute w-40 h-40 rounded-full border-4 border-yellow-500/20 bg-emerald-950/40 shadow-[inset_0_0_30px_rgba(0,255,128,0.15)] flex items-center justify-center">
-                      <div className="w-32 h-32 rounded-full border border-yellow-500/10 bg-emerald-900/10" />
+                  <div className="relative w-48 h-48 flex items-center justify-center">
+                    {/* Golden luxury felt ring with outer glow */}
+                    <div className="absolute w-44 h-44 rounded-full border-4 border-amber-400/40 bg-gradient-to-br from-emerald-950/80 to-slate-950/90 shadow-[0_0_40px_rgba(245,158,11,0.25)] flex items-center justify-center">
+                      <div className="w-36 h-36 rounded-full border border-amber-400/20 bg-emerald-900/20 flex items-center justify-center">
+                        <div className="w-28 h-28 rounded-full border border-dashed border-amber-400/30" />
+                      </div>
                     </div>
                     
                     {/* Golden plate pedestal */}
-                    <div className="absolute w-36 h-8 bg-gradient-to-b from-amber-800 to-amber-950 rounded-full border border-yellow-500/30 bottom-4 shadow-lg"></div>
+                    <div className="absolute w-40 h-9 bg-gradient-to-b from-amber-600 via-amber-800 to-amber-950 rounded-full border-2 border-amber-300 bottom-3 shadow-2xl flex items-center justify-center">
+                      <div className="w-32 h-1 bg-amber-300/40 rounded-full" />
+                    </div>
                     
                     {/* Shaker cup with luxury golden 3D design and Framer Motion bounce */}
                     <motion.div 
                       animate={txPhase === 'SHAKING' ? {
-                        y: [0, -15, 0, -15, 0],
-                        rotate: [0, 12, -12, 12, 0],
+                        y: [0, -22, 0, -22, 0],
+                        rotate: [0, 16, -16, 16, 0],
+                        scale: [1, 1.05, 1, 1.05, 1]
                       } : txPhase === 'REVEAL' ? {
-                        y: -55,
-                        opacity: 0.1,
-                        scale: 0.8,
-                        rotate: 15
+                        y: -65,
+                        opacity: 0.15,
+                        scale: 0.75,
+                        rotate: 20
                       } : txPhase === 'COOLDOWN' ? {
-                        y: -75,
+                        y: -85,
                         opacity: 0
                       } : {
                         y: 0,
@@ -2094,37 +2138,36 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                         rotate: 0
                       }}
                       transition={{
-                        duration: txPhase === 'SHAKING' ? 0.25 : 0.6,
+                        duration: txPhase === 'SHAKING' ? 0.22 : 0.6,
                         repeat: txPhase === 'SHAKING' ? Infinity : 0,
                         ease: "easeInOut"
                       }}
-                      className="absolute bottom-7 w-20 h-22 bg-gradient-to-b from-yellow-400 via-yellow-600 to-amber-800 border border-yellow-300 rounded-t-full shadow-2xl flex flex-col items-center justify-center z-20"
+                      className="absolute bottom-6 w-24 h-26 bg-gradient-to-b from-yellow-300 via-yellow-500 to-amber-800 border-2 border-yellow-200 rounded-t-full shadow-[0_10px_30px_rgba(0,0,0,0.8)] flex flex-col items-center justify-center z-20 overflow-hidden"
                     >
-                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.4)_0%,transparent_60%)] rounded-t-full" />
-                      <div className="w-full h-1 bg-yellow-400/40 my-1 z-10" />
-                      <span className="text-white text-[8px] font-black font-sans tracking-widest z-10 text-shadow-sm">AYK ELITE</span>
-                      <div className="w-full h-1 bg-yellow-400/40 my-1 z-10" />
+                      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.6)_0%,transparent_65%)]" />
+                      <div className="w-full h-1.5 bg-amber-200/50 my-1 z-10" />
+                      <span className="text-slate-950 font-black text-[9px] font-sans tracking-widest z-10 drop-shadow-sm uppercase">AYK VIP 88</span>
+                      <div className="w-full h-1.5 bg-amber-200/50 my-1 z-10" />
                     </motion.div>
 
-                    {/* Highly authentic Asian dices - red dot for 1/4, black for others */}
+                    {/* Highly authentic Asian 3D dices with bevels and red dots */}
                     {(txPhase === 'REVEAL' || txPhase === 'COOLDOWN') && (
-                      <div className="absolute bottom-9 flex gap-2.5 z-10 bg-black/60 p-2 rounded-xl border border-white/10 shadow-2xl backdrop-blur-sm">
+                      <div className="absolute bottom-9 flex gap-3 z-10 bg-black/80 p-2.5 rounded-2xl border-2 border-amber-400/50 shadow-[0_0_30px_rgba(0,0,0,0.9)] backdrop-blur-md">
                         {currentTxResult.dices.map((dieVal, idx) => (
                           <motion.div 
-                            initial={{ scale: 0, rotate: -90, y: 15 }}
-                            animate={{ scale: 1, rotate: idx * 12 - 6, y: 0 }}
-                            transition={{ type: "spring", stiffness: 200, damping: 12, delay: idx * 0.1 }}
+                            initial={{ scale: 0, rotate: -180, y: 30 }}
+                            animate={{ scale: 1, rotate: idx * 10 - 5, y: 0 }}
+                            transition={{ type: "spring", stiffness: 260, damping: 15, delay: idx * 0.12 }}
                             key={idx} 
-                            className="w-8 h-8 bg-slate-50 border-2 border-slate-300 rounded-xl flex items-center justify-center shadow-lg font-black text-slate-900 text-sm relative overflow-hidden"
+                            className="w-9 h-9 bg-gradient-to-br from-slate-50 to-slate-200 border-2 border-slate-300 rounded-xl flex items-center justify-center shadow-[inset_0_2px_4px_rgba(255,255,255,0.9),0_6px_12px_rgba(0,0,0,0.5)] font-black text-slate-900 text-base relative overflow-hidden"
                           >
-                            <div className="absolute inset-0 bg-gradient-to-br from-white to-slate-200" />
-                            <div className="relative font-mono text-base flex items-center justify-center w-full h-full">
+                            <div className="relative font-mono flex items-center justify-center w-full h-full">
                               {dieVal === 1 ? (
-                                <span className="text-red-600 text-xl font-bold">🔴</span>
+                                <span className="text-red-600 text-2xl font-black drop-shadow-xs">🔴</span>
                               ) : dieVal === 4 ? (
-                                <span className="text-red-600 text-base font-bold">4</span>
+                                <span className="text-red-600 text-lg font-black drop-shadow-xs">4</span>
                               ) : (
-                                <span className="text-slate-900 font-extrabold">{dieVal}</span>
+                                <span className="text-slate-950 font-black text-lg">{dieVal}</span>
                               )}
                             </div>
                           </motion.div>
@@ -2136,13 +2179,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                   {/* Neon results banner overlay */}
                   {txPhase === 'REVEAL' && (
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.9, y: -15 }}
+                      initial={{ opacity: 0, scale: 0.8, y: -20 }}
                       animate={{ opacity: 1, scale: 1, y: 0 }}
-                      className="absolute top-12 py-1.5 px-4 bg-slate-950/90 border-2 border-yellow-500/40 rounded-full text-[10px] font-mono font-black uppercase tracking-wider text-white flex items-center gap-2 shadow-[0_0_20px_rgba(234,179,8,0.25)]"
+                      className="absolute top-10 py-2 px-5 bg-slate-950/95 border-2 border-amber-400 rounded-full text-[11px] font-mono font-black uppercase tracking-wider text-white flex items-center gap-2 shadow-[0_0_30px_rgba(245,158,11,0.4)]"
                     >
-                      <Sparkles className="w-3.5 h-3.5 text-yellow-400 animate-pulse" />
-                      KẾT QUẢ: <span className="text-yellow-400 font-extrabold text-glow-gold">{currentTxResult.dices.reduce((a, b) => a + b, 0)} NÚT</span> 
-                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${currentTxResult.dices.reduce((a, b) => a + b, 0) >= 11 ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-cyan-500/20 text-cyan-400 border border-cyan-500/30'}`}>
+                      <Sparkles className="w-4 h-4 text-amber-400 animate-spin" />
+                      KẾT QUẢ: <span className="text-amber-400 font-black text-glow-gold text-sm">{currentTxResult.dices.reduce((a, b) => a + b, 0)} NÚT</span> 
+                      <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black ${currentTxResult.dices.reduce((a, b) => a + b, 0) >= 11 ? 'bg-red-500 text-white shadow-[0_0_10px_rgba(239,68,68,0.5)]' : 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(6,182,212,0.5)]'}`}>
                         {currentTxResult.dices.reduce((a, b) => a + b, 0) >= 11 ? 'TÀI (CHẴN)' : 'XỈU (LẺ)'}
                       </span>
                     </motion.div>
@@ -2150,153 +2193,186 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 </div>
               )}
 
-              {/* ROCKET CRASH STAGE */}
+              {/* ROCKET CRASH STAGE WITH BULLET DODGING */}
               {activeTab === 'crash' && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative bg-[#02050b] overflow-hidden">
+                <div className="w-full h-full flex flex-col items-center justify-center relative bg-[#02050e] overflow-hidden">
                   {/* Space stardust grid & futuristic warp lines */}
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.015)_1px,transparent_1px)] bg-[size:30px_30px]" />
-                  <div className="absolute inset-0 bg-[radial-gradient(circle_at_bottom_left,rgba(6,182,212,0.1)_0%,transparent_60%)]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(6,182,212,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(6,182,212,0.03)_1px,transparent_1px)] bg-[size:32px_32px]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_left,rgba(6,182,212,0.15)_0%,transparent_65%)]" />
 
-                  {/* Star speed trails - warp speed effect as multiplier increases */}
-                  <div className="absolute inset-0 opacity-40 pointer-events-none">
-                    <div className="absolute top-[10%] left-[20%] w-0.5 h-12 bg-gradient-to-b from-cyan-400 to-transparent rounded-full animate-pulse" />
-                    <div className="absolute top-[30%] left-[60%] w-0.5 h-16 bg-gradient-to-b from-cyan-400 to-transparent rounded-full animate-pulse animate-delay-200" />
-                    <div className="absolute top-[50%] left-[10%] w-0.5 h-20 bg-gradient-to-b from-cyan-400 to-transparent rounded-full animate-pulse animate-delay-500" />
-                    <div className="absolute top-[20%] right-[15%] w-0.5 h-14 bg-gradient-to-b from-cyan-400 to-transparent rounded-full animate-pulse" />
-                  </div>
+                  {/* Dynamic Speed Grid / Altitude Axis lines */}
+                  <div className="absolute left-6 bottom-6 top-6 w-0.5 bg-gradient-to-t from-cyan-500/40 via-cyan-500/10 to-transparent" />
+                  <div className="absolute left-6 bottom-6 right-6 h-0.5 bg-gradient-to-r from-cyan-500/40 via-cyan-500/10 to-transparent" />
 
-                  {/* Floating Rocket with realistic fire trail */}
+                  {/* Incoming Lasers & Asteroid Bullets - Rocket Dodging Animations */}
+                  {crashPhase === 'FLIGHT' && (
+                    <div className="absolute inset-0 pointer-events-none overflow-hidden z-0">
+                      {/* Laser Bullet 1 */}
+                      <div className="absolute top-[15%] right-[-10%] w-36 h-2 bg-gradient-to-l from-red-500 via-rose-400 to-transparent rounded-full filter blur-xs animate-pulse"
+                        style={{
+                          transform: `translate(-${((currentTime / 18) % 130)}%, ${((currentTime / 14) % 80)}%) rotate(-22deg)`
+                        }}
+                      />
+                      {/* Laser Bullet 2 */}
+                      <div className="absolute top-[40%] right-[-10%] w-48 h-2 bg-gradient-to-l from-cyan-400 via-sky-300 to-transparent rounded-full filter blur-xs"
+                        style={{
+                          transform: `translate(-${((currentTime / 14) % 140)}%, ${((currentTime / 10) % 90)}%) rotate(-15deg)`
+                        }}
+                      />
+                      {/* Laser Bullet 3 */}
+                      <div className="absolute top-[65%] right-[-10%] w-40 h-2 bg-gradient-to-l from-yellow-400 via-amber-300 to-transparent rounded-full filter blur-xs"
+                        style={{
+                          transform: `translate(-${((currentTime / 16) % 150)}%, -${((currentTime / 12) % 70)}%) rotate(12deg)`
+                        }}
+                      />
+                      {/* Floating DODGED! badges */}
+                      <motion.div 
+                        animate={{ opacity: [0, 1, 0], scale: [0.8, 1.25, 0.9], y: [-10, -45] }}
+                        transition={{ repeat: Infinity, duration: 1.1, ease: "easeOut" }}
+                        className="absolute bottom-1/3 left-1/3 text-[10px] font-mono font-black text-yellow-300 bg-red-950/90 border border-yellow-400 px-3 py-1 rounded-full shadow-[0_0_15px_rgba(234,179,8,0.8)] flex items-center gap-1.5"
+                      >
+                        <span>🛡️ NÉ ĐẠN THẦN TỐC! (+DODGE!)</span>
+                      </motion.div>
+                    </div>
+                  )}
+
+                  {/* Floating Rocket with high-energy jet fire trail & dynamic dodging motion */}
                   {crashPhase === 'FLIGHT' && (
                     <motion.div 
                       animate={{ 
-                        y: [0, -10, 0],
-                        x: [0, 4, 0]
+                        y: [0, -22, 6, -15, 0],
+                        x: [0, 10, -8, 6, 0],
+                        rotate: [45, 54, 38, 50, 45]
                       }}
-                      transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
-                      className="absolute bottom-1/4 left-1/4"
+                      transition={{ repeat: Infinity, duration: 1.1, ease: "easeInOut" }}
+                      className="absolute bottom-1/4 left-1/4 z-10"
                       style={{
-                        transform: `translate(${Math.min(crashSecondsElapsed * 18, 160)}px, -${Math.min(crashSecondsElapsed * 10, 100)}px) rotate(45deg)`
+                        transform: `translate(${Math.min((crashSecondsElapsed - crashBettingSecs) * 22, 210)}px, -${Math.min((crashSecondsElapsed - crashBettingSecs) * 14, 130)}px) rotate(45deg)`
                       }}
                     >
                       <div className="relative flex flex-col items-center">
-                        <span className="text-5xl filter drop-shadow-[0_0_15px_rgba(6,182,212,0.6)]">🚀</span>
-                        {/* Fire booster trail */}
-                        <div className="absolute bottom-[-18px] w-4 h-8 bg-gradient-to-t from-red-500 via-orange-400 to-transparent rounded-full filter blur-xs animate-pulse origin-top scale-y-150" />
-                        <div className="absolute bottom-[-10px] w-2 h-4 bg-yellow-300 rounded-full filter blur-xs" />
+                        <span className="text-6xl filter drop-shadow-[0_0_22px_rgba(6,182,212,0.9)]">🚀</span>
+                        {/* Shield bubble protection while dodging */}
+                        <div className="absolute inset-[-12px] border-2 border-cyan-400/70 rounded-full animate-ping pointer-events-none shadow-[0_0_15px_rgba(6,182,212,0.6)]" />
+                        {/* Double Fire booster trail */}
+                        <div className="absolute bottom-[-24px] w-6 h-12 bg-gradient-to-t from-red-500 via-orange-400 to-transparent rounded-full filter blur-xs animate-pulse origin-top scale-y-150" />
+                        <div className="absolute bottom-[-14px] w-4 h-7 bg-yellow-300 rounded-full filter blur-xs animate-ping" />
                       </div>
                     </motion.div>
                   )}
 
-                  {/* Cinematic crash explosion with warning flashes */}
+                  {/* Instant crash explosion */}
                   {crashPhase === 'COOLDOWN' && (
                     <div className="absolute flex flex-col items-center justify-center animate-[shake_0.5s_infinite] z-10">
                       <motion.div 
-                        initial={{ scale: 0.5, opacity: 0 }}
-                        animate={{ scale: [1, 1.4, 1.2], opacity: 1 }}
-                        className="text-6xl filter drop-shadow-[0_0_20px_rgba(239,68,68,0.8)]"
+                        initial={{ scale: 0.3, opacity: 0 }}
+                        animate={{ scale: [1, 1.7, 1.3], opacity: 1 }}
+                        className="text-8xl filter drop-shadow-[0_0_35px_rgba(239,68,68,0.95)]"
                       >
                         💥
                       </motion.div>
-                      <span className="text-white font-mono text-[10px] uppercase bg-red-950/90 py-1.5 px-4 border-2 border-red-500/50 rounded-2xl mt-4 font-black shadow-[0_0_15px_rgba(239,68,68,0.4)] tracking-wider">
-                        BÙMM! CRASHED @ <span className="text-red-400 text-glow-red font-black text-xs">{currentCrashPoint}x</span>
+                      <span className="text-white font-mono text-xs uppercase bg-red-950/95 py-2.5 px-6 border-2 border-red-500 rounded-2xl mt-4 font-black shadow-[0_0_30px_rgba(239,68,68,0.7)] tracking-wider flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-red-500 animate-bounce" />
+                        BÙMM! CRASHED @ <span className="text-red-400 text-glow-red font-black text-base">{currentCrashPoint}x</span>
                       </span>
                     </div>
                   )}
 
                   {/* High contrast HUD displays */}
                   {crashPhase === 'FLIGHT' && (
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-glow-cyan text-cyan-400 text-5xl font-mono font-black tracking-wide">
+                    <div className="absolute flex flex-col items-center justify-center z-10">
+                      <span className="text-glow-cyan text-cyan-400 text-6xl font-mono font-black tracking-wider drop-shadow-[0_0_30px_rgba(6,182,212,0.7)]">
                         {currentCrashMultiplier}x
                       </span>
-                      <span className="text-[8px] text-white/50 font-mono tracking-widest mt-2 uppercase bg-slate-950/80 border border-white/5 py-1 px-3 rounded-full flex items-center gap-1.5">
-                        <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                        PHI THUYỀN ĐANG BAY CAO...
+                      <span className="text-[9px] text-cyan-200 font-mono tracking-widest mt-3 uppercase bg-slate-950/90 border border-cyan-500/50 py-1.5 px-4 rounded-full flex items-center gap-2 shadow-xl">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                        🛡️ PHI THUYỀN ĐANG NÉ ĐẠN PLASMA & TĂNG TỐC...
                       </span>
                     </div>
                   )}
 
                   {crashPhase === 'BETTING' && (
-                    <div className="absolute flex flex-col items-center justify-center">
-                      <span className="text-glow-cyan text-cyan-400 text-2xl font-mono font-black animate-pulse flex items-center gap-2">
-                        🚀 CHUẨN BỊ BAY
+                    <div className="absolute flex flex-col items-center justify-center z-10">
+                      <span className="text-glow-cyan text-cyan-400 text-2xl sm:text-3xl font-mono font-black animate-pulse flex items-center gap-2 tracking-wide">
+                        🚀 PHI THUYỀN NÉ ĐẠN CHUẨN BỊ BAY
                       </span>
-                      <span className="text-[9px] text-white/80 font-mono tracking-widest mt-2 bg-slate-950/95 py-1.5 px-4 border border-cyan-500/40 rounded-2xl flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-cyan-400 animate-spin" />
-                        CỔNG CƯỢC MỞ: <b className="text-[#00f0ff] font-extrabold text-glow-blue">{crashCountdown}S</b>
+                      <span className="text-[10px] text-white font-mono tracking-widest mt-3 bg-slate-950/95 py-2 px-5 border border-cyan-500/50 rounded-2xl flex items-center gap-2 shadow-xl">
+                        <Clock className="w-4 h-4 text-cyan-400 animate-spin" />
+                        CỔNG CƯỢC MỞ: <b className="text-[#00f0ff] font-black text-sm text-glow-blue">{crashCountdown}S</b>
                       </span>
                     </div>
                   )}
                 </div>
               )}
 
+              {/* ROCKET CRASH STAGE */}
               {/* PENALTY STAGE */}
               {activeTab === 'penalty' && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#021808] to-[#010903] overflow-hidden">
-                  {/* Soccer stadium pitch patterns with perspective */}
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.05)_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />
-                  <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-emerald-950/30 via-emerald-950/10 to-transparent border-t border-emerald-500/20" />
+                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#011406] via-[#02240b] to-[#010a03] overflow-hidden">
+                  {/* Soccer stadium pitch patterns with perspective grid */}
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(52,211,153,0.08)_1.5px,transparent_1.5px)] bg-[size:18px_18px]" />
+                  <div className="absolute bottom-0 inset-x-0 h-1/2 bg-gradient-to-t from-emerald-950/50 via-emerald-950/20 to-transparent border-t-2 border-emerald-500/30" />
 
                   {/* ESPN-Style Sports HUD score bug */}
-                  <div className="absolute top-12 z-10 flex items-center bg-slate-950/95 border border-white/10 px-4 py-1.5 rounded-full font-mono text-[9px] shadow-[0_4px_25px_rgba(0,0,0,0.8)] gap-3">
-                    <span className="text-emerald-400 font-extrabold tracking-wider">STUDENT</span>
-                    <span className="text-white font-black bg-emerald-900/50 px-2 py-0.5 rounded border border-emerald-500/40">1</span>
+                  <div className="absolute top-10 z-10 flex items-center bg-slate-950/95 border border-emerald-500/30 px-5 py-2 rounded-full font-mono text-[10px] shadow-[0_4px_30px_rgba(0,0,0,0.9)] gap-3">
+                    <span className="text-emerald-400 font-black tracking-wider">STUDENT</span>
+                    <span className="text-white font-black bg-emerald-900/70 px-2.5 py-0.5 rounded-md border border-emerald-500/50 text-xs">1</span>
                     <span className="text-slate-500 font-bold">:</span>
-                    <span className="text-white font-black bg-red-900/50 px-2 py-0.5 rounded border border-red-500/40">1</span>
-                    <span className="text-red-400 font-extrabold tracking-wider">S-BOT</span>
-                    <span className="text-yellow-400 font-black animate-pulse px-1.5 border border-yellow-500/30 rounded text-[8px]">90'</span>
+                    <span className="text-white font-black bg-red-900/70 px-2.5 py-0.5 rounded-md border border-red-500/50 text-xs">1</span>
+                    <span className="text-red-400 font-black tracking-wider">S-BOT</span>
+                    <span className="text-yellow-400 font-black animate-pulse px-2 border border-yellow-500/40 rounded text-[9px]">90'</span>
                   </div>
 
                   {/* Stadium Spotlights representation */}
-                  <div className="absolute top-0 inset-x-0 flex justify-between px-10 pointer-events-none opacity-20">
-                    <div className="w-32 h-64 bg-gradient-to-br from-white/10 to-transparent origin-top rotate-12 blur-md" />
-                    <div className="w-32 h-64 bg-gradient-to-bl from-white/10 to-transparent origin-top -rotate-12 blur-md" />
+                  <div className="absolute top-0 inset-x-0 flex justify-between px-8 pointer-events-none opacity-25">
+                    <div className="w-40 h-72 bg-gradient-to-br from-white/20 to-transparent origin-top rotate-12 blur-lg" />
+                    <div className="w-40 h-72 bg-gradient-to-bl from-white/20 to-transparent origin-top -rotate-12 blur-lg" />
                   </div>
 
                   {/* Goal and Goalpost Net with neon-glow targets */}
-                  <div className="relative w-84 h-38 border-4 border-slate-50/80 border-b-0 rounded-t-xl flex justify-center items-end bottom-1 shadow-[0_0_30px_rgba(255,255,255,0.05)]">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08)_1.5px,transparent_1.5px)] bg-[size:10px_10px] rounded-t-lg" />
+                  <div className="relative w-88 h-40 border-4 border-slate-100 border-b-0 rounded-t-xl flex justify-center items-end bottom-1 shadow-[0_0_40px_rgba(255,255,255,0.1)]">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.12)_1.5px,transparent_1.5px)] bg-[size:10px_10px] rounded-t-lg" />
                     
                     {/* Glowing yellow target corner indicators */}
-                    <div className="absolute inset-x-4 top-2 bottom-2 grid grid-cols-2 grid-rows-2 gap-x-28 gap-y-12 opacity-50 pointer-events-none z-10">
-                      <div className="border border-dashed border-yellow-400 rounded-lg flex items-center justify-center text-[7px] text-yellow-300 font-mono font-bold bg-yellow-500/5 animate-pulse">G1</div>
-                      <div className="border border-dashed border-yellow-400 rounded-lg flex items-center justify-center text-[7px] text-yellow-300 font-mono font-bold bg-yellow-500/5 animate-pulse">G2</div>
-                      <div className="border border-dashed border-yellow-400 rounded-lg flex items-center justify-center text-[7px] text-yellow-300 font-mono font-bold bg-yellow-500/5 animate-pulse">G3</div>
-                      <div className="border border-dashed border-yellow-400 rounded-lg flex items-center justify-center text-[7px] text-yellow-300 font-mono font-bold bg-yellow-500/5 animate-pulse">G4</div>
+                    <div className="absolute inset-x-4 top-2 bottom-2 grid grid-cols-2 grid-rows-2 gap-x-32 gap-y-14 opacity-60 pointer-events-none z-10">
+                      <div className="border-2 border-dashed border-yellow-400 rounded-xl flex items-center justify-center text-[8px] text-yellow-300 font-mono font-bold bg-yellow-500/10 animate-pulse">G1 GÓC CAO TRÁI</div>
+                      <div className="border-2 border-dashed border-yellow-400 rounded-xl flex items-center justify-center text-[8px] text-yellow-300 font-mono font-bold bg-yellow-500/10 animate-pulse">G2 GÓC CAO PHẢI</div>
+                      <div className="border-2 border-dashed border-yellow-400 rounded-xl flex items-center justify-center text-[8px] text-yellow-300 font-mono font-bold bg-yellow-500/10 animate-pulse">G3 GÓC THẤP TRÁI</div>
+                      <div className="border-2 border-dashed border-yellow-400 rounded-xl flex items-center justify-center text-[8px] text-yellow-300 font-mono font-bold bg-yellow-500/10 animate-pulse">G4 GÓC THẤP PHẢI</div>
                     </div>
 
                     {/* Goalkeeper styled with gloves and jersey */}
-                    <div className="absolute bottom-0 w-16 h-22 bg-gradient-to-b from-orange-400 via-orange-600 to-amber-700 rounded-t-full border-2 border-slate-50 flex flex-col items-center justify-center shadow-2xl transition-all duration-300 z-10"
+                    <div className="absolute bottom-0 w-18 h-24 bg-gradient-to-b from-orange-400 via-orange-600 to-amber-700 rounded-t-full border-2 border-white flex flex-col items-center justify-center shadow-2xl transition-all duration-300 z-10"
                       style={
                         penPhase === 'SHOOTING'
                           ? {
                               transform: `translate(${
-                                currentPenResult.dive === 0 ? '-90px' :
-                                currentPenResult.dive === 1 ? '90px' :
-                                currentPenResult.dive === 2 ? '-65px, 15px' :
-                                currentPenResult.dive === 3 ? '65px, 15px' : '0'
+                                currentPenResult.dive === 0 ? '-95px' :
+                                currentPenResult.dive === 1 ? '95px' :
+                                currentPenResult.dive === 2 ? '-70px, 15px' :
+                                currentPenResult.dive === 3 ? '70px, 15px' : '0'
                               })`
                             }
                           : {}
                       }
                     >
                       <span className="text-3xl filter drop-shadow-md">🧤</span>
-                      <span className="text-[7px] font-mono font-black text-white bg-black/80 px-1.5 rounded border border-white/20 uppercase tracking-widest mt-1">AYK-GK</span>
+                      <span className="text-[7px] font-mono font-black text-white bg-black/90 px-2 py-0.5 rounded border border-white/30 uppercase tracking-widest mt-1">AYK-GK</span>
                     </div>
 
                     {/* Soccer ball with glowing speed trails */}
                     {penPhase === 'SHOOTING' && (
                       <motion.div 
                         animate={{ rotate: 720 }}
-                        transition={{ repeat: Infinity, duration: 0.15, ease: "linear" }}
-                        className="absolute bottom-[-32px] w-9 h-9 rounded-full bg-white border border-slate-900 flex items-center justify-center text-sm shadow-[0_0_20px_rgba(255,255,255,0.8)] transition-all duration-500 z-20"
+                        transition={{ repeat: Infinity, duration: 0.12, ease: "linear" }}
+                        className="absolute bottom-[-32px] w-10 h-10 rounded-full bg-white border border-slate-900 flex items-center justify-center text-base shadow-[0_0_25px_rgba(255,255,255,0.9)] transition-all duration-500 z-20"
                         style={{
                           transform: `translate(${
-                            currentPenResult.target === 0 ? '-100px, -115px' :
-                            currentPenResult.target === 1 ? '100px, -115px' :
-                            currentPenResult.target === 2 ? '-80px, -45px' :
-                            currentPenResult.target === 3 ? '80px, -45px' : '0px, -70px'
-                          }) scale(0.55)`
+                            currentPenResult.target === 0 ? '-105px, -120px' :
+                            currentPenResult.target === 1 ? '105px, -120px' :
+                            currentPenResult.target === 2 ? '-85px, -50px' :
+                            currentPenResult.target === 3 ? '85px, -50px' : '0px, -75px'
+                          }) scale(0.6)`
                         }}
                       >
                         ⚽
@@ -2306,21 +2382,21 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
                   {/* Cinematic goal or save alerts */}
                   {penPhase === 'COOLDOWN' && (
-                    <div className="absolute bottom-16 text-center z-20 bg-slate-950/95 px-5 py-2.5 rounded-2xl border border-white/10 shadow-2xl">
-                      <span className={`font-black font-mono text-sm text-glow tracking-widest block ${
+                    <div className="absolute bottom-14 text-center z-20 bg-slate-950/95 px-6 py-3 rounded-2xl border border-emerald-500/40 shadow-2xl backdrop-blur-md">
+                      <span className={`font-black font-mono text-base text-glow tracking-widest block ${
                         currentPenResult.isGoal ? 'text-emerald-400 text-glow-emerald animate-bounce' : 'text-red-500 text-glow-red'
                       }`}>
                         {currentPenResult.isGoal ? '⚽ GOOOAL! BÓNG VÀO LƯỚI!' : '🧤 CẢN PHÁ XUẤT THẦN!'}
                       </span>
-                      <span className="text-[8px] text-[#8b949e] font-mono block mt-1 uppercase">
-                        {currentPenResult.isGoal ? 'Cú sút phạt hiểm hóc xé toạc mành lưới' : 'Thủ môn đoán chuẩn hướng bóng ôm gọn'}
+                      <span className="text-[9px] text-[#8b949e] font-mono block mt-1 uppercase font-bold">
+                        {currentPenResult.isGoal ? 'Cú sút phạt hiểm hóc xé toạc mành lưới thủ môn!' : 'Thủ môn đoán chuẩn hướng bóng ôm gọn ngoạn mục'}
                       </span>
                     </div>
                   )}
 
                   {penPhase === 'BETTING' && (
-                    <div className="absolute bottom-16 text-center z-10">
-                      <span className="text-glow-emerald text-emerald-400 text-[9px] font-mono font-black bg-slate-950/95 py-1.5 px-4 rounded-full border border-emerald-500/30 tracking-wider animate-pulse uppercase">
+                    <div className="absolute bottom-14 text-center z-10">
+                      <span className="text-glow-emerald text-emerald-400 text-[10px] font-mono font-black bg-slate-950/95 py-2 px-5 rounded-full border border-emerald-500/40 tracking-wider animate-pulse uppercase shadow-lg">
                         ⚽ LƯỢT SÚT PHẠT ĐANG MỞ ĐẶT CƯỢC ⚽
                       </span>
                     </div>
@@ -2330,12 +2406,12 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
               {/* HORSE RACING STAGE */}
               {activeTab === 'horse' && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#111910] to-[#1e2d1d] p-4">
+                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#0e160d] to-[#1a2818] p-4">
                   {/* Cyber race track stardust overlay */}
-                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,128,0.03)_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />
+                  <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,255,128,0.04)_1.5px,transparent_1.5px)] bg-[size:18px_18px]" />
                   
                   {/* High Tech Neon Dirt Track */}
-                  <div className="w-[95%] h-36 bg-amber-950/15 border border-yellow-500/20 rounded-2xl relative overflow-hidden p-2 flex flex-col justify-between shadow-inner backdrop-blur-xs">
+                  <div className="w-[96%] h-40 bg-amber-950/20 border-2 border-yellow-500/30 rounded-2xl relative overflow-hidden p-2.5 flex flex-col justify-between shadow-[inset_0_0_30px_rgba(0,0,0,0.8)] backdrop-blur-xs">
                     
                     {/* Glowing lanes */}
                     {[1, 2, 3, 4].map((num) => {
@@ -2344,7 +2420,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                         const elapsed = horseSecondsElapsed - horseBettingSecs;
                         const progress = elapsed / horseRacingSecs; // 0 to 1
                         
-                        // Deterministic horse speeds with winning horse getting ahead at the end.
                         const isWinner = currentHorseResult.winner === num;
                         const wobble = Math.abs(Math.sin(elapsed * 15 + num)) * 1.8;
                         const baseSpeed = progress * 72;
@@ -2359,28 +2434,28 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                       }
 
                       return (
-                        <div key={num} className="h-6 border-b border-dashed border-white/10 last:border-0 flex items-center relative w-full">
-                          <span className="absolute left-1 text-[8px] font-mono text-[#00ff80]/60 font-bold">L.{num}</span>
+                        <div key={num} className="h-7 border-b border-dashed border-white/15 last:border-0 flex items-center relative w-full">
+                          <span className="absolute left-1 text-[9px] font-mono text-[#00ff80] font-black">L.{num}</span>
                           
                           {/* Running horse emoji with dust effect */}
                           <div
                             style={{ left: `${xOffset}%` }}
                             className="absolute flex items-center gap-1.5 transition-all duration-300"
                           >
-                            <span className="text-xl filter drop-shadow-md animate-[bounce_0.3s_infinite_alternate]">🐎</span>
+                            <span className="text-2xl filter drop-shadow-md animate-[bounce_0.25s_infinite_alternate]">🐎</span>
                             {/* Dust cloud representation */}
                             {horsePhase === 'RACING' && (
-                              <div className="w-1.5 h-1.5 bg-yellow-600/30 rounded-full filter blur-xs animate-ping shrink-0" />
+                              <div className="w-2 h-2 bg-yellow-600/40 rounded-full filter blur-xs animate-ping shrink-0" />
                             )}
-                            <span className={`text-[7px] font-mono font-black px-1 py-0.5 rounded-sm border ${
-                              currentHorseResult.winner === num && horsePhase === 'COOLDOWN' ? 'border-amber-400 bg-amber-400 text-black shadow-[0_0_8px_rgba(234,179,8,0.4)]' : 'border-white/20 text-white bg-slate-900/60'
+                            <span className={`text-[8px] font-mono font-black px-1.5 py-0.5 rounded border ${
+                              currentHorseResult.winner === num && horsePhase === 'COOLDOWN' ? 'border-amber-400 bg-amber-400 text-black shadow-[0_0_12px_rgba(234,179,8,0.6)] font-bold' : 'border-white/20 text-white bg-slate-900/80'
                             }`}>
                               #{num}
                             </span>
                           </div>
                           
                           {/* Finish Line checkerboard */}
-                          <div className="absolute right-12 top-0 bottom-0 w-1.5 bg-[repeating-linear-gradient(45deg,#fff,#fff_4px,#000_4px,#000_8px)] opacity-60" />
+                          <div className="absolute right-12 top-0 bottom-0 w-2 bg-[repeating-linear-gradient(45deg,#fff,#fff_4px,#000_4px,#000_8px)] opacity-70 border-x border-amber-400" />
                         </div>
                       );
                     })}
@@ -2388,17 +2463,17 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
                   {/* High contrast announcements */}
                   {horsePhase === 'BETTING' && (
-                    <div className="absolute top-12 py-1 px-4 bg-slate-950/95 border border-yellow-500/40 rounded-full text-[9px] font-mono font-black uppercase text-white animate-pulse">
-                      🏁 CHUẨN BỊ XUẤT PHÁT: <span className="text-yellow-400 text-glow-gold">{horseCountdown}S</span>
+                    <div className="absolute top-10 py-1.5 px-5 bg-slate-950/95 border border-yellow-500/50 rounded-full text-[10px] font-mono font-black uppercase text-white animate-pulse shadow-lg">
+                      🏁 CHUẨN BỊ XUẤT PHÁT: <span className="text-yellow-400 text-glow-gold font-bold">{horseCountdown}S</span>
                     </div>
                   )}
 
                   {horsePhase === 'COOLDOWN' && (
-                    <div className="absolute bottom-16 text-center z-10 bg-slate-950/95 px-5 py-2.5 rounded-2xl border-2 border-yellow-500/30 shadow-2xl animate-[bounce_1s_infinite_alternate]">
-                      <span className="font-black font-mono text-xs text-yellow-400 text-glow-gold tracking-wider block">
+                    <div className="absolute bottom-14 text-center z-10 bg-slate-950/95 px-6 py-3 rounded-2xl border-2 border-yellow-500/40 shadow-2xl animate-[bounce_1s_infinite_alternate]">
+                      <span className="font-black font-mono text-sm text-yellow-400 text-glow-gold tracking-wider block">
                         🏆 CHIẾN MÃ SỐ {currentHorseResult.winner} VÔ ĐỊCH!
                       </span>
-                      <span className="text-[8px] text-[#8b949e] font-mono block mt-1 uppercase">
+                      <span className="text-[9px] text-[#8b949e] font-mono block mt-1 uppercase font-bold">
                         Sải bước thần tốc, giành cúp vinh quang vàng ròng
                       </span>
                     </div>
@@ -2408,13 +2483,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
               {/* CLAW MACHINE STAGE */}
               {activeTab === 'claw' && (
-                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#130b17] to-[#26152b] p-4">
+                <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#130b1a] via-[#1f102b] to-[#2c143c] p-4">
                   {/* Neon retro grid background */}
-                  <div className="absolute inset-0 bg-[linear-gradient(rgba(236,72,153,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(236,72,153,0.015)_1px,transparent_1px)] bg-[size:18px_18px]" />
+                  <div className="absolute inset-0 bg-[linear-gradient(rgba(236,72,153,0.025)_1px,transparent_1px),linear-gradient(90deg,rgba(236,72,153,0.025)_1px,transparent_1px)] bg-[size:20px_20px]" />
                   
                   {/* Dynamic Conveyor Belt with neon reflection */}
-                  <div className="absolute bottom-8 w-full h-12 bg-purple-950/30 border-y border-purple-500/20 flex items-center overflow-hidden">
-                    <div className="flex gap-8 text-xl animate-[marquee_12s_linear_infinite]">
+                  <div className="absolute bottom-8 w-full h-14 bg-purple-950/40 border-y-2 border-purple-500/30 flex items-center overflow-hidden">
+                    <div className="flex gap-10 text-2xl animate-[marquee_12s_linear_infinite]">
                       {['🧸', '🦄', '🐉', '🐱', '🦊', '🐼', '🐯', '🐰'].map((emoji, idx) => {
                         const isCaught = clawPhase === 'COOLDOWN' && currentClawResult.success && currentClawResult.prizeIndex === idx % 5;
                         return (
@@ -2453,17 +2528,17 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                     return (
                       <div className="absolute inset-x-0 top-0 h-full pointer-events-none z-10 flex justify-center w-full">
                         {/* Metal steel wire */}
-                        <div className="w-0.5 bg-slate-300 shadow-[0_0_8px_rgba(255,255,255,0.4)]" style={{ height: `${clawY}%` }} />
+                        <div className="w-1 bg-gradient-to-b from-slate-200 to-slate-400 shadow-[0_0_10px_rgba(255,255,255,0.6)]" style={{ height: `${clawY}%` }} />
                         
                         {/* Mechanical Claw with drop shadows */}
                         <div className="absolute flex flex-col items-center transition-all duration-200" style={{ top: `${clawY}%` }}>
-                          <span className="text-3xl filter drop-shadow-[0_0_10px_rgba(236,72,153,0.5)]">
+                          <span className="text-4xl filter drop-shadow-[0_0_15px_rgba(236,72,153,0.7)]">
                             {clawPhase === 'DROPPING' && clawSecondsElapsed - clawBettingSecs > 4.5 && grabbedToy ? '🤏' : '🎣'}
                           </span>
                           
                           {/* Snatched Toy inside claw claw */}
                           {grabbedToy && (
-                            <span className="text-xl mt-[-4px] animate-[bounce_0.5s_infinite_alternate] filter drop-shadow-md">
+                            <span className="text-2xl mt-[-6px] animate-[bounce_0.5s_infinite_alternate] filter drop-shadow-md">
                               {grabbedToy}
                             </span>
                           )}
@@ -2474,20 +2549,20 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
                   {/* High contrast headers */}
                   {clawPhase === 'BETTING' && (
-                    <div className="absolute top-12 py-1 px-4 bg-slate-950/95 border border-pink-500/40 rounded-full text-[9px] font-mono font-black uppercase text-white animate-pulse">
-                      🧸 MỞ GẮP THÚ: <span className="text-pink-400 text-glow-pink">{clawCountdown}S</span>
+                    <div className="absolute top-10 py-1.5 px-5 bg-slate-950/95 border border-pink-500/50 rounded-full text-[10px] font-mono font-black uppercase text-white animate-pulse shadow-lg">
+                      🧸 MỞ GẮP THÚ LIVE: <span className="text-pink-400 text-glow-pink font-bold">{clawCountdown}S</span>
                     </div>
                   )}
 
                   {clawPhase === 'COOLDOWN' && (
-                    <div className="absolute bottom-22 text-center z-20 bg-slate-950/95 px-5 py-2 rounded-2xl border border-pink-500/40 shadow-2xl">
-                      <span className={`font-black font-mono text-[10px] block tracking-wider ${
+                    <div className="absolute bottom-20 text-center z-20 bg-slate-950/95 px-6 py-2.5 rounded-2xl border border-pink-500/50 shadow-2xl backdrop-blur-md">
+                      <span className={`font-black font-mono text-xs block tracking-wider ${
                         currentClawResult.success ? 'text-pink-400 text-glow-pink animate-bounce' : 'text-slate-400'
                       }`}>
                         {currentClawResult.success ? '🎉 GẮP TRÚNG THÀNH CÔNG!' : '💔 HỤT MẤT TIẾC QUÁ!'}
                       </span>
                       {currentClawResult.success && (
-                        <span className="text-[8px] text-white/70 font-mono block mt-0.5 uppercase">
+                        <span className="text-[9px] text-white/80 font-mono block mt-0.5 uppercase font-bold">
                           Sở hữu ngay em thú bông hiếm, nhận gấp x4.0 PP
                         </span>
                       )}
@@ -2502,16 +2577,16 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 const sim = getSoccerSimulation(simElapsed, fcRealtimeScore.blue, fcRealtimeScore.red);
 
                 return (
-                  <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#060e1b] to-[#0e1624] p-3 sm:p-4">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.05)_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />
+                  <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#050c18] via-[#0b1629] to-[#121f36] p-3 sm:p-4">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(59,130,246,0.06)_1.5px,transparent_1.5px)] bg-[size:18px_18px]" />
                     
                     {/* Realistic Lush Soccer Pitch Pattern */}
-                    <div className="w-[95%] h-56 sm:h-64 border-2 border-white/20 rounded-2xl relative overflow-hidden bg-gradient-to-b from-[#0f451b] to-[#175d27] shadow-2xl flex items-center justify-center">
+                    <div className="w-[96%] h-58 sm:h-66 border-2 border-white/30 rounded-2xl relative overflow-hidden bg-gradient-to-b from-[#0e481c] via-[#145724] to-[#1b632b] shadow-2xl flex items-center justify-center">
                       {/* Lines & markings */}
-                      <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/20" />
-                      <div className="absolute w-18 h-18 sm:w-22 sm:h-22 border-2 border-white/10 rounded-full" />
-                      <div className="absolute inset-y-0 left-0 w-[14%] border-2 border-white/10 border-l-0" />
-                      <div className="absolute inset-y-0 right-0 w-[14%] border-2 border-white/10 border-r-0" />
+                      <div className="absolute inset-y-0 left-1/2 w-0.5 bg-white/30" />
+                      <div className="absolute w-20 h-20 sm:w-24 sm:h-24 border-2 border-white/20 rounded-full" />
+                      <div className="absolute inset-y-0 left-0 w-[15%] border-2 border-white/20 border-l-0" />
+                      <div className="absolute inset-y-0 right-0 w-[15%] border-2 border-white/20 border-r-0" />
 
                       {/* Render Players as sleek dynamic shirts */}
                       {sim.players.map((p) => {
@@ -2522,7 +2597,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                             className="absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-20 pointer-events-none transition-all duration-300"
                             style={{ left: `${p.x}%`, top: `${p.y}%` }}
                           >
-                            <div className={`w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center text-[8px] sm:text-[10px] font-mono font-black border-2 shadow-xl ${
+                            <div className={`w-6 h-6 sm:w-7 sm:h-7 rounded-full flex items-center justify-center text-[9px] sm:text-[11px] font-mono font-black border-2 shadow-xl ${
                               p.team === 'blue' 
                                 ? 'bg-gradient-to-br from-blue-500 to-blue-700 border-blue-300 text-white' 
                                 : 'bg-gradient-to-br from-red-500 to-red-700 border-red-300 text-white'
@@ -2530,12 +2605,12 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                               {p.number}
                             </div>
                             
-                            <span className="text-[6px] sm:text-[8px] font-mono text-white bg-slate-950/80 px-1 rounded-sm scale-90 whitespace-nowrap -mt-0.5 select-none font-bold shadow">
+                            <span className="text-[7px] sm:text-[9px] font-mono text-white bg-slate-950/90 px-1.5 rounded-sm scale-90 whitespace-nowrap -mt-0.5 select-none font-bold shadow-md">
                               {p.label === 'GK' ? `GK` : p.name.split(' ')[1] || p.name}
                             </span>
 
                             {isBallCarrier && (
-                              <span className="absolute -top-4 text-[6px] sm:text-[8px] text-yellow-300 font-black animate-bounce whitespace-nowrap uppercase tracking-wider bg-slate-950 border border-yellow-400/40 px-1 py-0.5 rounded">
+                              <span className="absolute -top-5 text-[7px] sm:text-[9px] text-yellow-300 font-black animate-bounce whitespace-nowrap uppercase tracking-wider bg-slate-950 border border-yellow-400/50 px-1.5 py-0.5 rounded shadow">
                                 {sim.action}
                               </span>
                             )}
@@ -2545,7 +2620,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
                       {/* Glowing soccer ball */}
                       <div 
-                        className="absolute z-30 text-xs transition-all duration-200 pointer-events-none -translate-x-1/2 -translate-y-1/2 filter drop-shadow-[0_4px_6px_rgba(0,0,0,0.8)]" 
+                        className="absolute z-30 text-sm transition-all duration-200 pointer-events-none -translate-x-1/2 -translate-y-1/2 filter drop-shadow-[0_4px_8px_rgba(0,0,0,0.9)]" 
                         style={{ left: `${sim.ball.x}%`, top: `${sim.ball.y}%` }}
                       >
                         ⚽
@@ -2553,46 +2628,46 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                     </div>
 
                     {/* TV Commentary box with audio waves */}
-                    <div className="w-[95%] mt-2 bg-slate-950/90 border border-blue-500/20 px-3 py-1.5 rounded-2xl flex gap-3 items-center shadow-2xl">
-                      <div className="w-6 h-6 rounded-full bg-blue-950 border border-blue-400/30 flex items-center justify-center shrink-0 text-xs">
+                    <div className="w-[96%] mt-2 bg-slate-950/95 border border-blue-500/30 px-3.5 py-1.5 rounded-2xl flex gap-3 items-center shadow-2xl">
+                      <div className="w-7 h-7 rounded-full bg-blue-950 border border-blue-400/40 flex items-center justify-center shrink-0 text-xs shadow-md">
                         🎙️
                       </div>
                       <div className="flex-1 min-w-0">
                         <span className="text-[7px] font-mono font-black text-blue-400 block tracking-wider uppercase">BÌNH LUẬN TRỰC TIẾP 🎤</span>
-                        <p className="text-[9px] text-slate-200 mt-0.5 italic truncate font-semibold font-sans">
+                        <p className="text-[9px] text-slate-100 mt-0.5 italic truncate font-semibold font-sans">
                           "{sim.commentary}"
                         </p>
                       </div>
                     </div>
 
                     {/* Live Scorebug */}
-                    <div className="absolute top-8 flex items-center bg-slate-950/95 border border-white/10 px-3 py-1 rounded-full font-mono text-[8px] sm:text-[9px] shadow-2xl gap-3 z-10">
-                      <span className="text-blue-400 font-extrabold">BLUE</span>
-                      <span className="text-white font-black bg-blue-900/50 px-2 py-0.5 rounded border border-blue-500/30">
+                    <div className="absolute top-7 flex items-center bg-slate-950/95 border border-blue-500/30 px-4 py-1.5 rounded-full font-mono text-[9px] sm:text-[10px] shadow-2xl gap-3 z-10">
+                      <span className="text-blue-400 font-black">BLUE</span>
+                      <span className="text-white font-black bg-blue-900/70 px-2.5 py-0.5 rounded border border-blue-500/40 text-xs">
                         {fcRealtimeScore.blue}
                       </span>
                       <span className="text-slate-500 font-bold">:</span>
-                      <span className="text-white font-black bg-red-900/50 px-2 py-0.5 rounded border border-red-500/30">
+                      <span className="text-white font-black bg-red-900/70 px-2.5 py-0.5 rounded border border-red-500/40 text-xs">
                         {fcRealtimeScore.red}
                       </span>
-                      <span className="text-red-400 font-extrabold">RED</span>
+                      <span className="text-red-400 font-black">RED</span>
                       <span className="text-yellow-400 font-black px-1 animate-pulse">
                         {fcPhase === 'BETTING' ? "PRE-MATCH" : fcPhase === 'PLAYING' ? `${Math.min(Math.floor((fcSecondsElapsed - fcBettingSecs) / fcPlayingSecs * 90), 90)}'` : "FT"}
                       </span>
                     </div>
 
                     {fcPhase === 'BETTING' && (
-                      <div className="absolute top-18 py-1 px-3 bg-slate-950/95 border border-blue-500/40 rounded-full text-[9px] font-mono font-black uppercase text-white animate-pulse z-10">
+                      <div className="absolute top-18 py-1.5 px-4 bg-slate-950/95 border border-blue-500/50 rounded-full text-[10px] font-mono font-black uppercase text-white animate-pulse z-10 shadow-lg">
                         🏟️ TRẬN ĐẤU BẮT ĐẦU TRONG: {fcCountdown}S
                       </div>
                     )}
 
                     {fcPhase === 'COOLDOWN' && (
-                      <div className="absolute bottom-18 text-center z-10 bg-slate-950/95 px-5 py-2 rounded-2xl border border-blue-500/40 shadow-2xl">
-                        <span className="font-black font-mono text-[9px] text-blue-400 text-glow-blue tracking-wider block">
+                      <div className="absolute bottom-18 text-center z-10 bg-slate-950/95 px-6 py-2.5 rounded-2xl border border-blue-500/50 shadow-2xl backdrop-blur-md">
+                        <span className="font-black font-mono text-xs text-blue-400 text-glow-blue tracking-wider block">
                           🏟️ TRẬN ĐẤU KẾT THÚC!
                         </span>
-                        <span className="text-[8px] text-[#8b949e] font-mono block mt-0.5 uppercase">
+                        <span className="text-[9px] text-white/80 font-mono block mt-0.5 uppercase font-bold">
                           Tỉ số chung cuộc: Xanh {currentFcResult.blueScore} - {currentFcResult.redScore} Đỏ
                         </span>
                       </div>
@@ -2614,48 +2689,53 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 const showCards = dtPhase === 'REVEAL' || dtPhase === 'COOLDOWN';
 
                 return (
-                  <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#140505] via-[#050202] to-[#05110a] p-3 sm:p-4">
-                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.04)_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />
+                  <div className="w-full h-full flex flex-col items-center justify-center relative bg-gradient-to-b from-[#180606] via-[#090303] to-[#06160d] p-3 sm:p-4">
+                    <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(239,68,68,0.06)_1.5px,transparent_1.5px)] bg-[size:18px_18px]" />
                     
                     {/* Golden Casino Felt Grid Arena */}
-                    <div className="w-[95%] h-56 sm:h-64 border-2 border-yellow-500/30 rounded-3xl relative overflow-hidden bg-gradient-to-b from-[#100707] to-[#07140b] shadow-[0_4px_30px_rgba(0,0,0,0.9)] flex items-center justify-between px-6 sm:px-12">
+                    <div className="w-[96%] h-58 sm:h-66 border-2 border-yellow-500/40 rounded-3xl relative overflow-hidden bg-gradient-to-b from-[#140909] via-[#0a0505] to-[#091a0e] shadow-[0_6px_35px_rgba(0,0,0,0.95)] flex items-center justify-between px-6 sm:px-14">
                       
                       {/* Left Side: Dragon Area with gold embroidery border */}
-                      <div className={`flex flex-col items-center gap-3.5 transition-all duration-300 ${
-                        dtPhase === 'COOLDOWN' && winner === 'DRAGON' ? 'scale-105 filter drop-shadow-[0_0_20px_rgba(239,68,68,0.5)]' : 'opacity-85'
+                      <div className={`flex flex-col items-center gap-4 transition-all duration-300 ${
+                        dtPhase === 'COOLDOWN' && winner === 'DRAGON' ? 'scale-110 filter drop-shadow-[0_0_25px_rgba(239,68,68,0.7)]' : 'opacity-90'
                       }`}>
-                        <span className="text-glow-red text-red-500 font-black text-xs sm:text-sm tracking-widest uppercase flex items-center gap-1">🐉 RỒNG</span>
+                        <span className="text-glow-red text-red-500 font-black text-sm sm:text-base tracking-widest uppercase flex items-center gap-1.5">🐉 RỒNG</span>
                         
                         {/* Card Slot */}
-                        <div className={`w-16 h-24 sm:w-20 sm:h-28 rounded-xl border-2 flex flex-col items-center justify-center relative bg-slate-950 transition-all duration-500 shadow-xl ${
+                        <div className={`w-18 h-26 sm:w-22 sm:h-30 rounded-2xl border-2 flex flex-col items-center justify-center relative bg-slate-950 transition-all duration-500 shadow-2xl ${
                           dtPhase === 'COOLDOWN' && winner === 'DRAGON' 
-                            ? 'border-red-500 shadow-[0_0_20px_rgba(239,68,68,0.6)] bg-red-950/30' 
-                            : 'border-red-500/25'
+                            ? 'border-red-500 shadow-[0_0_25px_rgba(239,68,68,0.7)] bg-red-950/40 ring-2 ring-red-400' 
+                            : 'border-red-500/30'
                         }`}>
                           {showCards ? (
-                            <div className="flex flex-col items-center justify-between h-full p-2.5 w-full bg-white rounded-lg">
+                            <motion.div 
+                              initial={{ rotateY: 90 }}
+                              animate={{ rotateY: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="flex flex-col items-center justify-between h-full p-2.5 w-full bg-slate-50 rounded-xl shadow-lg border border-slate-200"
+                            >
                               <span className={`text-xs font-black self-start ${res.dragonSuit === '♠' || res.dragonSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
                                 {getCardLabel(dVal)}
                               </span>
-                              <span className={`text-3xl sm:text-4xl filter drop-shadow-sm ${res.dragonSuit === '♠' || res.dragonSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
+                              <span className={`text-3xl sm:text-4xl filter drop-shadow-xs ${res.dragonSuit === '♠' || res.dragonSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
                                 {res.dragonSuit}
                               </span>
                               <span className={`text-xs font-black self-end rotate-180 ${res.dragonSuit === '♠' || res.dragonSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
                                 {getCardLabel(dVal)}
                               </span>
-                            </div>
+                            </motion.div>
                           ) : (
-                            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-red-800 to-red-950 flex items-center justify-center border border-red-500/40 p-1">
-                              <div className="w-full h-full border border-red-500/20 rounded-md flex flex-col items-center justify-center bg-black/50">
-                                <span className="text-xl sm:text-2xl animate-pulse">🐉</span>
-                                <span className="text-[6px] font-mono font-bold text-red-400 mt-1 uppercase tracking-wider">AYK DRAGON</span>
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-red-800 to-red-950 flex items-center justify-center border border-red-500/50 p-1">
+                              <div className="w-full h-full border border-red-500/30 rounded-lg flex flex-col items-center justify-center bg-black/60">
+                                <span className="text-2xl sm:text-3xl animate-pulse">🐉</span>
+                                <span className="text-[7px] font-mono font-bold text-red-400 mt-1 uppercase tracking-wider">AYK DRAGON</span>
                               </div>
                             </div>
                           )}
                         </div>
 
                         {dtPhase === 'COOLDOWN' && winner === 'DRAGON' && (
-                          <span className="py-0.5 px-2 bg-red-600 text-white font-black text-[7px] uppercase tracking-wider rounded-md animate-bounce shadow-lg">
+                          <span className="py-1 px-3 bg-red-600 text-white font-black text-[8px] uppercase tracking-wider rounded-lg animate-bounce shadow-lg">
                             WINNER 🏆
                           </span>
                         )}
@@ -2665,55 +2745,60 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                       <div className="flex flex-col items-center justify-center gap-2">
                         <div className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 flex flex-col items-center justify-center bg-slate-950 transition-all duration-300 ${
                           dtPhase === 'COOLDOWN' && winner === 'TIE' 
-                            ? 'border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.5)] scale-105' 
-                            : 'border-yellow-500/20'
+                            ? 'border-yellow-400 shadow-[0_0_20px_rgba(234,179,8,0.7)] scale-110 ring-2 ring-yellow-400' 
+                            : 'border-yellow-500/30'
                         }`}>
-                          <span className="text-[9px] font-black text-yellow-500 uppercase tracking-widest block leading-none">HÒA</span>
-                          <span className="text-[8px] text-slate-500 font-mono mt-0.5">x8.0</span>
+                          <span className="text-[10px] font-black text-yellow-400 uppercase tracking-widest block leading-none">HÒA</span>
+                          <span className="text-[9px] text-slate-400 font-mono font-bold mt-0.5">x8.0</span>
                         </div>
                         {dtPhase === 'COOLDOWN' && winner === 'TIE' && (
-                          <span className="py-0.5 px-2 bg-yellow-500 text-black font-black text-[7px] uppercase tracking-wider rounded-md animate-pulse">
+                          <span className="py-1 px-3 bg-yellow-500 text-black font-black text-[8px] uppercase tracking-wider rounded-lg animate-pulse shadow-md">
                             TIE GAME 🤝
                           </span>
                         )}
                       </div>
 
                       {/* Right Side: Tiger Area with gold embroidery border */}
-                      <div className={`flex flex-col items-center gap-3.5 transition-all duration-300 ${
-                        dtPhase === 'COOLDOWN' && winner === 'TIGER' ? 'scale-105 filter drop-shadow-[0_0_20px_rgba(59,130,246,0.5)]' : 'opacity-85'
+                      <div className={`flex flex-col items-center gap-4 transition-all duration-300 ${
+                        dtPhase === 'COOLDOWN' && winner === 'TIGER' ? 'scale-110 filter drop-shadow-[0_0_25px_rgba(59,130,246,0.7)]' : 'opacity-90'
                       }`}>
-                        <span className="text-glow-blue text-blue-400 font-black text-xs sm:text-sm tracking-widest uppercase flex items-center gap-1">🐯 HỔ</span>
+                        <span className="text-glow-blue text-blue-400 font-black text-sm sm:text-base tracking-widest uppercase flex items-center gap-1.5">🐯 HỔ</span>
                         
                         {/* Card Slot */}
-                        <div className={`w-16 h-24 sm:w-20 sm:h-28 rounded-xl border-2 flex flex-col items-center justify-center relative bg-slate-950 transition-all duration-500 shadow-xl ${
+                        <div className={`w-18 h-26 sm:w-22 sm:h-30 rounded-2xl border-2 flex flex-col items-center justify-center relative bg-slate-950 transition-all duration-500 shadow-2xl ${
                           dtPhase === 'COOLDOWN' && winner === 'TIGER' 
-                            ? 'border-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.6)] bg-blue-950/30' 
-                            : 'border-blue-500/25'
+                            ? 'border-blue-500 shadow-[0_0_25px_rgba(59,130,246,0.7)] bg-blue-950/40 ring-2 ring-blue-400' 
+                            : 'border-blue-500/30'
                         }`}>
                           {showCards ? (
-                            <div className="flex flex-col items-center justify-between h-full p-2.5 w-full bg-white rounded-lg">
+                            <motion.div 
+                              initial={{ rotateY: 90 }}
+                              animate={{ rotateY: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="flex flex-col items-center justify-between h-full p-2.5 w-full bg-slate-50 rounded-xl shadow-lg border border-slate-200"
+                            >
                               <span className={`text-xs font-black self-start ${res.tigerSuit === '♠' || res.tigerSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
                                 {getCardLabel(tVal)}
                               </span>
-                              <span className={`text-3xl sm:text-4xl filter drop-shadow-md ${res.tigerSuit === '♠' || res.tigerSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
+                              <span className={`text-3xl sm:text-4xl filter drop-shadow-xs ${res.tigerSuit === '♠' || res.tigerSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
                                 {res.tigerSuit}
                               </span>
                               <span className={`text-xs font-black self-end rotate-180 ${res.tigerSuit === '♠' || res.tigerSuit === '♣' ? 'text-slate-950' : 'text-red-600'}`}>
                                 {getCardLabel(tVal)}
                               </span>
-                            </div>
+                            </motion.div>
                           ) : (
-                            <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-blue-800 to-blue-950 flex items-center justify-center border border-blue-500/40 p-1">
-                              <div className="w-full h-full border border-blue-500/20 rounded-md flex flex-col items-center justify-center bg-black/50">
-                                <span className="text-xl sm:text-2xl animate-pulse">🐯</span>
-                                <span className="text-[6px] font-mono font-bold text-blue-400 mt-1 uppercase tracking-wider">AYK TIGER</span>
+                            <div className="absolute inset-0 rounded-xl bg-gradient-to-br from-blue-800 to-blue-950 flex items-center justify-center border border-blue-500/50 p-1">
+                              <div className="w-full h-full border border-blue-500/30 rounded-lg flex flex-col items-center justify-center bg-black/60">
+                                <span className="text-2xl sm:text-3xl animate-pulse">🐯</span>
+                                <span className="text-[7px] font-mono font-bold text-blue-400 mt-1 uppercase tracking-wider">AYK TIGER</span>
                               </div>
                             </div>
                           )}
                         </div>
 
                         {dtPhase === 'COOLDOWN' && winner === 'TIGER' && (
-                          <span className="py-0.5 px-2 bg-blue-600 text-white font-black text-[7px] uppercase tracking-wider rounded-md animate-bounce shadow-lg">
+                          <span className="py-1 px-3 bg-blue-600 text-white font-black text-[8px] uppercase tracking-wider rounded-lg animate-bounce shadow-lg">
                             WINNER 🏆
                           </span>
                         )}
@@ -2721,12 +2806,12 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                     </div>
 
                     {/* Header overlay title */}
-                    <div className="absolute top-8 py-1 px-4 bg-slate-950/95 border border-yellow-500/30 rounded-full text-[9px] font-mono font-black uppercase text-yellow-400 tracking-widest z-10">
+                    <div className="absolute top-7 py-1.5 px-5 bg-slate-950/95 border border-yellow-500/40 rounded-full text-[10px] font-mono font-black uppercase text-yellow-400 tracking-widest z-10 shadow-md">
                       🐅 ĐẤU TRƯỜNG LONG TRANH HỔ ĐẤU AYK
                     </div>
 
                     {dtPhase === 'BETTING' && (
-                      <div className="absolute top-18 py-1 px-3 bg-slate-950/95 border border-red-500/40 rounded-full text-[9px] font-mono font-black uppercase text-white animate-pulse z-10">
+                      <div className="absolute top-18 py-1.5 px-4 bg-slate-950/95 border border-red-500/50 rounded-full text-[10px] font-mono font-black uppercase text-white animate-pulse z-10 shadow-lg">
                         🔔 ĐẶT CƯỢC: {dtCountdown}S
                       </div>
                     )}
@@ -2737,23 +2822,68 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             </div>
 
             {/* Bottom HUD */}
-            <div className="z-10 flex justify-between items-center w-full font-mono text-[10px]">
-              <span className="flex items-center gap-1 font-bold text-white uppercase tracking-wider">
-                <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
-                {activeTab === 'taixiu' ? txTimerText : 
-                 activeTab === 'crash' ? crashTimerText : 
-                 activeTab === 'penalty' ? penTimerText : 
-                 activeTab === 'horse' ? horseTimerText : 
-                 activeTab === 'claw' ? clawTimerText : 
-                 activeTab === 'fcmobile' ? fcTimerText : dtTimerText}
-              </span>
-              <span className="text-white/40">Phát trực tiếp #AYK-LIV-0{
-                activeTab === 'taixiu' ? txCycleId : 
-                activeTab === 'crash' ? crashCycleId : 
-                activeTab === 'penalty' ? penCycleId : 
-                activeTab === 'horse' ? horseCycleId : 
-                activeTab === 'claw' ? clawCycleId : 
-                activeTab === 'fcmobile' ? fcCycleId : dtCycleId}</span>
+            <div className="z-10 flex flex-col w-full font-mono text-[10px] gap-1.5">
+              <div className="flex justify-between items-center w-full">
+                <span className="flex items-center gap-1 font-bold text-white uppercase tracking-wider">
+                  <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse" />
+                  {activeTab === 'taixiu' ? txTimerText : 
+                   activeTab === 'crash' ? crashTimerText : 
+                   activeTab === 'penalty' ? penTimerText : 
+                   activeTab === 'horse' ? horseTimerText : 
+                   activeTab === 'claw' ? clawTimerText : 
+                   activeTab === 'fcmobile' ? fcTimerText : dtTimerText}
+                </span>
+                <span className="text-white/40">Phát trực tiếp #AYK-LIV-0{
+                  activeTab === 'taixiu' ? txCycleId : 
+                  activeTab === 'crash' ? crashCycleId : 
+                  activeTab === 'penalty' ? penCycleId : 
+                  activeTab === 'horse' ? horseCycleId : 
+                  activeTab === 'claw' ? clawCycleId : 
+                  activeTab === 'fcmobile' ? fcCycleId : dtCycleId}</span>
+              </div>
+
+              {/* ACTION BUTTON UNDER PHÁT TRỰC TIẾP #AYK FOR AIR COMBAT (NÉ ĐẠN) */}
+              {activeTab === 'crash' && (
+                <div className="w-full pt-1.5 border-t border-cyan-500/30 flex items-center justify-center">
+                  {crashPhase === 'BETTING' ? (
+                    currentBetPlaced && currentBetPlaced.game === 'crash' && currentBetPlaced.cycleId === crashCycleId ? (
+                      <div className="w-full py-2 px-3 bg-emerald-950/90 border border-emerald-400 text-emerald-300 font-mono font-black text-[11px] uppercase tracking-wider rounded-xl text-center shadow-[0_0_15px_rgba(16,185,129,0.4)] flex items-center justify-center gap-2">
+                        <span>✅ ĐÃ ĐẶT CƯỢC LIVE ({currentBetPlaced.amount.toLocaleString()} PP) - CHỜ CẤT CÁNH NÉ ĐẠN!</span>
+                      </div>
+                    ) : (
+                      <button
+                        disabled={currentBetPlaced !== null && currentBetPlaced.cycleId === crashCycleId}
+                        onClick={handlePlaceBet}
+                        className="w-full py-2.5 px-4 bg-gradient-to-r from-cyan-500 via-sky-400 to-cyan-600 hover:from-cyan-400 hover:to-sky-300 text-slate-950 font-mono font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_20px_rgba(6,182,212,0.8)] animate-pulse hover:scale-[1.01] active:scale-95 cursor-pointer flex items-center justify-center gap-2 border border-cyan-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        <Coins className="w-4 h-4" />
+                        <span>🚀 [ XÁC NHẬN CƯỢC LIVE - KHÔNG CHIẾN NÉ ĐẠN ]</span>
+                      </button>
+                    )
+                  ) : crashPhase === 'FLIGHT' ? (
+                    currentBetPlaced && currentBetPlaced.game === 'crash' && currentBetPlaced.cycleId === crashCycleId && !currentBetPlaced.evaluated ? (
+                      <button
+                        onClick={handleCrashCashout}
+                        className="w-full py-3 px-4 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-mono font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_30px_rgba(16,185,129,0.9)] animate-bounce hover:scale-[1.02] active:scale-95 cursor-pointer flex items-center justify-center gap-2 border-2 border-emerald-300"
+                      >
+                        <span>🪂 BẤM DỪNG & CHỐT LÃI</span>
+                        <span className="bg-black/40 text-emerald-200 px-2 py-0.5 rounded-lg text-[10px] font-mono font-bold">
+                          (+{Math.floor(currentBetPlaced.amount * currentCrashMultiplier).toLocaleString()} PP @ {currentCrashMultiplier}x)
+                        </span>
+                      </button>
+                    ) : (
+                      <div className="w-full py-2 px-3 bg-slate-950/90 border border-cyan-500/40 text-cyan-300 font-mono font-black text-[11px] uppercase tracking-wider rounded-xl text-center flex items-center justify-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
+                        <span>🚀 PHI THUYỀN ĐANG NÉ ĐẠN... BẬT SỐ NHÂN: <strong className="text-glow-cyan text-white text-xs">{currentCrashMultiplier}x</strong></span>
+                      </div>
+                    )
+                  ) : (
+                    <div className="w-full py-2 px-3 bg-red-950/90 border border-red-500/50 text-red-300 font-mono font-black text-[11px] uppercase tracking-wider rounded-xl text-center flex items-center justify-center gap-2">
+                      <span>💥 PHI THUYỀN BỊ BẮN NỔ TẠI MỐC {currentCrashPoint}x! CHỜ VÒNG MỚI...</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
 
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30 pointer-events-none" />
@@ -2958,13 +3088,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 {activeTab === 'taixiu' && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-red-400">🔴 TỔNG CỬA TÀI:</span>
+                      <span className="text-red-400">🔴 TỔNG TÀI ({liveBets.filter(b => b.choice === 'TAI').length} người):</span>
                       <span className="font-bold text-white">
                         {liveBets.filter(b => b.choice === 'TAI').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-cyan-400">🔵 TỔNG CỬA XỈU:</span>
+                      <span className="text-cyan-400">🔵 TỔNG XỈU ({liveBets.filter(b => b.choice === 'XIU').length} người):</span>
                       <span className="font-bold text-white">
                         {liveBets.filter(b => b.choice === 'XIU').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
                       </span>
@@ -2973,7 +3103,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 )}
                 {activeTab === 'crash' && (
                   <div className="flex justify-between">
-                    <span className="text-cyan-400">🚀 TỔNG TIỀN GỒNG LÃI:</span>
+                    <span className="text-cyan-400">🚀 TỔNG TIỀN PHI THUYỀN ({liveBets.length} phi công):</span>
                     <span className="font-bold text-white">
                       {liveBets.reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
                     </span>
@@ -2982,15 +3112,103 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 {activeTab === 'penalty' && (
                   <>
                     <div className="flex justify-between">
-                      <span className="text-emerald-400">⚽ TỔNG CỬA VÀO (GOAL):</span>
+                      <span className="text-emerald-400">⚽ TỔNG VÀO ({liveBets.filter(b => b.choice === 'GOAL').length} người):</span>
                       <span className="font-bold text-white">
                         {liveBets.filter(b => b.choice === 'GOAL').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-red-400">🧤 TỔNG THỦ MÔN CẢN (MISS):</span>
+                      <span className="text-red-400">🧤 TỔNG THỦ MÔN CẢN ({liveBets.filter(b => b.choice === 'MISS').length} người):</span>
                       <span className="font-bold text-white">
                         {liveBets.filter(b => b.choice === 'MISS').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                  </>
+                )}
+                {activeTab === 'dragontiger' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-red-400">🐉 TỔNG RỒNG ({liveBets.filter(b => b.choice === 'DRAGON').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'DRAGON').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-blue-400">🐯 TỔNG HỔ ({liveBets.filter(b => b.choice === 'TIGER').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'TIGER').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-emerald-400">⚖️ TỔNG HÒA ({liveBets.filter(b => b.choice === 'TIE').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'TIE').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                  </>
+                )}
+                {activeTab === 'horse' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-amber-400">🐎 NGỰA 1 ({liveBets.filter(b => b.choice === 'HORSE_1').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'HORSE_1').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-rose-400">🐎 NGỰA 2 ({liveBets.filter(b => b.choice === 'HORSE_2').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'HORSE_2').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sky-400">🐎 NGỰA 3 ({liveBets.filter(b => b.choice === 'HORSE_3').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'HORSE_3').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-emerald-400">🐎 NGỰA 4 ({liveBets.filter(b => b.choice === 'HORSE_4').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'HORSE_4').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                  </>
+                )}
+                {activeTab === 'fcmobile' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-blue-400">🔵 ĐỘI XANH ({liveBets.filter(b => b.choice === 'FC_BLUE').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'FC_BLUE').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-red-400">🔴 ĐỘI ĐỎ ({liveBets.filter(b => b.choice === 'FC_RED').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'FC_RED').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-yellow-400">🤝 TỶ SỐ HÒA ({liveBets.filter(b => b.choice === 'FC_DRAW').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'FC_DRAW').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                  </>
+                )}
+                {activeTab === 'claw' && (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-pink-400">🧸 CỬA TRÚNG ({liveBets.filter(b => b.choice === 'CLAW_WIN').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'CLAW_WIN').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-purple-400">❌ CỬA TRƯỢT ({liveBets.filter(b => b.choice === 'CLAW_LOSE').length} người):</span>
+                      <span className="font-bold text-white">
+                        {liveBets.filter(b => b.choice === 'CLAW_LOSE').reduce((sum, b) => sum + b.amount, 0).toLocaleString()} PP
                       </span>
                     </div>
                   </>
@@ -3074,19 +3292,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                           const won = bet.choice === winner;
                           const mult = winner === 'TIE' ? 8.0 : 2.0;
                           return { won, payout: won ? Math.floor(bet.amount * mult) : 0 };
-                        }
-                        
-                        if (activeTab === 'crash') {
-                          if (crashPhase === 'BETTING') return { pending: true };
-                          if (bet.isUser) {
-                            return hasCashedOut 
-                              ? { won: true, payout: Math.floor(bet.amount * currentCrashMultiplier) }
-                              : { won: false, payout: 0 };
-                          } else {
-                            const botCashoutTarget = ((bet.sender.charCodeAt(0) % 6) + 12) / 10;
-                            const won = currentCrashPoint >= botCashoutTarget;
-                            return { won, payout: won ? Math.floor(bet.amount * botCashoutTarget) : 0 };
-                          }
                         }
                         
                         if (activeTab === 'penalty') {
@@ -3285,20 +3490,21 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
               )}
 
               {activeTab === 'crash' && (
-                <div className="flex flex-col gap-2">
-                  <div className="p-3 bg-cyan-950/20 border border-cyan-500/20 rounded-xl text-[11px] font-mono text-cyan-400 leading-relaxed text-center">
-                    🌟 Đặt cược và chốt lời (CÁSHOUT) khi phi thuyền đang bay. Tên lửa phát nổ trước chốt lời, mất cược!
+                <div className="space-y-2">
+                  <div className="p-2.5 bg-cyan-950/20 border border-cyan-500/30 rounded-xl text-[10px] font-mono text-cyan-300 leading-relaxed text-center">
+                    🚀 Đặt cược vào Phi Thuyền Né Đạn. Bấm <b>NHẢY DÙ & CHỐT LÃI</b> bất cứ lúc nào khi bay để thanh toán TIỀN THẮNG LẬP TỨC!
                   </div>
                   <button
                     disabled={crashPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === crashCycleId)}
                     onClick={() => setBetChoice('CRASH_RIDE')}
-                    className={`w-full py-3 rounded-xl border font-mono text-xs font-black transition-all cursor-pointer ${
+                    className={`w-full py-3.5 rounded-xl border font-mono text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-2 ${
                       betChoice === 'CRASH_RIDE'
-                        ? 'bg-cyan-500/20 border-cyan-500 text-cyan-500'
+                        ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400 shadow-[0_0_15px_rgba(6,182,212,0.3)]'
                         : 'bg-black/40 border-white/5 text-white/70 hover:bg-white/5'
                     } disabled:opacity-50 disabled:cursor-not-allowed`}
                   >
-                    [ CHỌN BAY PHI THUYỀN ]
+                    <span>🚀 LÊN PHI THUYỀN KHÔNG CHIẾN NÉ ĐẠN</span>
+                    <span className="text-[10px] text-cyan-300 font-bold">(CƯỢC GỒNG LÃI X100)</span>
                   </button>
                 </div>
               )}
@@ -3539,30 +3745,33 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 </div>
               </div>
 
-              {activeTab === 'crash' && crashPhase === 'FLIGHT' && currentBetPlaced && currentBetPlaced.cycleId === crashCycleId && !currentBetPlaced.evaluated ? (
-                <button
-                  onClick={handleCrashCashout}
-                  className="py-3 px-6 bg-gradient-to-r from-cyan-600 to-cyan-500 text-black font-mono font-black text-xs uppercase tracking-widest rounded-xl hover:scale-105 active:scale-95 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.4)] flex items-center justify-center gap-1 w-full sm:w-auto shrink-0"
-                >
-                  🚀 CHỐT X{currentCrashMultiplier} (ĂN {Math.floor(currentBetPlaced.amount * currentCrashMultiplier)} PP)
-                </button>
-              ) : (
-                <button
-                  disabled={
-                    activeTab === 'taixiu' ? txPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === txCycleId) :
-                    activeTab === 'crash' ? crashPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === crashCycleId) :
-                    activeTab === 'penalty' ? penPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === penCycleId) :
-                    activeTab === 'horse' ? horsePhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === horseCycleId) :
-                    activeTab === 'claw' ? clawPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === clawCycleId) :
-                    activeTab === 'dragontiger' ? dtPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === dtCycleId) :
-                    fcPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === fcCycleId)
-                  }
-                  onClick={handlePlaceBet}
-                  className="py-3 px-6 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs uppercase tracking-widest rounded-xl disabled:bg-slate-800 disabled:text-white/30 disabled:border-transparent disabled:cursor-not-allowed hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-1 w-full sm:w-auto shrink-0"
-                >
-                  <Coins className="w-4 h-4" /> [ XÁC NHẬN CƯỢC LIVE ]
-                </button>
-              )}
+                {activeTab === 'crash' && crashPhase === 'FLIGHT' && currentBetPlaced && currentBetPlaced.game === 'crash' && currentBetPlaced.cycleId === crashCycleId && !currentBetPlaced.evaluated ? (
+                  <button
+                    onClick={handleCrashCashout}
+                    className="py-3.5 px-6 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-mono font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.7)] animate-pulse hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 border-2 border-emerald-300"
+                  >
+                    <span>🪂 NHẢY DÙ & CHỐT LÃI</span>
+                    <span className="bg-black/30 text-emerald-200 px-2 py-0.5 rounded text-[10px] font-mono">
+                      (+{Math.floor(currentBetPlaced.amount * currentCrashMultiplier).toLocaleString()} PP)
+                    </span>
+                  </button>
+                ) : (
+                  <button
+                    disabled={
+                      activeTab === 'taixiu' ? txPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === txCycleId) :
+                      activeTab === 'crash' ? crashPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === crashCycleId) :
+                      activeTab === 'penalty' ? penPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === penCycleId) :
+                      activeTab === 'horse' ? horsePhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === horseCycleId) :
+                      activeTab === 'claw' ? clawPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === clawCycleId) :
+                      activeTab === 'dragontiger' ? dtPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === dtCycleId) :
+                      fcPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === fcCycleId)
+                    }
+                    onClick={handlePlaceBet}
+                    className="py-3 px-6 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs uppercase tracking-widest rounded-xl disabled:bg-slate-800 disabled:text-white/30 disabled:border-transparent disabled:cursor-not-allowed hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-1 w-full sm:w-auto shrink-0"
+                  >
+                    <Coins className="w-4 h-4" /> [ XÁC NHẬN CƯỢC LIVE ]
+                  </button>
+                )}
             </div>
 
             {currentBetPlaced && (
@@ -3630,44 +3839,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 >
                   ÁP DỤNG KẾT QUẢ TX (Tự chọn: {cheatTxDie1+cheatTxDie2+cheatTxDie3})
                 </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'crash' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ Crash: {crashCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: x{currentCrashPoint}</span>
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-white/60 block font-mono">Nhập số nhân nổ hũ tự do (Ví dụ: 1.50, 10.85, 99.00):</span>
-                <div className="flex gap-2">
-                  <input 
-                    type="number" 
-                    step="0.01"
-                    min="1.00"
-                    max="1000.00"
-                    value={cheatCrashPointInput}
-                    onChange={(e) => setCheatCrashPointInput(e.target.value)}
-                    className="bg-black text-white border border-red-500/40 rounded px-2 py-1 flex-1 font-bold font-mono"
-                  />
-                  <button 
-                    onClick={() => { 
-                      const parsed = parseFloat(cheatCrashPointInput);
-                      if (isNaN(parsed) || parsed < 1.0) {
-                        alert('Số nhân không hợp lệ! Vui lòng nhập >= 1.0');
-                        return;
-                      }
-                      localStorage.setItem('s88_cheat_crash_' + crashCycleId, parsed.toFixed(2)); 
-                      window.dispatchEvent(new Event('storage'));
-                      alert(`Đã ép Crash nổ tại x${parsed.toFixed(2)}`);
-                    }} 
-                    className="bg-cyan-600 text-black font-black px-3 rounded hover:bg-cyan-500 font-mono"
-                  >
-                    ÁP DỤNG
-                  </button>
-                </div>
               </div>
             </div>
           )}

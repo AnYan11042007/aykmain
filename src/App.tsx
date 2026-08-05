@@ -44,7 +44,6 @@ import BlackjackModal from './components/modals/BlackjackModal';
 import TienLenModal from './components/modals/TienLenModal';
 import RouletteModal from './components/modals/RouletteModal';
 import WorldCardBattleModal from './components/modals/WorldCardBattleModal';
-import Cyber3DArenaModal from './components/modals/Cyber3DArenaModal';
 import AIBotSimulation from './components/AIBotSimulation';
 
 // Winnings Confetti trigger import
@@ -440,73 +439,84 @@ export default function App() {
             </div>
           </div>
           
-          {currentTab === 'news' && (
-            <AYKNewsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentTab}
+              initial={{ opacity: 0, x: 30, filter: 'blur(4px)' }}
+              animate={{ opacity: 1, x: 0, filter: 'blur(0px)' }}
+              exit={{ opacity: 0, x: -30, filter: 'blur(4px)' }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full"
+            >
+              {currentTab === 'news' && (
+                <AYKNewsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'hunting' && (
-            <WorldHuntingPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'hunting' && (
+                <WorldHuntingPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'academic' && (
-            <AcademicPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'academic' && (
+                <AcademicPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'missions' && (
-            <DailyMissionsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'missions' && (
+                <DailyMissionsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'luckywheel' && (
-            <LuckyWheel uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'luckywheel' && (
+                <LuckyWheel uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'bank' && (
-            <BankPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'bank' && (
+                <BankPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'gold' && (
-            <GoldPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'gold' && (
+                <GoldPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'games' && (
-            <GamesPortal 
-              uid={uid} 
-              user={user} 
-              onOpenGame={(gKey) => setActiveGameKey(gKey)}
-              onJoinRps={(id) => setActiveRpsRoomId(id)}
-              onJoinBj={(id) => setActiveBjRoomId(id)}
-              onJoinTl={(id) => setActiveTlRoomId(id)}
-              onShowResult={handleShowGameResult}
-            />
-          )}
+              {currentTab === 'games' && (
+                <GamesPortal 
+                  uid={uid} 
+                  user={user} 
+                  onOpenGame={(gKey) => setActiveGameKey(gKey)}
+                  onJoinRps={(id) => setActiveRpsRoomId(id)}
+                  onJoinBj={(id) => setActiveBjRoomId(id)}
+                  onJoinTl={(id) => setActiveTlRoomId(id)}
+                  onShowResult={handleShowGameResult}
+                />
+              )}
 
-          {currentTab === 'casino' && (
-            <LiveCasinoStream 
-              uid={uid}
-              user={user}
-              onShowResult={handleShowGameResult}
-            />
-          )}
+              {currentTab === 'casino' && (
+                <LiveCasinoStream 
+                  uid={uid}
+                  user={user}
+                  onShowResult={handleShowGameResult}
+                />
+              )}
 
-          {currentTab === 'chat' && (
-            <ChatPortal uid={uid} user={user} />
-          )}
+              {currentTab === 'chat' && (
+                <ChatPortal uid={uid} user={user} />
+              )}
 
-          {currentTab === 'marketplace' && (
-            <MarketplacePortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'marketplace' && (
+                <MarketplacePortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
 
-          {currentTab === 'rankings' && (
-            <RankingsPortal uid={uid} user={user} />
-          )}
+              {currentTab === 'rankings' && (
+                <RankingsPortal uid={uid} user={user} />
+              )}
 
-          {currentTab === 'tx_history' && (
-            <TransactionHistoryPortal uid={uid} user={user} />
-          )}
+              {currentTab === 'tx_history' && (
+                <TransactionHistoryPortal uid={uid} user={user} />
+              )}
 
-          {currentTab === 'admin' && (
-            <AdminPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
-          )}
+              {currentTab === 'admin' && (
+                <AdminPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+              )}
+            </motion.div>
+          </AnimatePresence>
 
         </div>
       </main>
@@ -601,16 +611,6 @@ export default function App() {
           uid={uid} 
           user={user} 
           onClose={() => setActiveGameKey('')} 
-          onShowResult={handleShowGameResult}
-        />
-      )}
-
-      {/* Cyber 3D Arena Dragon Fighter Game */}
-      {activeGameKey === 'cyber_3d_arena' && (
-        <Cyber3DArenaModal
-          uid={uid}
-          user={user}
-          onClose={() => setActiveGameKey('')}
           onShowResult={handleShowGameResult}
         />
       )}

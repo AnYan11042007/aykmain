@@ -151,6 +151,14 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
   const cashOutLockRef = useRef<boolean>(false);
   const crashHandledRef = useRef<number>(-1);
 
+  // Dodge Mechanism & Canvas Particle System States
+  const [dodgeAlert, setDodgeAlert] = useState<{ id: number; x: number; y: number } | null>(null);
+  const [isDodgeShaking, setIsDodgeShaking] = useState<boolean>(false);
+  const lastDodgeCheckRef = useRef<number>(0);
+
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animFrameRef = useRef<number | null>(null);
+
   // Sync server time offset
   useEffect(() => {
     const offsetRef = ref(db, '.info/serverTimeOffset');
@@ -459,6 +467,143 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
     posB = Math.min(78, 18 + crashTimeS * 3.0);
   }
 
+  // Random 10% Dodge Mechanism during flight phase
+  useEffect(() => {
+    if (isBettingPhase || hasCrashed) {
+      setDodgeAlert(null);
+      setIsDodgeShaking(false);
+      return;
+    }
+
+    const now = Date.now();
+    if (now - lastDodgeCheckRef.current > 1600) {
+      lastDodgeCheckRef.current = now;
+      if (Math.random() < 0.10) { // 10% chance
+        setIsDodgeShaking(true);
+        setTimeout(() => setIsDodgeShaking(false), 350);
+        setDodgeAlert({ id: now, x: posL, y: posB });
+        setTimeout(() => setDodgeAlert(null), 1200);
+      }
+    }
+  }, [flightTimeS, isBettingPhase, hasCrashed, posL, posB]);
+
+  // Canvas Particle System Engine for Fiery Red-Orange Crash Explosion
+  useEffect(() => {
+    if (!hasCrashed || isBettingPhase) {
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+        animFrameRef.current = null;
+      }
+      const cv = canvasRef.current;
+      if (cv) {
+        const ctx = cv.getContext('2d');
+        if (ctx) ctx.clearRect(0, 0, cv.width, cv.height);
+      }
+      return;
+    }
+
+    const cv = canvasRef.current;
+    if (!cv) return;
+    const ctx = cv.getContext('2d');
+    if (!ctx) return;
+
+    const width = (cv.width = cv.parentElement?.clientWidth || 400);
+    const height = (cv.height = cv.parentElement?.clientHeight || 260);
+
+    const cx = (posL / 100) * width;
+    const cy = height - (posB / 100) * height;
+
+    const colors = ['#ff003c', '#ff3300', '#ff6600', '#ff9900', '#ffd700', '#ffffff', '#e60000', '#ff4500'];
+    const particles: {
+      x: number;
+      y: number;
+      vx: number;
+      vy: number;
+      size: number;
+      color: string;
+      alpha: number;
+      decay: number;
+    }[] = [];
+
+    for (let i = 0; i < 110; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 10 + 2;
+      particles.push({
+        x: cx,
+        y: cy,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: Math.random() * 8 + 2.5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        alpha: 1.0,
+        decay: Math.random() * 0.015 + 0.008
+      });
+    }
+
+    let shockwaveRadius = 6;
+    let shockwaveAlpha = 1.0;
+
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Expanding Shockwaves
+      if (shockwaveAlpha > 0) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.arc(cx, cy, shockwaveRadius, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 69, 0, ${shockwaveAlpha})`;
+        ctx.lineWidth = 5;
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.arc(cx, cy, shockwaveRadius * 0.6, 0, Math.PI * 2);
+        ctx.strokeStyle = `rgba(255, 215, 0, ${shockwaveAlpha * 0.8})`;
+        ctx.lineWidth = 3;
+        ctx.stroke();
+        ctx.restore();
+
+        shockwaveRadius += 4.5;
+        shockwaveAlpha -= 0.02;
+      }
+
+      // Fiery particles
+      let activeCount = 0;
+      particles.forEach((p) => {
+        if (p.alpha > 0) {
+          activeCount++;
+          p.x += p.vx;
+          p.y += p.vy;
+          p.vx *= 0.96;
+          p.vy *= 0.96;
+          p.vy += 0.09;
+          p.alpha -= p.decay;
+
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.alpha);
+          ctx.shadowBlur = 10;
+          ctx.shadowColor = p.color;
+          ctx.fillStyle = p.color;
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+      });
+
+      if (activeCount > 0 || shockwaveAlpha > 0) {
+        animFrameRef.current = requestAnimationFrame(render);
+      }
+    };
+
+    render();
+
+    return () => {
+      if (animFrameRef.current) {
+        cancelAnimationFrame(animFrameRef.current);
+      }
+    };
+  }, [hasCrashed, isBettingPhase, posL, posB]);
+
   // Enemy fighter jet pursuing directly behind
   const enemyL = Math.max(5, posL - 22);
   const enemyB = Math.max(8, posB - 14);
@@ -543,8 +688,26 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
         {/* Dynamic Sky Arena Canvas */}
         <div className={`relative w-full h-[220px] sm:h-[260px] bg-gradient-to-b from-[#000411] via-[#040926] to-[#0a0a2a] border-2 border-[#00f0ff] rounded-2xl overflow-hidden shadow-inner select-none mb-3 shrink-0 ${
           hasCrashed ? 'animate-shake border-red-500/80 shadow-[0_0_30px_rgba(239,68,68,0.5)]' : ''
-        }`}>
+        } ${isDodgeShaking ? 'animate-shake' : ''}`}>
           
+          {/* Canvas Particle Explosion System */}
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-35" />
+
+          {/* Floating Dodge Text 'NÉ THÀNH CÔNG!' */}
+          {dodgeAlert && (
+            <div
+              style={{
+                left: `${dodgeAlert.x}%`,
+                bottom: `${Math.min(85, dodgeAlert.y + 12)}%`,
+                transform: 'translate(-50%, -50%)',
+              }}
+              className="absolute z-40 text-yellow-300 font-mono font-black text-xs sm:text-sm bg-slate-950/90 border-2 border-yellow-400 px-3.5 py-1 rounded-full shadow-[0_0_25px_rgba(234,179,8,0.9)] animate-bounce flex items-center gap-1.5 whitespace-nowrap pointer-events-none"
+            >
+              <ShieldAlert className="w-4 h-4 text-yellow-400 animate-pulse" />
+              <span>NÉ THÀNH CÔNG!</span>
+            </div>
+          )}
+
           {/* Synchronized Multiplier display */}
           <div className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-6xl font-black tracking-widest font-mono z-0 transition-colors ${
             hasCrashed ? 'text-[#ff003c]/25' : isBettingPhase ? 'text-white/5' : 'text-cyan-400/20'

@@ -83,6 +83,7 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
   });
 
   const [customFrames, setCustomFrames] = useState<ShopItem[]>([]);
+  const [customTitles, setCustomTitles] = useState<ShopItem[]>([]);
 
   const [giftTarget, setGiftTarget] = useState('');
   const [giftAmount, setGiftAmount] = useState('');
@@ -102,7 +103,22 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
     return () => unsub();
   }, []);
 
-  const allShopItems = [...SHOP_ITEMS, ...customFrames];
+  // Fetch custom titles created by Admin
+  useEffect(() => {
+    const titlesRef = ref(db, 'settings/custom_titles');
+    const unsub = onValue(titlesRef, (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        const arr = Object.values(val) as ShopItem[];
+        setCustomTitles(arr.filter((t: any) => t.inMarketplace !== false));
+      } else {
+        setCustomTitles([]);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const allShopItems = [...SHOP_ITEMS, ...customFrames, ...customTitles];
 
   // Fetch or sync user inventory
   useEffect(() => {

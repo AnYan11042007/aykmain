@@ -43,6 +43,15 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
   const [newFrameDesc, setNewFrameDesc] = useState('Khung Avatar thiết kế độc quyền từ Ban Giám Hiệu AYK.');
   const [newFrameInBP, setNewFrameInBP] = useState(true);
 
+  // Custom Title Creation State
+  const [customTitles, setCustomTitles] = useState<any[]>([]);
+  const [newTitleName, setNewTitleName] = useState('');
+  const [newTitlePrice, setNewTitlePrice] = useState('30000');
+  const [newTitleColor, setNewTitleColor] = useState('yellow');
+  const [newTitleDesc, setNewTitleDesc] = useState('Danh hiệu đặc quyền thời thượng do Admin trao tặng.');
+  const [newTitleInShop, setNewTitleInShop] = useState(true);
+  const [awardTitleStudentId, setAwardTitleStudentId] = useState('');
+
   // Daily missions pool state
   const [missionsPool, setMissionsPool] = useState<any[]>([]);
   const [newMissionTitle, setNewMissionTitle] = useState('');
@@ -121,6 +130,15 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
   const [ppRewardMult, setPpRewardMult] = useState(1.0);
   const [beastSpeedMult, setBeastSpeedMult] = useState(1.0);
 
+  // Card Rank Rewards Settings State
+  const [cardTop1PP, setCardTop1PP] = useState(50000);
+  const [cardTop1Title, setCardTop1Title] = useState('VUA THẺ BÀI');
+  const [cardTop2PP, setCardTop2PP] = useState(30000);
+  const [cardTop3PP, setCardTop3PP] = useState(15000);
+  const [cardTop4To10PP, setCardTop4To10PP] = useState(5000);
+  const [cardMaxTopRewarded, setCardMaxTopRewarded] = useState(10);
+  const [cardNotice, setCardNotice] = useState('Phần thưởng TOP Xếp Hạng Trùm Thẻ sẽ do Admin tổng kết và phê duyệt ban hành mỗi chu kỳ 7 ngày!');
+
   useEffect(() => {
     if (user?.role !== 'TEACHER') return;
 
@@ -132,6 +150,21 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
         if (val.bossHpMultiplier) setBossHpMult(val.bossHpMultiplier);
         if (val.ppRewardMultiplier) setPpRewardMult(val.ppRewardMultiplier);
         if (val.beastSpeedMultiplier) setBeastSpeedMult(val.beastSpeedMultiplier);
+      }
+    });
+
+    // Load Card Rank Rewards Settings
+    const cardRewardsRef = ref(db, 'settings/card_rank_rewards');
+    get(cardRewardsRef).then((snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        if (val.top1PP !== undefined) setCardTop1PP(val.top1PP);
+        if (val.top1Title !== undefined) setCardTop1Title(val.top1Title);
+        if (val.top2PP !== undefined) setCardTop2PP(val.top2PP);
+        if (val.top3PP !== undefined) setCardTop3PP(val.top3PP);
+        if (val.top4To10PP !== undefined) setCardTop4To10PP(val.top4To10PP);
+        if (val.maxTopRewarded !== undefined) setCardMaxTopRewarded(val.maxTopRewarded);
+        if (val.notice !== undefined) setCardNotice(val.notice);
       }
     });
 
@@ -189,9 +222,20 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
       }
     });
 
+    const titlesRef = ref(db, 'settings/custom_titles');
+    const unsubscribeTitles = onValue(titlesRef, (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        setCustomTitles(Object.values(val));
+      } else {
+        setCustomTitles([]);
+      }
+    });
+
     return () => {
       unsubscribeMissions();
       unsubscribeFrames();
+      unsubscribeTitles();
     };
   }, [user, activeTab]);
 
@@ -246,6 +290,82 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
       await remove(ref(db, `settings/custom_avatar_frames/${frameId}`));
       if (onShowResult) {
         onShowResult('ĐÃ XÓA KHUNG 🗑️', 'Khung Avatar đã bị gỡ khỏi hệ thống!', true);
+      }
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCreateCustomTitle = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const titleName = newTitleName.trim();
+    if (!titleName) {
+      alert('Vui lòng nhập tên danh hiệu!');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const titleId = `title_${Date.now()}`;
+      const titleData = {
+        id: titleId,
+        name: `Danh Hiệu: ${titleName}`,
+        type: 'title',
+        price: parseInt(newTitlePrice) || 30000,
+        value: titleName,
+        color: newTitleColor,
+        desc: newTitleDesc.trim(),
+        inMarketplace: newTitleInShop,
+        createdAt: Date.now()
+      };
+
+      await update(ref(db, `settings/custom_titles/${titleId}`), titleData);
+
+      if (awardTitleStudentId) {
+        const selectedStudent = usersList.find(u => u.id === awardTitleStudentId);
+        if (selectedStudent) {
+          await update(ref(db, `users/${awardTitleStudentId}`), {
+            title: titleName
+          });
+
+          const invSnap = await get(ref(db, `users/${awardTitleStudentId}/inventory/titles`));
+          const currentTitles: string[] = invSnap.exists() ? (invSnap.val() || []) : [];
+          if (!currentTitles.includes(titleName)) {
+            await set(ref(db, `users/${awardTitleStudentId}/inventory/titles`), [...currentTitles, titleName]);
+          }
+
+          await push(ref(db, 'global_chat'), {
+            senderId: 'SYSTEM_ADMIN',
+            senderName: 'Ban Quản Trị Admin',
+            message: `🎉 TÂN PHONG DANH HIỆU: Admin vừa trao tặng Danh Hiệu "${titleName}" cho sinh viên ${selectedStudent.name}! 🌟`,
+            time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+            timestamp: Date.now()
+          });
+        }
+      }
+
+      if (onShowResult) {
+        onShowResult('TẠO DANH HIỆU THÀNH CÔNG 🎉', `Đã phát hành danh hiệu "${titleName}" vào hệ thống!`, true);
+      } else {
+        alert(`Đã tạo thành công danh hiệu "${titleName}"!`);
+      }
+
+      setNewTitleName('');
+      setAwardTitleStudentId('');
+    } catch (err) {
+      console.error(err);
+      alert('Gặp lỗi khi tạo Danh Hiệu!');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteCustomTitle = async (titleId: string) => {
+    if (!confirm('Bạn có chắc muốn xóa Danh Hiệu này khỏi hệ thống?')) return;
+    try {
+      await remove(ref(db, `settings/custom_titles/${titleId}`));
+      if (onShowResult) {
+        onShowResult('ĐÃ XÓA DANH HIỆU 🗑️', 'Danh hiệu đã bị gỡ khỏi hệ thống!', true);
       }
     } catch (err) {
       console.error(err);
@@ -429,10 +549,21 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
         beastSpeedMultiplier: beastSpeedMult
       });
 
+      // 4. Save Card Rank Rewards Settings
+      await set(ref(db, 'settings/card_rank_rewards'), {
+        top1PP: cardTop1PP,
+        top1Title: cardTop1Title,
+        top2PP: cardTop2PP,
+        top3PP: cardTop3PP,
+        top4To10PP: cardTop4To10PP,
+        maxTopRewarded: cardMaxTopRewarded,
+        notice: cardNotice
+      });
+
       if (onShowResult) {
-        onShowResult('THÀNH CÔNG 🎉', 'Đã cập nhật cấu hình Shop, Battle Pass & Game Đi Săn Thế Giới thành công!', true);
+        onShowResult('THÀNH CÔNG 🎉', 'Đã cập nhật cấu hình Shop, Battle Pass, Đi Săn & Thưởng Trùm Thẻ thành công!', true);
       } else {
-        alert('Đã cập nhật cấu hình Shop, Battle Pass & Game Đi Săn Thế Giới thành công!');
+        alert('Đã cập nhật cấu hình hệ thống thành công!');
       }
     } catch (err) {
       if (onShowResult) {
@@ -440,6 +571,90 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
       } else {
         alert('Có lỗi xảy ra khi lưu cấu hình!');
       }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Auto distribute card rewards & reset cycle
+  const handleDistributeCardRewardsAndReset = async () => {
+    if (!confirm('🏆 XÁC NHẬN BAN HÀNH QUÀ TOP TRÙM THẺ & RESET ĐIỂM CHU KỲ 7 NGÀY?\nHệ thống sẽ tự động tổng kết trao thưởng PP & Danh hiệu cho TOP sinh viên có điểm thi đấu cao nhất, sau đó đưa điểm Card Points về 0.')) return;
+
+    setIsLoading(true);
+    try {
+      const snap = await get(ref(db, 'users'));
+      if (snap.exists()) {
+        const usersArr: any[] = [];
+        snap.forEach((child) => {
+          const val = child.val();
+          if (val.role === 'STUDENT') {
+            usersArr.push({
+              id: child.key!,
+              cardPoints: val.cardPoints || 0,
+              pp: val.pp || 0,
+              title: val.title || ''
+            });
+          }
+        });
+
+        usersArr.sort((a, b) => b.cardPoints - a.cardPoints);
+
+        const updates: any = {};
+        let rewardedCount = 0;
+
+        usersArr.forEach((u, idx) => {
+          const rank = idx + 1;
+          let addPP = 0;
+          let newTitle = u.title;
+
+          if (rank === 1) {
+            addPP = cardTop1PP;
+            if (cardTop1Title) newTitle = cardTop1Title;
+          } else if (rank === 2) {
+            addPP = cardTop2PP;
+          } else if (rank === 3) {
+            addPP = cardTop3PP;
+          } else if (rank >= 4 && rank <= cardMaxTopRewarded) {
+            addPP = cardTop4To10PP;
+          }
+
+          if (addPP > 0 || rank === 1) {
+            rewardedCount++;
+            updates[`users/${u.id}/pp`] = u.pp + addPP;
+            if (newTitle) updates[`users/${u.id}/title`] = newTitle;
+            
+            push(ref(db, `transactions/${u.id}`), {
+              id: `tx_card_reward_${Date.now()}`,
+              type: 'INCOME',
+              amount: addPP,
+              description: `🎁 PHẦN THƯỞNG XẾP HẠNG TRÙM THẺ (TOP #${rank})`,
+              unit: 'PP',
+              timestamp: Date.now()
+            });
+          }
+
+          updates[`users/${u.id}/cardPoints`] = 0;
+        });
+
+        await update(ref(db), updates);
+
+        await push(ref(db, 'global_chat'), {
+          senderId: 'SYSTEM_ADMIN',
+          senderName: 'Ban Quản Trị Admin',
+          message: `🏆 TỔNG KẾT XẾP HẠNG TRÙM THẺ (7 NGÀY): Admin đã phê duyệt ban hành phần thưởng cho ${rewardedCount} Cao Thủ Top Trùm Thẻ và reset bảng điểm cho chu kỳ mới! 🎉`,
+          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          timestamp: Date.now()
+        });
+
+        if (onShowResult) {
+          onShowResult('TRAO THƯỞNG THÀNH CÔNG 🎁', `Đã tự động cộng PP/Danh hiệu cho ${rewardedCount} sinh viên thuộc TOP và làm mới chu kỳ!`, true);
+        } else {
+          alert(`Đã trao quà thành công cho ${rewardedCount} sinh viên!`);
+        }
+      }
+    } catch (err) {
+      console.error(err);
+      alert('Lỗi khi trao thưởng Xếp Hạng Trùm Thẻ!');
     } finally {
       setIsLoading(false);
     }
@@ -865,11 +1080,11 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
   return (
     <div className="space-y-6">
-      {/* Category header tabs */}
-      <div className="flex border-b border-white/5 pb-2 overflow-x-auto gap-1">
+      {/* Category header tabs - Horizontally draggable & scrollable for phone and laptop */}
+      <div className="flex border-b border-white/10 pb-2 overflow-x-auto gap-2 scrollbar-thin scrollbar-thumb-amber-500/40 scrollbar-track-white/5 touch-pan-x cursor-grab active:cursor-grabbing select-none py-1 my-1 whitespace-nowrap">
         <button
           onClick={() => setActiveTab('users')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'users'
               ? 'bg-[#00f0ff] text-black shadow-[0_0_15px_rgba(0,240,255,0.3)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -880,7 +1095,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('vouchers')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'vouchers'
               ? 'bg-[#00f0ff] text-black shadow-[0_0_15px_rgba(0,240,255,0.3)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -891,7 +1106,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('quests')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'quests'
               ? 'bg-[#00f0ff] text-black shadow-[0_0_15px_rgba(0,240,255,0.3)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -902,7 +1117,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('reports')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'reports'
               ? 'bg-[#00f0ff] text-black shadow-[0_0_15px_rgba(0,240,255,0.3)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -913,7 +1128,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('settings')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'settings'
               ? 'bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.3)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -924,18 +1139,18 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('frames')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'frames'
               ? 'bg-purple-500 text-black shadow-[0_0_15px_rgba(168,85,247,0.4)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
           }`}
         >
-          <Sparkles className="w-4 h-4 text-purple-300 animate-pulse" /> [ TẠO KHUNG AVATAR ]
+          <Sparkles className="w-4 h-4 text-purple-300 animate-pulse" /> [ TẠO KHUNG AVATAR & DANH HIỆU ]
         </button>
 
         <button
           onClick={() => setActiveTab('missions')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'missions'
               ? 'bg-[#00f0ff] text-black shadow-[0_0_15px_rgba(0,240,255,0.3)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -946,7 +1161,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('monitor')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'monitor'
               ? 'bg-rose-600 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)] font-black animate-pulse'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -957,7 +1172,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
         <button
           onClick={() => setActiveTab('online')}
-          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+          className={`px-5 py-3 rounded-xl font-mono text-xs uppercase font-black tracking-wider transition-all flex items-center gap-2 cursor-pointer shrink-0 ${
             activeTab === 'online'
               ? 'bg-emerald-500 text-black shadow-[0_0_15px_rgba(16,185,129,0.4)] font-black'
               : 'text-[#8b949e] hover:text-white hover:bg-white/5'
@@ -1555,6 +1770,108 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
               </div>
             </div>
 
+            {/* CARD RANKING REWARDS CONFIG & AUTO-DISTRIBUTE */}
+            <div className="lg:col-span-2 glass-box p-6 border-purple-500/40 bg-purple-950/10 space-y-4">
+              <div className="border-b border-white/5 pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-purple-300 uppercase font-black text-xs flex items-center gap-1.5">
+                    🃏 CẤU HÌNH PHẦN THƯỞNG & TRAO QUÀ XẾP HẠNG TRÙM THẺ (7 NGÀY)
+                  </h4>
+                  <p className="text-[9px] text-slate-400 font-mono mt-0.5 uppercase">
+                    Admin tùy chỉnh danh mục quà tặng PP/Danh hiệu cho từng TOP và thực hiện ban hành quà cuối chu kỳ
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleDistributeCardRewardsAndReset}
+                  className="bg-gradient-to-r from-purple-600 via-fuchsia-500 to-amber-500 hover:brightness-125 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider cursor-pointer shadow-[0_0_20px_rgba(168,85,247,0.5)] transition-all flex items-center gap-2 shrink-0 animate-pulse"
+                >
+                  <Award className="w-4 h-4 text-yellow-300" /> [ 🎁 TRAO QUÀ TOP & RESET CHU KỲ ]
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <label className="block text-[10px] text-yellow-300 mb-1.5 uppercase font-bold">
+                    🥇 Thưởng TOP 1 (PP):
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full bg-black/60 border border-yellow-400/30 rounded-lg p-2.5 text-yellow-300 font-bold text-sm"
+                    value={cardTop1PP}
+                    onChange={(e) => setCardTop1PP(parseInt(e.target.value) || 0)}
+                  />
+                  <input
+                    type="text"
+                    placeholder="Danh hiệu Top 1"
+                    className="w-full bg-black/60 border border-yellow-400/30 rounded-lg p-2 mt-1.5 text-amber-200 font-bold text-xs"
+                    value={cardTop1Title}
+                    onChange={(e) => setCardTop1Title(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-300 mb-1.5 uppercase font-bold">
+                    🥈 Thưởng TOP 2 (PP):
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full bg-black/60 border border-slate-300/30 rounded-lg p-2.5 text-slate-200 font-bold text-sm"
+                    value={cardTop2PP}
+                    onChange={(e) => setCardTop2PP(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-amber-400 mb-1.5 uppercase font-bold">
+                    🥉 Thưởng TOP 3 (PP):
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full bg-black/60 border border-amber-600/30 rounded-lg p-2.5 text-amber-300 font-bold text-sm"
+                    value={cardTop3PP}
+                    onChange={(e) => setCardTop3PP(parseInt(e.target.value) || 0)}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-purple-300 mb-1.5 uppercase font-bold">
+                    🌟 Thưởng TOP 4 - TOP {cardMaxTopRewarded} (PP):
+                  </label>
+                  <input
+                    type="number"
+                    className="w-full bg-black/60 border border-purple-400/30 rounded-lg p-2.5 text-purple-300 font-bold text-sm"
+                    value={cardTop4To10PP}
+                    onChange={(e) => setCardTop4To10PP(parseInt(e.target.value) || 0)}
+                  />
+                  <div className="flex items-center gap-2 mt-1.5">
+                    <span className="text-[9px] text-slate-400 uppercase">Top nhận quà:</span>
+                    <input
+                      type="number"
+                      min="3"
+                      max="50"
+                      className="w-16 bg-black/60 border border-white/10 rounded p-1 text-center text-xs font-bold text-white"
+                      value={cardMaxTopRewarded}
+                      onChange={(e) => setCardMaxTopRewarded(parseInt(e.target.value) || 10)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-300 mb-1 uppercase font-bold">
+                  📢 Thông Báo / Ghi Chú Admin Ban Hành Cho Sinh Viên:
+                </label>
+                <input
+                  type="text"
+                  className="w-full bg-black/60 border border-white/10 rounded-lg p-2.5 text-slate-200 text-xs"
+                  value={cardNotice}
+                  onChange={(e) => setCardNotice(e.target.value)}
+                />
+              </div>
+            </div>
+
             {/* WORLD HUNTING PORTAL CONFIG & REAL-TIME BOSS SPAWN TRIGGER */}
             <div className="lg:col-span-2 glass-box p-6 border-red-500/40 bg-red-950/10 space-y-4">
               <div className="border-b border-white/5 pb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -1844,6 +2161,201 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                 ))}
               </div>
             )}
+          </div>
+
+          {/* CUSTOM TITLE CREATION & MANAGEMENT SECTION */}
+          <div className="pt-6 border-t border-white/10 space-y-6">
+            <div className="border-b border-white/5 pb-2">
+              <h3 className="text-yellow-400 uppercase font-black text-lg text-glow-gold flex items-center gap-2">
+                <Award className="w-5 h-5 text-yellow-400 animate-bounce" /> QUẢN LÝ & TẠO DANH HIỆU CÁ NHÂN MỚI
+              </h3>
+              <p className="text-[10px] text-slate-400 font-mono mt-0.5 uppercase">
+                Admin thiết kế các Danh Hiệu độc quyền (ví dụ: "SIÊU BẮC ĐỔ", "CHỦ TIỆM CẦU LÔNG", "THÁNH BÀI LỚP 12"...), đưa vào Cửa Hàng bán hoặc trao tặng trực tiếp cho Sinh Viên.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Form to create new Title */}
+              <form onSubmit={handleCreateCustomTitle} className="glass-box p-6 border-yellow-500/30 bg-yellow-950/10 space-y-4 lg:col-span-2">
+                <h4 className="text-yellow-300 font-bold uppercase text-xs border-b border-white/5 pb-2 flex items-center gap-2">
+                  🎖️ TẠO DANH HIỆU MỚI
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Tên Danh Hiệu (*):</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="VD: SIÊU BẮC ĐỔ, VUA CẦU LÔNG..."
+                      className="w-full bg-black/60 border border-white/10 p-2.5 rounded-lg text-yellow-300 text-xs font-black focus:border-yellow-500"
+                      value={newTitleName}
+                      onChange={(e) => setNewTitleName(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Giá Bán Shop (PP):</label>
+                    <input
+                      type="number"
+                      required
+                      placeholder="30000"
+                      className="w-full bg-black/60 border border-white/10 p-2.5 rounded-lg text-amber-400 font-mono font-bold text-xs focus:border-yellow-500"
+                      value={newTitlePrice}
+                      onChange={(e) => setNewTitlePrice(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Màu Sắc & Phong Cách Hào Quang (*):</label>
+                    <select
+                      className="w-full bg-black/80 border border-white/10 p-2.5 rounded-lg text-yellow-300 text-xs font-bold focus:border-yellow-500 cursor-pointer"
+                      value={newTitleColor}
+                      onChange={(e) => setNewTitleColor(e.target.value)}
+                    >
+                      <option value="yellow">🌟 Hoàng Kim Vương Giả (Yellow Glow)</option>
+                      <option value="cyan">⚡ Cyber Neon Xanh Lam (Cyan Glow)</option>
+                      <option value="rose">🔥 Ngọn Lửa Hồng Neon (Rose Glow)</option>
+                      <option value="emerald">💎 Ngọc Lục Bảo VIP (Emerald Glow)</option>
+                      <option value="purple">💜 Tím Thần Thoại (Purple VIP)</option>
+                      <option value="rainbow">🌈 Cầu Vồng Đa Sắc Hoàng Gia (Rainbow Gradient)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Tặng Trực Tiếp Cho Sinh Viên (Tùy chọn):</label>
+                    <select
+                      className="w-full bg-black/80 border border-white/10 p-2.5 rounded-lg text-emerald-300 text-xs font-bold focus:border-yellow-500 cursor-pointer"
+                      value={awardTitleStudentId}
+                      onChange={(e) => setAwardTitleStudentId(e.target.value)}
+                    >
+                      <option value="">-- Chỉ Đưa Vào Cửa Hàng (Không tặng trực tiếp) --</option>
+                      {usersList.map((u) => (
+                        <option key={u.id} value={u.id}>
+                          👤 {u.name} ({u.class}) - {u.pp.toLocaleString()} PP
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] text-slate-400 uppercase font-bold mb-1">Mô Tả Danh Hiệu:</label>
+                  <textarea
+                    rows={2}
+                    className="w-full bg-black/60 border border-white/10 p-2.5 rounded-lg text-slate-300 text-xs focus:border-yellow-500"
+                    value={newTitleDesc}
+                    onChange={(e) => setNewTitleDesc(e.target.value)}
+                  />
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <input
+                    type="checkbox"
+                    id="inShop"
+                    className="w-4 h-4 rounded text-yellow-500 focus:ring-yellow-500 cursor-pointer"
+                    checked={newTitleInShop}
+                    onChange={(e) => setNewTitleInShop(e.target.checked)}
+                  />
+                  <label htmlFor="inShop" className="text-xs text-slate-300 font-bold uppercase cursor-pointer">
+                    🛒 Xuất hiện trong Cửa Hàng (Marketplace) để sinh viên khác tự mua
+                  </label>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="w-full py-3 bg-gradient-to-r from-yellow-500 via-amber-500 to-amber-600 hover:brightness-125 text-black font-black text-xs uppercase tracking-wider rounded-xl cursor-pointer shadow-[0_0_15px_rgba(245,158,11,0.4)] transition-all flex items-center justify-center gap-2"
+                >
+                  <Award className="w-4 h-4" />
+                  {isLoading ? 'ĐANG TẠO...' : 'BAN HÀNH DANH HIỆU MỚI'}
+                </button>
+              </form>
+
+              {/* Title Live Preview Card */}
+              <div className="glass-box p-6 border-yellow-500/30 bg-yellow-950/20 flex flex-col items-center justify-center text-center space-y-4">
+                <span className="text-[10px] font-mono text-yellow-400 uppercase font-black tracking-widest">
+                  👀 MẪU HIỂN THỊ DANH HIỆU
+                </span>
+
+                <div className="p-4 bg-black/60 border border-white/10 rounded-2xl w-full max-w-xs space-y-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                      alt="User"
+                      className="w-10 h-10 rounded-full object-cover border border-amber-400/50"
+                    />
+                    <div className="text-left min-w-0">
+                      <span className="text-white font-bold text-xs block truncate">{user?.name || 'Tên Sinh Viên'}</span>
+                      <span className="text-[9px] text-slate-400 block font-mono">Lớp: AYK-SE1</span>
+                    </div>
+                  </div>
+
+                  {/* Title Badge Preview */}
+                  <div className={`p-2 rounded-xl text-center border font-black text-xs uppercase tracking-wider shadow-lg ${
+                    newTitleColor === 'yellow' ? 'border-yellow-400/60 text-yellow-300 bg-yellow-500/15 shadow-[0_0_12px_rgba(234,179,8,0.3)]' :
+                    newTitleColor === 'cyan' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-500/15 shadow-[0_0_12px_rgba(6,182,212,0.3)]' :
+                    newTitleColor === 'rose' ? 'border-rose-400/60 text-rose-300 bg-rose-500/15 shadow-[0_0_12px_rgba(244,63,94,0.3)]' :
+                    newTitleColor === 'emerald' ? 'border-emerald-400/60 text-emerald-300 bg-emerald-500/15 shadow-[0_0_12px_rgba(16,185,129,0.3)]' :
+                    newTitleColor === 'purple' ? 'border-purple-400/60 text-purple-300 bg-purple-500/15 shadow-[0_0_12px_rgba(168,85,247,0.3)]' :
+                    'border-yellow-300 text-black font-black bg-gradient-to-r from-yellow-300 via-rose-400 to-cyan-300 shadow-[0_0_15px_rgba(253,224,71,0.5)]'
+                  }`}>
+                    🏅 {newTitleName || 'TÊN DANH HIỆU'}
+                  </div>
+
+                  <p className="text-[9px] text-amber-300 font-mono font-bold">
+                    💰 Giá: {parseInt(newTitlePrice || '0').toLocaleString()} PP
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* List of Custom Titles created by Admin */}
+            <div className="glass-box p-6 border-white/10 space-y-4">
+              <h4 className="text-white font-bold text-xs uppercase flex items-center gap-2 border-b border-white/5 pb-2">
+                🎖️ DANH SÁCH DANH HIỆU DO ADMIN TẠO ({customTitles.length})
+              </h4>
+
+              {customTitles.length === 0 ? (
+                <p className="text-slate-500 font-mono text-xs italic text-center py-6">
+                  Chưa có danh hiệu custom nào. Hãy điền thông tin form phía trên để khởi tạo danh hiệu mới!
+                </p>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {customTitles.map((t) => (
+                    <div key={t.id} className="p-4 bg-black/40 border border-yellow-500/20 rounded-xl flex items-center justify-between gap-4">
+                      <div className="space-y-1 min-w-0 flex-1">
+                        <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-black uppercase border ${
+                          t.color === 'yellow' ? 'border-yellow-400/60 text-yellow-300 bg-yellow-500/15' :
+                          t.color === 'cyan' ? 'border-cyan-400/60 text-cyan-300 bg-cyan-500/15' :
+                          t.color === 'rose' ? 'border-rose-400/60 text-rose-300 bg-rose-500/15' :
+                          t.color === 'emerald' ? 'border-emerald-400/60 text-emerald-300 bg-emerald-500/15' :
+                          t.color === 'purple' ? 'border-purple-400/60 text-purple-300 bg-purple-500/15' :
+                          'border-yellow-300 text-black font-black bg-gradient-to-r from-yellow-300 via-rose-400 to-cyan-300'
+                        }`}>
+                          🏅 {t.value || t.name}
+                        </span>
+
+                        <span className="text-amber-400 font-mono text-[10px] font-bold block">
+                          💰 {t.price?.toLocaleString()} PP
+                        </span>
+                        <p className="text-[9px] text-slate-400 truncate">{t.desc}</p>
+                      </div>
+
+                      <button
+                        onClick={() => handleDeleteCustomTitle(t.id)}
+                        className="p-2 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition cursor-pointer text-xs shrink-0"
+                        title="Xóa Danh Hiệu"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}

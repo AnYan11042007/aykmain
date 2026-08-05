@@ -56,6 +56,7 @@ export interface User {
   unlockedFrames?: string[];
   securityQuestion?: string;
   securityAnswer?: string;
+  gachaCoins?: number;
   inventory?: {
     frames?: string[];
     badges?: string[];
