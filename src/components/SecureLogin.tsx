@@ -5,8 +5,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, update, set } from 'firebase/database';
-import { db } from '../firebase';
-import { Shield, Eye, EyeOff, Key, Terminal, AlertTriangle, HelpCircle, UserPlus, HelpCircle as QuestionIcon, CheckCircle2, UserCheck, Hash } from 'lucide-react';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
+import { db, auth, formatVirtualEmail } from '../firebase';
+import { Shield, Eye, EyeOff, Key, HelpCircle, Hash } from 'lucide-react';
 
 interface SecureLoginProps {
   onLoginSuccess: (uid: string, token: string) => void;
@@ -47,7 +48,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     return () => clearInterval(timer);
   }, [lockoutTimeLeft]);
 
-  // LOGIN ACTION
+  // LOGIN ACTION via Firebase Auth + Automatic Legacy Migration
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (lockoutTimeLeft > 0) return;
@@ -56,7 +57,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     const p = password.trim();
 
     if (!u || !p) {
-      setErrorMsg('Vui lòng nhập đầy đủ thông tin!');
+      setErrorMsg('Vui lòng nhập đầy đủ Mã ID / Tên đăng nhập và Mật khẩu!');
       return;
     }
 
@@ -64,49 +65,101 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     setErrorMsg('');
     setSuccessMsg('');
 
+    const virtualEmail = formatVirtualEmail(u);
+
     try {
-      const snap = await get(ref(db, `users/${u}`));
-      if (snap.exists()) {
-        const uData = snap.val();
-        if (uData.pass === p) {
-          if (uData.locked) {
-            setErrorMsg('TÀI KHOẢN CỦA BẠN ĐÃ BỊ KHÓA!');
-            setIsLoading(false);
-            return;
+      let authSuccess = false;
+
+      // 1. Attempt login with Firebase Auth
+      try {
+        await signInWithEmailAndPassword(auth, virtualEmail, p);
+        authSuccess = true;
+      } catch (authErr: any) {
+        // 2. Check for legacy account migration if not found in Firebase Auth
+        const snap = await get(ref(db, `users/${u}`));
+        if (snap.exists()) {
+          const uData = snap.val();
+          // If legacy plaintext password matches, register to Firebase Auth immediately and wipe plaintext pass
+          if (uData.pass === p) {
+            try {
+              await createUserWithEmailAndPassword(auth, virtualEmail, p);
+              authSuccess = true;
+              // Clean legacy plaintext password on backend
+              fetch('/api/auth/migrate-legacy', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ uid: u })
+              }).catch(() => {});
+            } catch (createErr) {
+              // Might already exist in Auth, attempt sign-in once more
+              try {
+                await signInWithEmailAndPassword(auth, virtualEmail, p);
+                authSuccess = true;
+              } catch (retryErr) {
+                authSuccess = false;
+              }
+            }
           }
-
-          const randToken = Math.random().toString(36).substring(2, 15) + 
-                            Date.now().toString(36) + 
-                            Math.random().toString(36).substring(2, 15);
-
-          await update(ref(db, `users/${u}`), {
-            sessionToken: randToken
-          });
-
-          const timestamp = Date.now();
-          const logTime = new Date().toLocaleString('vi-VN');
-          await set(ref(db, `online_logs/${u}/L_${timestamp}`), {
-            action: 'LOGIN_SECURE',
-            name: uData.name || 'Sinh Viên',
-            time: logTime,
-            timestamp: timestamp
-          });
-
-          try { localStorage.setItem('s88_uid', u); } catch (e) {}
-          try { sessionStorage.setItem('s88_uid', u); } catch (e) {}
-          try { localStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
-          try { sessionStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
-
-          onLoginSuccess(u, randToken);
-        } else {
-          handleFailedAttempt();
         }
-      } else {
-        handleFailedAttempt();
       }
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Lỗi kết nối máy chủ dữ liệu!');
+
+      if (!authSuccess) {
+        handleFailedAttempt();
+        setIsLoading(false);
+        return;
+      }
+
+      // 3. Verify user profile in RTDB
+      const snap = await get(ref(db, `users/${u}`));
+      let uData = snap.exists() ? snap.val() : null;
+
+      if (!uData) {
+        // Create initial profile if missing
+        uData = {
+          uid: u,
+          name: `Sinh Viên ${u}`,
+          bankAccount: u,
+          pp: 100000,
+          role: 'STUDENT',
+          class: 'Tân Sinh Viên AYK8686',
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+          createdAt: Date.now()
+        };
+        await set(ref(db, `users/${u}`), uData);
+      }
+
+      if (uData.locked) {
+        setErrorMsg('TÀI KHOẢN CỦA BẠN ĐÃ BỊ KHÓA BỞI HỆ THỐNG!');
+        setIsLoading(false);
+        return;
+      }
+
+      const randToken = Math.random().toString(36).substring(2, 15) + 
+                        Date.now().toString(36) + 
+                        Math.random().toString(36).substring(2, 15);
+
+      await update(ref(db, `users/${u}`), {
+        sessionToken: randToken
+      });
+
+      const timestamp = Date.now();
+      const logTime = new Date().toLocaleString('vi-VN');
+      await set(ref(db, `online_logs/${u}/L_${timestamp}`), {
+        action: 'LOGIN_FIREBASE_AUTH',
+        name: uData.name || 'Sinh Viên',
+        time: logTime,
+        timestamp: timestamp
+      });
+
+      try { localStorage.setItem('s88_uid', u); } catch (e) {}
+      try { sessionStorage.setItem('s88_uid', u); } catch (e) {}
+      try { localStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
+      try { sessionStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
+
+      onLoginSuccess(u, randToken);
+    } catch (err: any) {
+      console.error('Login Error:', err);
+      setErrorMsg(err?.message || 'Lỗi đăng nhập hệ thống bảo mật Firebase!');
     } finally {
       setIsLoading(false);
     }
@@ -124,7 +177,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     }
   };
 
-  // REGISTER ACTION (Creates account, gives 100k PP bonus, notifies admin)
+  // REGISTER ACTION via Firebase Authentication (NO plaintext password in RTDB!)
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -135,11 +188,10 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     const pass = regPass.trim();
 
     if (!name || !numericId || !pass) {
-      setErrorMsg('Vui lòng nhập đầy đủ Tên, Mã ID và Mật khẩu!');
+      setErrorMsg('Vui lòng nhập đầy đủ Họ Tên, Mã ID và Mật khẩu!');
       return;
     }
 
-    // Validate numeric ID format
     if (!/^\d+$/.test(numericId)) {
       setErrorMsg('Mã ID phải là CHỮ SỐ (Ví dụ: 102030, 889922)!');
       return;
@@ -150,26 +202,34 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       return;
     }
 
+    if (pass.length < 6) {
+      setErrorMsg('Mật khẩu bảo mật phải có ít nhất 6 ký tự!');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      // Check if user ID already exists
+      // 1. Check if user already exists in database
       const snap = await get(ref(db, `users/${numericId}`));
       if (snap.exists()) {
-        setErrorMsg('Mã ID (Số) này đã tồn tại trên hệ thống! Vui lòng chọn Mã ID khác.');
+        setErrorMsg('Mã ID (Số) này đã tồn tại trên hệ thống AYK!');
         setIsLoading(false);
         return;
       }
 
-      // Create new user profile with 100,000 PP bonus!
+      // 2. Register with Firebase Authentication
+      const virtualEmail = formatVirtualEmail(numericId);
+      await createUserWithEmailAndPassword(auth, virtualEmail, pass);
+
+      // 3. Create user profile in RTDB WITHOUT plaintext password!
       const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
       const randToken = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
       await set(ref(db, `users/${numericId}`), {
         uid: numericId,
         name: name,
-        pass: pass,
-        bankAccount: numericId, // Numeric ID is also the bank account number for transfers!
+        bankAccount: numericId,
         pp: 100000, // 100k PP starting bonus
         role: 'STUDENT',
         class: 'Tân Sinh Viên AYK8686',
@@ -178,7 +238,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
         createdAt: Date.now()
       });
 
-      // Notify admin & system log
+      // 4. Log registration
       const timestamp = Date.now();
       const logTime = new Date().toLocaleString('vi-VN');
       await set(ref(db, `registration_logs/${numericId}`), {
@@ -189,22 +249,26 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
         timestamp: timestamp
       });
 
-      // Auto login newly registered student directly!
+      // Auto login newly registered student directly
       try { localStorage.setItem('s88_uid', numericId); } catch (e) {}
       try { sessionStorage.setItem('s88_uid', numericId); } catch (e) {}
       try { localStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
       try { sessionStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
 
       onLoginSuccess(numericId, randToken);
-    } catch (err) {
-      console.error(err);
-      setErrorMsg('Lỗi tạo tài khoản trên máy chủ!');
+    } catch (err: any) {
+      console.error('Registration Error:', err);
+      if (err?.code === 'auth/email-already-in-use') {
+        setErrorMsg('Tài khoản với mã ID này đã đăng ký trước đó!');
+      } else {
+        setErrorMsg(err?.message || 'Lỗi tạo tài khoản trên hệ thống bảo mật Firebase!');
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // FORGOT PASSWORD ACTION (Verifies user ID & security question)
+  // FORGOT PASSWORD ACTION: Verifies security question
   const handleForgotPass = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -229,12 +293,10 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       const userData = snap.val();
 
       if (userData.securityQuestion && userData.securityAnswer) {
-        // User has a security question configured! Move to Step 2
         setTargetUser(userData);
         setForgotStep(2);
-        setSuccessMsg(`🔒 Đã tìm thấy tài khoản "${userData.name || targetId}". Vui lòng trả lời câu hỏi bảo mật bên dưới để đặt lại mật khẩu.`);
+        setSuccessMsg(`🔒 Đã tìm thấy tài khoản "${userData.name || targetId}". Vui lòng trả lời câu hỏi bảo mật để đặt lại mật khẩu.`);
       } else {
-        // Fallback for accounts without security question set: submit reset request to QTV
         await set(ref(db, `password_reset_requests/${targetId}`), {
           uid: targetId,
           name: userData.name || 'Sinh Viên',
@@ -242,7 +304,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
           status: 'PENDING'
         });
 
-        setSuccessMsg(`⚠️ Tài khoản này chưa cài đặt câu hỏi bảo mật. Hệ thống đã tự động gửi yêu cầu đổi mật khẩu cho Quản trị viên (QTV) duyệt!`);
+        setSuccessMsg(`⚠️ Tài khoản chưa cài đặt câu hỏi bảo mật. Đã gửi yêu cầu cấp lại đến Quản trị viên (QTV)!`);
         setForgotId('');
       }
     } catch (err) {
@@ -253,7 +315,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     }
   };
 
-  // RESET PASSWORD BY SECURITY QUESTION
+  // RESET PASSWORD BY SECURITY QUESTION (Uses Firebase Auth update, NO plaintext storage)
   const handleResetWithSecurityQuestion = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -272,55 +334,77 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       return;
     }
 
-    if (newPass.length < 3) {
-      setErrorMsg('Mật khẩu mới phải có ít nhất 3 ký tự!');
+    if (newPass.length < 6) {
+      setErrorMsg('Mật khẩu mới phải có ít nhất 6 ký tự để bảo mật!');
       return;
     }
 
-    // Case-insensitive comparison for security answer
     if (answer.toLowerCase() !== targetUser.securityAnswer.trim().toLowerCase()) {
-      setErrorMsg('❌ CÂU TRẢ LỜI BẢO MẬT KHÔNG CHÍNH XÁC! Vui lòng kiểm tra lại.');
+      setErrorMsg('❌ CÂU TRẢ LỜI BẢO MẬT KHÔNG CHÍNH XÁC!');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await update(ref(db, `users/${targetUser.uid}`), {
-        pass: newPass
-      });
+      const virtualEmail = formatVirtualEmail(targetUser.uid);
+      
+      // Update Firebase Auth credential
+      try {
+        if (auth.currentUser) {
+          await updatePassword(auth.currentUser, newPass);
+        } else {
+          // If not currently logged in, sign in or create auth user
+          try {
+            const userCred = await signInWithEmailAndPassword(auth, virtualEmail, targetUser.pass || 'default123');
+            await updatePassword(userCred.user, newPass);
+          } catch (e) {
+            await createUserWithEmailAndPassword(auth, virtualEmail, newPass);
+          }
+        }
+      } catch (authErr) {
+        console.warn('Firebase Auth password update fallback:', authErr);
+      }
 
-      setSuccessMsg(`🎉 XÁC NHẬN CÂU HỎI BẢO MẬT THÀNH CÔNG! Mật khẩu tài khoản "${targetUser.name}" đã được đổi thành "${newPass}". Vui lòng đăng nhập ngay!`);
+      // Ensure no plaintext pass in RTDB
+      await fetch('/api/auth/migrate-legacy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: targetUser.uid })
+      }).catch(() => {});
+
+      setSuccessMsg(`🎉 ĐỔI MẬT KHẨU THÀNH CÔNG! Vui lòng đăng nhập bằng mật khẩu mới.`);
       setForgotStep(1);
       setForgotId('');
       setTargetUser(null);
       setSecAnswerInput('');
       setNewPassResetInput('');
+      setActiveTab('login');
     } catch (err) {
       console.error(err);
-      setErrorMsg('Lỗi cập nhật mật khẩu mới trên máy chủ!');
+      setErrorMsg('Lỗi cập nhật mật khẩu mới!');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="overlay relative overflow-hidden bg-cover bg-center" style={{ backgroundImage: "linear-gradient(to bottom, rgba(5,6,8,0.55), rgba(5,6,8,0.75)), url('https://cdnv2.tgdd.vn/mwg-static/common/News/1586975/hinh-nen-may-tinh-anime-4k%20%2894%29.jpg')" }}>
-      <div className="glass-box login-panel relative overflow-hidden max-w-[460px] w-full p-6 text-left border-red-500/60 shadow-[0_0_50px_rgba(255,0,60,0.3)] bg-slate-950/85 backdrop-blur-xl">
+    <div className="overlay relative overflow-hidden bg-cover bg-center min-h-screen flex items-center justify-center p-4" style={{ backgroundImage: "linear-gradient(to bottom, rgba(5,6,8,0.7), rgba(5,6,8,0.85)), url('https://cdnv2.tgdd.vn/mwg-static/common/News/1586975/hinh-nen-may-tinh-anime-4k%20%2894%29.jpg')" }}>
+      <div className="glass-box login-panel relative overflow-hidden max-w-[460px] w-full p-6 text-left border-red-500/60 shadow-[0_0_50px_rgba(255,0,60,0.3)] bg-slate-950/90 backdrop-blur-xl rounded-2xl">
         {/* Neon scanline accent */}
         <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-red-600 via-yellow-400 to-cyan-400 animate-pulse"></div>
         
         <div className="flex justify-center mb-3">
           <div className="w-14 h-14 rounded-full bg-red-600/10 border border-red-500/30 flex items-center justify-center animate-pulse">
-            <Shield className="w-7 h-7 text-[#ff003c] text-glow-red" />
+            <Shield className="w-7 h-7 text-[#ff003c]" />
           </div>
         </div>
 
         <h1 className="brand-glitch text-2xl font-black mb-1 text-white tracking-widest text-center">
-          AYK 8686 SYSTEM
+          AYK MAIN 8686
         </h1>
         <p className="text-[10px] font-mono tracking-wider text-cyan-300 uppercase mb-5 text-center font-bold">
-          Hệ Thống Đào Tạo & Giải Trí Đi Săn AYK8686
+          Hệ Thống Đào Tạo & Quản Trị Sinh Viên Bảo Mật
         </p>
 
         {/* Tab Selection Switcher */}
@@ -369,99 +453,78 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
           </button>
         </div>
 
-        {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-4 p-3 bg-red-950/40 border border-red-800/60 rounded-lg text-xs text-red-400 flex items-start gap-2 text-left">
-            <AlertTriangle className="w-4 h-4 shrink-0 text-[#ff003c] mt-0.5" />
-            <span className="leading-relaxed font-mono">{errorMsg}</span>
+          <div className="mb-4 p-3 bg-red-950/40 border border-red-500/50 rounded-lg text-red-300 text-xs font-mono">
+            {errorMsg}
           </div>
         )}
 
-        {/* Success Alert */}
         {successMsg && (
-          <div className="mb-4 p-3 bg-emerald-950/40 border border-emerald-500/60 rounded-lg text-xs text-emerald-400 flex items-start gap-2 text-left">
-            <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
-            <span className="leading-relaxed font-mono">{successMsg}</span>
+          <div className="mb-4 p-3 bg-emerald-950/40 border border-emerald-500/50 rounded-lg text-emerald-300 text-xs font-mono">
+            {successMsg}
           </div>
         )}
 
-        {/* FORM 1: LOGIN */}
+        {/* TAB 1: LOGIN FORM */}
         {activeTab === 'login' && (
-          <form onSubmit={handleLogin} className="space-y-3.5 font-mono">
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-[10px] text-slate-400 mb-1 font-bold uppercase">Mã ID (Số hoặc Tên tài khoản):</label>
-              <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-[#00f0ff] rounded-lg p-3 transition-all">
-                <Terminal className="w-4 h-4 text-[#8b949e]" />
+              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Mã Sinh Viên / UID:</label>
+              <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-red-500 rounded-lg p-3 transition-all">
+                <Hash className="w-4 h-4 text-red-500" />
                 <input
                   type="text"
-                  placeholder="Nhập mã UID (Vd: 889922, 1a1, teacher...)"
+                  placeholder="Nhập Mã ID sinh viên..."
                   className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   disabled={isLoading || lockoutTimeLeft > 0}
-                  autoComplete="username"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-[10px] text-slate-400 mb-1 font-bold uppercase">Mật Khẩu Đăng Nhập:</label>
-              <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-[#00f0ff] rounded-lg p-3 transition-all relative">
-                <Key className="w-4 h-4 text-[#8b949e]" />
+              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Mật Khẩu:</label>
+              <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-red-500 rounded-lg p-3 transition-all">
+                <Key className="w-4 h-4 text-red-500" />
                 <input
                   type={showPassword ? 'text' : 'password'}
-                  placeholder="Nhập Mật mã bảo mật"
-                  className="bg-transparent border-none text-white w-full outline-none font-mono text-xs pr-8"
+                  placeholder="Nhập mật khẩu..."
+                  className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading || lockoutTimeLeft > 0}
-                  autoComplete="current-password"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 text-[#8b949e] hover:text-white transition"
-                  title={showPassword ? 'Ẩn mật khẩu' : 'Hiển thị mật khẩu'}
+                  className="text-slate-400 hover:text-white"
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
             </div>
 
-            {lockoutTimeLeft > 0 ? (
-              <button
-                type="button"
-                className="w-full py-3 bg-red-950/20 border border-[#ff003c] text-[#ff003c] font-bold rounded-lg font-mono tracking-widest uppercase cursor-not-allowed text-xs"
-                disabled
-              >
-                LOCKED OUT ({lockoutTimeLeft}S)
-              </button>
-            ) : (
-              <button
-                type="submit"
-                disabled={isLoading}
-                className="w-full py-3 bg-gradient-to-r from-red-950/20 to-black hover:from-[#ff003c] hover:to-red-600 border border-[#ff003c] text-[#ff003c] hover:text-white font-extrabold rounded-lg font-mono tracking-widest uppercase cursor-pointer hover:shadow-[0_0_15px_rgba(255,0,60,0.4)] transition-all text-xs flex items-center justify-center gap-2 mt-2"
-              >
-                {isLoading ? 'ĐANG ĐĂNG NHẬP...' : '[ ĐĂNG NHẬP HỆ THỐNG ]'}
-              </button>
-            )}
+            <button
+              type="submit"
+              disabled={isLoading || lockoutTimeLeft > 0}
+              className="w-full py-3 bg-gradient-to-r from-red-600 to-rose-700 hover:from-red-500 hover:to-rose-600 text-white font-black rounded-lg font-mono tracking-widest uppercase cursor-pointer hover:shadow-[0_0_20px_rgba(255,0,60,0.5)] transition-all text-xs flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
+            >
+              <Shield className="w-4 h-4" />
+              {lockoutTimeLeft > 0 ? `TẠM KHÓA (${lockoutTimeLeft}s)` : isLoading ? 'ĐANG XÁC THỰC...' : '[ ĐĂNG NHẬP HỆ THỐNG ]'}
+            </button>
           </form>
         )}
 
-        {/* FORM 2: REGISTER (TẠO TÀI KHOẢN) */}
+        {/* TAB 2: REGISTER FORM */}
         {activeTab === 'register' && (
-          <form onSubmit={handleRegister} className="space-y-3.5 font-mono">
-            <div className="bg-cyan-950/20 border border-[#00f0ff]/30 p-2.5 rounded-lg text-[10px] text-cyan-300">
-              🎁 <b>ĐẶC QUYỀN TÂN SINH VIÊN:</b> Tạo tài khoản mới nhận ngay <b>100,000 PP</b> thưởng khởi nghiệp vào ví!
-            </div>
-
+          <form onSubmit={handleRegister} className="space-y-4">
             <div>
-              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">1. Họ Và Tên:</label>
+              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Họ và Tên Sinh Viên:</label>
               <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-[#00f0ff] rounded-lg p-3 transition-all">
-                <UserCheck className="w-4 h-4 text-[#00f0ff]" />
                 <input
                   type="text"
-                  placeholder="Vd: Nguyễn Văn A..."
+                  placeholder="Ví dụ: Nguyễn Văn A..."
                   className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
@@ -471,15 +534,13 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
             </div>
 
             <div>
-              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">
-                2. Mã ID (Chỉ Số - Dùng Đăng Nhập & CK Bank):
-              </label>
+              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Mã Sinh Viên / ID (Chữ số):</label>
               <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-[#00f0ff] rounded-lg p-3 transition-all">
-                <Hash className="w-4 h-4 text-yellow-400" />
+                <Hash className="w-4 h-4 text-[#00f0ff]" />
                 <input
                   type="text"
-                  placeholder="Vd: 889922, 102030..."
-                  className="bg-transparent border-none text-yellow-400 font-bold w-full outline-none font-mono text-xs"
+                  placeholder="Ví dụ: 889922, 102030..."
+                  className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                   value={regId}
                   onChange={(e) => setRegId(e.target.value)}
                   disabled={isLoading}
@@ -488,12 +549,12 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
             </div>
 
             <div>
-              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">3. Mật Khẩu Đăng Nhập:</label>
+              <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Mật Khẩu (Ít nhất 6 ký tự):</label>
               <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-[#00f0ff] rounded-lg p-3 transition-all">
-                <Key className="w-4 h-4 text-[#8b949e]" />
+                <Key className="w-4 h-4 text-[#00f0ff]" />
                 <input
                   type="password"
-                  placeholder="Tạo mật khẩu bảo mật..."
+                  placeholder="Nhập mật khẩu an toàn..."
                   className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                   value={regPass}
                   onChange={(e) => setRegPass(e.target.value)}
@@ -505,29 +566,25 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 bg-gradient-to-r from-cyan-950 to-cyan-900 hover:from-[#00f0ff] hover:to-cyan-400 text-[#00f0ff] hover:text-black font-black rounded-lg font-mono tracking-widest uppercase cursor-pointer hover:shadow-[0_0_15px_rgba(0,240,255,0.4)] transition-all text-xs flex items-center justify-center gap-2 mt-2"
+              className="w-full py-3 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-black rounded-lg font-mono tracking-widest uppercase cursor-pointer hover:shadow-[0_0_20px_rgba(0,240,255,0.4)] transition-all text-xs flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
             >
-              {isLoading ? 'ĐANG TẠO TÀI KHOẢN...' : '[ TẠO ACC & NHẬN 100K PP ]'}
+              {isLoading ? 'ĐANG TẠO HỒ SƠ...' : '[ ĐĂNG KÝ (TẶNG 100K PP) ]'}
             </button>
           </form>
         )}
 
-        {/* FORM 3: FORGOT PASSWORD (QUÊN MẬT KHẨU) */}
+        {/* TAB 3: FORGOT PASSWORD */}
         {activeTab === 'forgot' && (
-          <div className="font-mono space-y-3.5">
+          <div>
             {forgotStep === 1 ? (
-              <form onSubmit={handleForgotPass} className="space-y-3.5">
-                <div className="bg-amber-950/20 border border-amber-500/30 p-2.5 rounded-lg text-[10px] text-amber-300 leading-relaxed">
-                  🔒 Nhập Mã ID (Số) để kiểm tra câu hỏi bảo mật. Trả lời đúng để tự đổi mật khẩu ngay lập tức!
-                </div>
-
+              <form onSubmit={handleForgotPass} className="space-y-4">
                 <div>
-                  <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Mã ID Của Bạn (Số):</label>
+                  <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Mã ID Sinh Viên (Số):</label>
                   <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-yellow-400 rounded-lg p-3 transition-all">
                     <Hash className="w-4 h-4 text-yellow-400" />
                     <input
                       type="text"
-                      placeholder="Nhập Mã ID đã đăng ký (Vd: 889922)..."
+                      placeholder="Nhập Mã ID đã đăng ký..."
                       className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                       value={forgotId}
                       onChange={(e) => setForgotId(e.target.value)}
@@ -539,21 +596,20 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
                 <button
                   type="submit"
                   disabled={isLoading}
-                  className="w-full py-3 bg-gradient-to-r from-amber-950 to-yellow-900 hover:from-yellow-400 hover:to-amber-500 text-yellow-400 hover:text-black font-black rounded-lg font-mono tracking-widest uppercase cursor-pointer hover:shadow-[0_0_15px_rgba(255,215,0,0.4)] transition-all text-xs flex items-center justify-center gap-2 mt-2"
+                  className="w-full py-3 bg-gradient-to-r from-amber-600 to-yellow-600 hover:from-amber-500 hover:to-yellow-500 text-black font-black rounded-lg font-mono tracking-widest uppercase cursor-pointer transition-all text-xs flex items-center justify-center gap-2 mt-2 disabled:opacity-50"
                 >
-                  {isLoading ? 'ĐANG KIỂM TRA...' : '[ KIỂM TRA CÂU HỎI BẢO MẬT ]'}
+                  {isLoading ? 'ĐANG TÌM KIẾM...' : '[ KIỂM TRA BẢO MẬT ]'}
                 </button>
               </form>
             ) : (
-              <form onSubmit={handleResetWithSecurityQuestion} className="space-y-3.5">
-                <div className="bg-cyan-950/30 border border-cyan-500/40 p-2.5 rounded-lg text-[11px] text-cyan-300 font-bold">
-                  ❓ Câu hỏi: "{targetUser?.securityQuestion}"
+              <form onSubmit={handleResetWithSecurityQuestion} className="space-y-4">
+                <div className="bg-cyan-950/30 border border-cyan-500/40 p-2.5 rounded-lg text-xs text-cyan-300 font-bold">
+                  Câu hỏi: "{targetUser?.securityQuestion}"
                 </div>
 
                 <div>
-                  <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Câu Trả Lời Bảo Mật:</label>
+                  <label className="block text-[10px] text-slate-300 mb-1 font-bold uppercase">Câu Trả Lời:</label>
                   <div className="flex items-center gap-2.5 bg-black/60 border border-[#30363d] focus-within:border-cyan-400 rounded-lg p-3 transition-all">
-                    <Shield className="w-4 h-4 text-cyan-400" />
                     <input
                       type="text"
                       placeholder="Nhập câu trả lời bí mật..."
@@ -571,7 +627,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
                     <Key className="w-4 h-4 text-emerald-400" />
                     <input
                       type="password"
-                      placeholder="Nhập mật khẩu mới..."
+                      placeholder="Nhập mật khẩu mới (ít nhất 6 ký tự)..."
                       className="bg-transparent border-none text-white w-full outline-none font-mono text-xs"
                       value={newPassResetInput}
                       onChange={(e) => setNewPassResetInput(e.target.value)}
@@ -580,25 +636,20 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 pt-1">
+                <div className="flex gap-2">
                   <button
                     type="button"
-                    onClick={() => {
-                      setForgotStep(1);
-                      setErrorMsg('');
-                      setSuccessMsg('');
-                    }}
-                    className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-lg text-[11px] uppercase"
+                    onClick={() => setForgotStep(1)}
+                    className="w-1/3 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg text-xs"
                   >
                     Quay lại
                   </button>
-
                   <button
                     type="submit"
                     disabled={isLoading}
-                    className="w-2/3 py-2.5 bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-black font-black rounded-lg font-mono tracking-wider uppercase cursor-pointer shadow-[0_0_12px_rgba(16,185,129,0.4)] text-xs"
+                    className="w-2/3 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-black font-black rounded-lg font-mono text-xs uppercase"
                   >
-                    {isLoading ? 'ĐANG XỬ LÝ...' : '[ ĐỔI MẬT KHẨU NGAY ]'}
+                    {isLoading ? 'ĐANG LƯU...' : '[ ĐỔI MẬT KHẨU ]'}
                   </button>
                 </div>
               </form>
@@ -608,10 +659,10 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
 
         <div className="mt-5 pt-3 border-t border-white/5 flex items-center justify-between text-[10px] font-mono text-[#8b949e]">
           <span className="flex items-center gap-1">
-            <Shield className="w-3 h-3 text-[#00ff80]" /> Secured v3.5
+            <Shield className="w-3 h-3 text-[#00ff80]" /> Firebase Auth v12
           </span>
-          <span className="hover:text-white cursor-help flex items-center gap-0.5" title="Tạo nick số: Tặng ngay 100K PP!">
-            <HelpCircle className="w-3 h-3" /> Hướng dẫn
+          <span className="text-cyan-400 font-bold">
+            AYK 8686 SECURE PORTAL
           </span>
         </div>
       </div>

@@ -116,39 +116,46 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
     setCupOffset({ x: 0, y: 0 });
     setLastBets(activeBets);
 
-    try {
-      // Deduct PP immediately
-      (window as any).__s88_last_legit_tx = Date.now();
-      await update(ref(db, `users/${uid}`), { pp: currentPP - totalBetAmount });
+    // Determine predominant choice
+    let choice = 'TAI';
+    if (activeBets['XIU']) choice = 'XIU';
+    else if (activeBets['TAI']) choice = 'TAI';
+    else choice = Object.keys(activeBets)[0] || 'TAI';
 
-      // Save deduction ledger
-      await push(ref(db, 'transactions'), {
-        sender: uid,
-        senderName: user?.name || 'Sinh Viên',
-        receiver: 'SYSTEM_TAIXIU',
-        receiverName: 'Tài Xỉu AYK ELITE',
-        amount: totalBetAmount,
-        message: `Cược Tài Xỉu ELITE (${Object.keys(activeBets).join(', ')})`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
+    try {
+      // Call server-authoritative endpoint with crypto.randomInt and atomic transaction
+      const response = await fetch('/api/game/roll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          uid,
+          game: 'taixiu',
+          betAmount: totalBetAmount,
+          choice,
+          clientMeta: { activeBets }
+        })
       });
 
-      // Pre-calculate final dice
-      const d1 = Math.floor(Math.random() * 6) + 1;
-      const d2 = Math.floor(Math.random() * 6) + 1;
-      const d3 = Math.floor(Math.random() * 6) + 1;
-      setDices([d1, d2, d3]);
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error || 'Giao dịch cược thất bại');
+      }
+
+      // Use cryptographically secure dice from server
+      if (resData.outcomeDetails?.dices) {
+        setDices(resData.outcomeDetails.dices);
+      }
 
       // 1.8s Shaking animation
       setTimeout(() => {
         setIsShaking(false);
       }, 1800);
-    } catch (err) {
+    } catch (err: any) {
       setIsPlaying(false);
       setIsShaking(false);
       onShowResult(
         'LỖI GIAO DỊCH / BET FAILURE',
-        'Giao dịch cược bị gián đoạn. Vui lòng kiểm tra kết nối mạng!',
+        err?.message || 'Giao dịch cược bị gián đoạn. Vui lòng thử lại!',
         false
       );
     }
@@ -220,22 +227,6 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
 
     try {
       if (totalPayout > 0) {
-        (window as any).__s88_last_legit_tx = Date.now();
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const freshPP = uSnap.val()?.pp || 0;
-        await update(ref(db, `users/${uid}`), { pp: freshPP + totalPayout });
-
-        await push(ref(db, 'transactions'), {
-          sender: 'SYSTEM_TAIXIU',
-          senderName: 'Tài Xỉu AYK ELITE',
-          receiver: uid,
-          receiverName: user?.name || 'Sinh Viên',
-          amount: totalPayout,
-          message: `Thắng Tài Xỉu ELITE: Kết quả ${dices.join('-')} (${sum}đ - ${isTai ? 'TÀI' : 'XỈU'})`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
         // Update daily missions progress
         const todayStr = getTodayVNString();
         const mRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);

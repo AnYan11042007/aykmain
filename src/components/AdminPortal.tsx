@@ -537,7 +537,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
         { id: 'frame_cyber', name: 'Khung Hologram Cyberpunk', type: 'frame', price: priceCyberFrame, value: 'cyber-ring', desc: 'Khung ảnh ba chiều đậm chất khoa học viễn tưởng siêu tương lai.' },
         { id: 'title_academic', name: 'Danh Hiệu: Chúa Tể Học Thuật', type: 'title', price: priceAcademicTitle, value: 'Chúa Tể Học Thuật', desc: 'Danh hiệu tối thượng dành cho học bá có công lực phi phàm.' },
         { id: 'title_investor', name: 'Danh Hiệu: Ông Trùm Đầu Tư', type: 'title', price: priceInvestorTitle, value: 'Ông Trùm Đầu Tư', desc: 'Hiển thị danh hiệu quý tộc của tay chơi thao túng Sàn Vàng.' },
-        { id: 'title_casino', name: 'Danh Hiệu: Thần Bài Las Vegas', type: 'title', price: priceCasinoTitle, value: 'Thần Bài Las Vegas', desc: 'Khẳng định vị thế ông hoàng đỏ đen thống trị sòng bài AYK.' },
+        { id: 'title_casino', name: 'Danh Hiệu: Thủ Khoa Đấu Trường', type: 'title', price: priceCasinoTitle, value: 'Thủ Khoa Đấu Trường', desc: 'Khẳng định tài năng tư duy và bản lĩnh học thuật xuất sắc tại AYK 8686.' },
         { id: 'title_vip', name: 'Danh Hiệu: Đại Gia Học Đường', type: 'title', price: priceVipTitle, value: 'Đại Gia Học Đường', desc: 'Tôn vinh sinh viên sở hữu khối lượng tài sản PP vô địch thiên hạ.' }
       ];
 
@@ -1296,7 +1296,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
           {/* RIGHT: ADVANCED STUDENT PORTAL MANAGER */}
           <div className="lg:col-span-8">
-            <AdminUserManage onShowResult={onShowResult} />
+            <AdminUserManage adminUid={uid} onShowResult={onShowResult} />
           </div>
 
         </div>
@@ -1742,7 +1742,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Thần Bài Las Vegas:</label>
+                      <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Thủ Khoa Đấu Trường:</label>
                       <input
                         type="number"
                         className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 text-purple-400 font-bold"

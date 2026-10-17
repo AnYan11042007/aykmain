@@ -1,0 +1,6 @@
+{
+  "summary": "Kế hoạch tổng thể tái cấu trúc và bảo mật hệ thống AYK MAIN 8686 theo 4 giai đoạn ưu tiên:\n1. Bảo mật: Chuyển sang Firebase Authentication, bảo vệ Realtime Database bằng database.rules.json nghiêm ngặt, chuyển toàn bộ logic tính điểm/PP sang server Express với crypto.randomInt và transaction, chuyển cấu hình và khóa bí mật vào .env.\n2. Trò chơi: Loại bỏ hoàn toàn admin cheat và bot giả, giữ các trò chơi với cơ chế cược giải trí có hạn mức trần học đường, đổi danh hiệu và chủ đề phù hợp học viện sinh viên.\n3. Dọn dẹp mã nguồn: Xóa các script rác ở thư mục gốc, module hóa WorldCardBattleModal, LiveStreamPanel, AdminPortal thành các component < 400 dòng, gom các component trùng lặp, thêm ESLint và test tính toán PP.\n4. Triển khai: Cập nhật deploy.yml cho kiến trúc full-stack container Cloud Run hỗ trợ Express API và Gemini AI Tutor.",
+  "updatedAt": "2026-10-17T15:37:41.627620557Z",
+  "requestFeedback": true,
+  "userFacing": true
+}

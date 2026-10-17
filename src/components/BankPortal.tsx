@@ -91,28 +91,21 @@ export default function BankPortal({ uid, user, onShowResult }: BankPortalProps)
         return;
       }
 
-      const timestamp = Date.now();
-      const txTime = new Date().toLocaleString('vi-VN');
-
-      // Update balances securely
-      const senderNewPP = currentPP - amt;
-      const recNewPP = (recData.pp || 0) + amt;
-
-      await update(ref(db, `users/${uid}`), { pp: senderNewPP });
-      await update(ref(db, `users/${targetUid}`), { pp: recNewPP });
-
-      // Save transaction ledger
-      const txId = `TX_${timestamp}`;
-      await set(ref(db, `transactions/${txId}`), {
-        sender: uid,
-        senderName: user?.name || 'Ẩn danh',
-        receiver: targetUid,
-        receiverName: recData.name || 'Người nhận',
-        amount: amt,
-        message: msg,
-        time: txTime,
-        timestamp: timestamp
+      // Call server-authoritative atomic transfer endpoint
+      const response = await fetch('/api/bank/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          senderUid: uid,
+          receiverId: targetUid,
+          amount: amt
+        })
       });
+
+      const resData = await response.json();
+      if (!response.ok || !resData.success) {
+        throw new Error(resData.error || 'Giao dịch chuyển khoản thất bại');
+      }
 
       // Clear input fields
       setRecipientId('');
@@ -120,9 +113,9 @@ export default function BankPortal({ uid, user, onShowResult }: BankPortalProps)
       setTransferMessage('');
 
       onShowResult('CHUYỂN KHOẢN THÀNH CÔNG', `Đã chuyển khoản ${amt.toLocaleString()} PP thành công tới sinh viên:\n${recData.name} (${targetUid})\n\nLời nhắn: "${msg}"`, true);
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert('Lỗi hệ thống khi thực hiện chuyển khoản!');
+      onShowResult('GIAO DỊCH LỖI', err?.message || 'Lỗi hệ thống khi thực hiện chuyển khoản!', false);
     } finally {
       setIsProcessing(false);
     }

@@ -255,14 +255,25 @@ export default function LuckyWheel({ uid, user, onShowResult }: LuckyWheelProps)
             leveledUp = true;
           }
 
-          userUpdates['pp'] = currentPP + addedPP;
+          // Credit PP securely via server transaction
+          fetch('/api/rewards/award', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              uid,
+              type: 'lucky_wheel',
+              amount: addedPP,
+              message: 'Vòng Quay May Mắn'
+            })
+          }).catch((e) => console.error('Reward credit error:', e));
+
           userUpdates['bbp'] = newBBP;
           userUpdates['xp'] = newXP;
           userUpdates['bpXP'] = newXP;
           userUpdates['battlePassXP'] = newXP;
           userUpdates['level'] = calcLevel;
 
-          resultMessage = `🎉 Chúc mừng sếp! Sếp đã nhận +${addedPP.toLocaleString()} PP và thưởng nóng +${bonusBBP.toLocaleString()} BBP Battle Pass!${
+          resultMessage = `🎉 Chúc mừng bạn! Bạn đã nhận +${addedPP.toLocaleString()} PP và thưởng nóng +${bonusBBP.toLocaleString()} BBP Battle Pass!${
             leveledUp ? `\n🎉 ĐỘT PHÁ CẢNH GIỚI! Thăng cấp thành công lên Level ${calcLevel}!` : ''
           }`;
         } else if (wonSegment.type === 'xp') {

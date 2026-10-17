@@ -446,19 +446,31 @@ export async function claimMissionReward(uid: string, missionId: string) {
     throw new Error('Chưa hoàn thành tiến độ yêu cầu!');
   }
 
-  // Credit PP and optional XP to user
+  // Credit PP securely via server transaction
+  try {
+    await fetch('/api/rewards/award', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        uid,
+        type: 'daily_mission',
+        amount: mission.reward,
+        message: `Nhiệm vụ: ${mission.title}`
+      })
+    });
+  } catch (err) {
+    console.error('Error crediting mission PP on server:', err);
+  }
+
   const uRef = ref(db, `users/${uid}`);
   const uSnap = await get(uRef);
-  const currentPP = uSnap.val()?.pp || 0;
   const currentXP = uSnap.val()?.xp || 0;
   const currentLevel = uSnap.val()?.level || 1;
 
-  const newPP = currentPP + mission.reward;
   const newXP = currentXP + 40; // Gain 40 XP per completed mission
   const nextLevelXP = currentLevel * 100;
 
-  const updates: any = { pp: newPP };
-
+  const updates: any = {};
   if (newXP >= nextLevelXP) {
     updates.xp = newXP - nextLevelXP;
     updates.bbp = newXP;

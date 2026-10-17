@@ -5,20 +5,31 @@
 
 import express from 'express';
 import path from 'path';
+import crypto from 'crypto';
 import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, get, set, push, update } from 'firebase/database';
+import { getDatabase, ref, get, set, push, update, runTransaction } from 'firebase/database';
 
 dotenv.config();
 
-// Create Express Server
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
 app.use(express.json());
 
-// Initialize Gemini SDK lazily
+// ----------------- FIREBASE CONFIG VIA ENV -----------------
+const firebaseConfig = {
+  apiKey: process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY || "AIzaSyCfrD1iS1yjfjuaPIKvGb-iWcirBg1lXJE",
+  authDomain: process.env.FIREBASE_AUTH_DOMAIN || process.env.VITE_FIREBASE_AUTH_DOMAIN || "appsinhvien-24482.firebaseapp.com",
+  databaseURL: process.env.FIREBASE_DATABASE_URL || process.env.VITE_FIREBASE_DATABASE_URL || "https://appsinhvien-24482-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID || "appsinhvien-24482"
+};
+
+const fApp = initializeApp(firebaseConfig);
+const db = getDatabase(fApp);
+
+// ----------------- GEMINI CLIENT -----------------
 let ai: GoogleGenAI | null = null;
 function getGeminiClient(): GoogleGenAI {
   if (!ai) {
@@ -38,27 +49,28 @@ function getGeminiClient(): GoogleGenAI {
   return ai;
 }
 
-// ----------------- API ROUTES -----------------
-
-// Health check endpoint
+// ----------------- HEALTH CHECK -----------------
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
+  res.json({ 
+    status: 'ok', 
+    timestamp: Date.now(),
+    rtdbConnected: !!db,
+    env: process.env.NODE_ENV || 'development' 
+  });
 });
 
-// AI Tutor / Gia sư endpoint
+// ----------------- GEMINI ROUTES -----------------
 app.post('/api/gemini/tutor', async (req, res) => {
-  const { question, subject, studentStats, history } = req.body;
-  
+  const { question, subject, studentStats } = req.body;
   try {
     const client = getGeminiClient();
-    const systemPrompt = `Bạn là một AI Gia sư (AI Teacher) cao cấp, vui vẻ, hài hước và rất giỏi chuyên môn của trường S-System 88. 
-Nhiệm vụ của bạn là giải thích bài tập, lý thuyết môn học: "${subject || 'Toàn diện'}" cho sinh viên.
-Chỉ số năng lực hiện tại của sinh viên: Cần Cù (${studentStats?.[0] || 50}), Trí Tuệ (${studentStats?.[1] || 50}), Nhân Phẩm (${studentStats?.[4] || 50}).
-Hãy đưa ra câu trả lời chi tiết, dễ hiểu, định dạng Markdown đẹp mắt, có code ví dụ rõ ràng nếu cần thiết. 
-Sử dụng giọng văn khích lệ, cổ vũ tinh thần học tập của sinh viên, thỉnh thoảng dùng thuật ngữ vui nhộn liên quan đến trường học S-System 88.`;
+    const systemPrompt = `Bạn là AI Gia Sư học đường thông minh của trường AYK MAIN 8686. 
+Nhiệm vụ: giải thích kiến thức, bài tập học phần "${subject || 'Đại Cương'}" cho học sinh/sinh viên.
+Chỉ số học lực: Cần Cù (${studentStats?.[0] || 50}), Trí Tuệ (${studentStats?.[1] || 50}), Nhân Phẩm (${studentStats?.[4] || 50}).
+Hãy giải thích súc tích, dễ hiểu, khích lệ tinh thần học thuật, dùng Markdown rõ ràng.`;
 
     const response = await client.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: question,
       config: {
         systemInstruction: systemPrompt,
@@ -69,22 +81,19 @@ Sử dụng giọng văn khích lệ, cổ vũ tinh thần học tập của sin
     res.json({ text: response.text });
   } catch (error: any) {
     console.error('Gemini API Error:', error);
-    res.status(500).json({ error: error?.message || 'Có lỗi xảy ra khi gọi Gemini API' });
+    res.status(500).json({ error: error?.message || 'Có lỗi khi gọi Gemini API' });
   }
 });
 
-// General AI Chat Endpoint
 app.post('/api/gemini/chat', async (req, res) => {
-  const { message, history } = req.body;
-
+  const { message } = req.body;
   try {
     const client = getGeminiClient();
-    const systemPrompt = `Bạn là S-System 88 Core AI - Bộ óc điều hành toàn bộ hệ thống Học tập, Ngân hàng, Sàn vàng, Đấu trường Las Vegas của Học viện S-System 88.
-Hãy giao tiếp bằng giọng văn Cyberpunk, thông minh, mang tính khoa học viễn tưởng cao, thỉnh thoảng khuyên bảo người dùng kiếm tiền PP lương thiện hoặc chơi game điều độ.
-Trả lời bằng tiếng Việt, súc tích, ngầu lòi, có định dạng Markdown đẹp mắt.`;
+    const systemPrompt = `Bạn là AYK 8686 Core AI - Trợ lý thông minh trường học AYK MAIN 8686.
+Hỗ trợ sinh viên về thông tin lớp học, học bổng PP, thi đua học tập và rèn luyện kỹ năng. Trả lời bằng tiếng Việt, lịch sự, thân thiện, dùng Markdown đẹp.`;
 
     const response = await client.models.generateContent({
-      model: 'gemini-3.5-flash',
+      model: 'gemini-2.5-flash',
       contents: message,
       config: {
         systemInstruction: systemPrompt,
@@ -95,11 +104,458 @@ Trả lời bằng tiếng Việt, súc tích, ngầu lòi, có định dạng M
     res.json({ text: response.text });
   } catch (error: any) {
     console.error('Gemini API Error:', error);
-    res.status(500).json({ error: error?.message || 'Có lỗi xảy ra khi gọi Gemini API' });
+    res.status(500).json({ error: error?.message || 'Có lỗi khi kết nối AI' });
   }
 });
 
-// Vite Dev Server / Static files handler
+// ----------------- SERVER-AUTHORITATIVE PP TRANSACTIONS -----------------
+
+/**
+ * Execute atomic transaction on user's PP
+ */
+async function executePPTransaction(uid: string, delta: number, minBalance = 0): Promise<{ success: boolean; oldPP: number; newPP: number; error?: string }> {
+  const ppRef = ref(db, `users/${uid}/pp`);
+  let previousValue = 0;
+  let finalValue = 0;
+
+  try {
+    const txResult = await runTransaction(ppRef, (currentPP) => {
+      const balance = currentPP === null ? 0 : Number(currentPP);
+      previousValue = balance;
+      if (delta < 0 && balance + delta < minBalance) {
+        // Abort: Insufficient balance
+        return undefined;
+      }
+      finalValue = balance + delta;
+      return finalValue;
+    });
+
+    if (!txResult.committed) {
+      return { success: false, oldPP: previousValue, newPP: previousValue, error: 'Số dư PP không đủ hoặc xung đột giao dịch' };
+    }
+
+    return { success: true, oldPP: previousValue, newPP: finalValue };
+  } catch (err: any) {
+    console.error(`[TX Error for ${uid}]:`, err);
+    return { success: false, oldPP: 0, newPP: 0, error: err?.message || 'Lỗi xử lý giao dịch máy chủ' };
+  }
+}
+
+/**
+ * Server-authoritative game evaluation endpoint
+ * Evaluates outcome via Node crypto.randomInt and updates PP atomically
+ */
+app.post('/api/game/roll', async (req, res) => {
+  const { uid, game, betAmount, choice, clientMeta } = req.body;
+
+  if (!uid || typeof betAmount !== 'number' || betAmount <= 0) {
+    return res.status(400).json({ success: false, error: 'Thông tin cược không hợp lệ' });
+  }
+
+  // Maximum bet safety limit per turn (50,000 PP) to prevent gambling escalation
+  const MAX_BET = 50000;
+  const sanitizedBet = Math.min(Math.floor(betAmount), MAX_BET);
+
+  try {
+    // 1. Verify user exists and is not locked
+    const userRef = ref(db, `users/${uid}`);
+    const userSnap = await get(userRef);
+    if (!userSnap.exists()) {
+      return res.status(404).json({ success: false, error: 'Tài khoản không tồn tại' });
+    }
+    const userData = userSnap.val();
+    if (userData.locked) {
+      return res.status(403).json({ success: false, error: 'Tài khoản đang bị khóa' });
+    }
+
+    let won = false;
+    let multiplier = 0;
+    let outcomeDetails: any = {};
+    let resultSummary = '';
+
+    // Cryptographically secure RNG resolution
+    if (game === 'taixiu') {
+      const d1 = crypto.randomInt(1, 7);
+      const d2 = crypto.randomInt(1, 7);
+      const d3 = crypto.randomInt(1, 7);
+      const total = d1 + d2 + d3;
+      const isTai = total >= 11 && total <= 17;
+      const isXiu = total >= 4 && total <= 10;
+      const isTriple = (d1 === d2 && d2 === d3);
+
+      outcomeDetails = { dices: [d1, d2, d3], total, isTriple };
+      if (!isTriple && ((choice === 'TAI' && isTai) || (choice === 'XIU' && isXiu))) {
+        won = true;
+        multiplier = 2.0;
+        resultSummary = `Thắng cửa ${choice} (${total} điểm)`;
+      } else {
+        won = false;
+        multiplier = 0;
+        resultSummary = isTriple ? `Bộ 3 đồng nhất (${d1}-${d2}-${d3}) - Nhà cái thắng` : `Thua cược (${total} điểm - ${isTai ? 'TÀI' : 'XỈU'})`;
+      }
+    } else if (game === 'penalty') {
+      const target = choice || crypto.randomInt(0, 4);
+      const gkDive = crypto.randomInt(0, 4);
+      won = (target !== gkDive);
+      multiplier = won ? 1.95 : 0;
+      outcomeDetails = { target, gkDive, isGoal: won };
+      resultSummary = won ? 'Ghi bàn xuất sắc! +PP' : 'Thủ môn cản phá thành công!';
+    } else if (game === 'airplane' || game === 'crash') {
+      // Crash point generation using crypto (house edge 4%, distribution 1.00x to 15.00x)
+      const r = crypto.randomInt(1, 10001) / 10000;
+      const crashPoint = Math.max(1.0, parseFloat((0.96 / (1 - r * 0.93)).toFixed(2)));
+      outcomeDetails = { crashPoint };
+      
+      const requestedMultiplier = parseFloat(choice) || 1.5;
+      if (requestedMultiplier <= crashPoint) {
+        won = true;
+        multiplier = requestedMultiplier;
+        resultSummary = `Nhảy dù thành công ở mốc x${requestedMultiplier}`;
+      } else {
+        won = false;
+        multiplier = 0;
+        resultSummary = `Tàu vũ trụ nổ ở x${crashPoint}`;
+      }
+    } else if (game === 'rps') {
+      // Rock-paper-scissors
+      const choices = ['rock', 'paper', 'scissors'];
+      const serverPick = choices[crypto.randomInt(0, 3)];
+      const userPick = String(choice).toLowerCase();
+      let outcome = 'draw';
+      if (userPick === serverPick) {
+        outcome = 'draw';
+        multiplier = 1.0;
+        won = true;
+      } else if (
+        (userPick === 'rock' && serverPick === 'scissors') ||
+        (userPick === 'paper' && serverPick === 'rock') ||
+        (userPick === 'scissors' && serverPick === 'paper')
+      ) {
+        outcome = 'win';
+        multiplier = 2.0;
+        won = true;
+      } else {
+        outcome = 'lose';
+        multiplier = 0;
+        won = false;
+      }
+      outcomeDetails = { userPick, serverPick, outcome };
+      resultSummary = outcome === 'win' ? 'Thắng oẳn tù tì' : outcome === 'draw' ? 'Hòa oẳn tù tì' : 'Thua oẳn tù tì';
+    } else {
+      // Default coin-flip / quick mini game
+      const randVal = crypto.randomInt(0, 2);
+      won = randVal === 1;
+      multiplier = won ? 2.0 : 0;
+      outcomeDetails = { outcome: won ? 'WIN' : 'LOSE' };
+      resultSummary = won ? 'Chiến thắng mini-game' : 'Chưa may mắn';
+    }
+
+    // 2. Calculate net profit / loss
+    const payout = won ? Math.floor(sanitizedBet * multiplier) : 0;
+    const pnl = payout - sanitizedBet;
+
+    // 3. Atomically execute transaction
+    const tx = await executePPTransaction(uid, pnl);
+    if (!tx.success) {
+      return res.status(400).json({ success: false, error: tx.error || 'Giao dịch thất bại' });
+    }
+
+    // 4. Record audit log
+    const timestamp = Date.now();
+    const logRef = ref(db, 'game_logs');
+    await push(logRef, {
+      uid,
+      name: userData.name || 'Sinh Viên',
+      game,
+      bet: sanitizedBet,
+      pnl,
+      payout,
+      outcomeDetails,
+      result: resultSummary,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp
+    });
+
+    res.json({
+      success: true,
+      won,
+      bet: sanitizedBet,
+      payout,
+      pnl,
+      outcomeDetails,
+      resultSummary,
+      oldPP: tx.oldPP,
+      newPP: tx.newPP
+    });
+  } catch (err: any) {
+    console.error('[Game Roll Server Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi xử lý kết quả trò chơi' });
+  }
+});
+
+/**
+ * Server-authoritative mission reward claim endpoint
+ */
+app.post('/api/missions/claim', async (req, res) => {
+  const { uid, missionId, rewardPP = 1000 } = req.body;
+
+  if (!uid || !missionId) {
+    return res.status(400).json({ success: false, error: 'Thiếu thông tin nhận thưởng' });
+  }
+
+  const sanitizedReward = Math.min(Math.max(500, Math.floor(rewardPP)), 10000);
+
+  try {
+    const claimRecordRef = ref(db, `users/${uid}/claimedMissions/${missionId}`);
+    const claimSnap = await get(claimRecordRef);
+    if (claimSnap.exists()) {
+      return res.status(400).json({ success: false, error: 'Nhiệm vụ này đã nhận thưởng hôm nay' });
+    }
+
+    // Perform atomic credit
+    const tx = await executePPTransaction(uid, sanitizedReward);
+    if (!tx.success) {
+      return res.status(400).json({ success: false, error: tx.error || 'Lỗi cộng điểm thưởng' });
+    }
+
+    // Mark as claimed
+    await set(claimRecordRef, {
+      claimedAt: Date.now(),
+      rewardPP: sanitizedReward
+    });
+
+    res.json({
+      success: true,
+      reward: sanitizedReward,
+      newPP: tx.newPP
+    });
+  } catch (err: any) {
+    console.error('[Mission Claim Server Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi nhận thưởng' });
+  }
+});
+
+/**
+ * Server-authoritative lucky wheel spin endpoint
+ */
+app.post('/api/wheel/spin', async (req, res) => {
+  const { uid } = req.body;
+
+  if (!uid) {
+    return res.status(400).json({ success: false, error: 'Yêu cầu UID người dùng' });
+  }
+
+  // Cost to spin: 5,000 PP
+  const SPIN_COST = 5000;
+  const PRIZES = [
+    { label: '500 PP', pp: 500, weight: 35 },
+    { label: '2,000 PP', pp: 2000, weight: 25 },
+    { label: '5,000 PP (Hoàn tiền)', pp: 5000, weight: 20 },
+    { label: '10,000 PP', pp: 10000, weight: 12 },
+    { label: '25,000 PP', pp: 25000, weight: 6 },
+    { label: '50,000 PP (JACKPOT)', pp: 50000, weight: 2 }
+  ];
+
+  try {
+    // 1. Deduct spin cost atomically
+    const deductTx = await executePPTransaction(uid, -SPIN_COST);
+    if (!deductTx.success) {
+      return res.status(400).json({ success: false, error: 'Số dư không đủ 5,000 PP để quay thưởng' });
+    }
+
+    // 2. Select prize via crypto RNG
+    const randWeight = crypto.randomInt(1, 101);
+    let accum = 0;
+    let selectedPrize = PRIZES[0];
+    let prizeIndex = 0;
+
+    for (let i = 0; i < PRIZES.length; i++) {
+      accum += PRIZES[i].weight;
+      if (randWeight <= accum) {
+        selectedPrize = PRIZES[i];
+        prizeIndex = i;
+        break;
+      }
+    }
+
+    // 3. Credit prize amount atomically
+    const creditTx = await executePPTransaction(uid, selectedPrize.pp);
+
+    res.json({
+      success: true,
+      prizeIndex,
+      prize: selectedPrize,
+      cost: SPIN_COST,
+      pnl: selectedPrize.pp - SPIN_COST,
+      newPP: creditTx.newPP
+    });
+  } catch (err: any) {
+    console.error('[Wheel Spin Server Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi quay vòng quay may mắn' });
+  }
+});
+
+/**
+ * Server-authoritative generic reward crediting endpoint
+ */
+app.post('/api/rewards/award', async (req, res) => {
+  const { uid, type = 'generic', amount = 0, message = 'Phần thưởng hệ thống' } = req.body;
+
+  if (!uid || typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ success: false, error: 'Thông tin nhận thưởng không hợp lệ' });
+  }
+
+  // Safety cap per single award: 500,000 PP
+  const sanitizedAmount = Math.min(Math.floor(amount), 500000);
+
+  try {
+    const tx = await executePPTransaction(uid, sanitizedAmount);
+    if (!tx.success) {
+      return res.status(400).json({ success: false, error: tx.error || 'Lỗi cộng điểm thưởng' });
+    }
+
+    // Ledger record
+    await push(ref(db, 'transactions'), {
+      sender: 'SYSTEM_REWARDS',
+      senderName: 'Hệ Thống Phần Thưởng AYK',
+      receiver: uid,
+      amount: sanitizedAmount,
+      message: `${message} (${type})`,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({
+      success: true,
+      amount: sanitizedAmount,
+      newPP: tx.newPP
+    });
+  } catch (err: any) {
+    console.error('[Reward Award Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi xử lý phần thưởng máy chủ' });
+  }
+});
+
+/**
+ * Server-authoritative Bank Transfer endpoint with two-phase atomic transaction
+ */
+app.post('/api/bank/transfer', async (req, res) => {
+  const { senderUid, receiverId, amount } = req.body;
+
+  if (!senderUid || !receiverId || typeof amount !== 'number' || amount <= 0) {
+    return res.status(400).json({ success: false, error: 'Dữ liệu chuyển khoản không hợp lệ' });
+  }
+
+  const cleanAmount = Math.floor(amount);
+  if (senderUid === receiverId) {
+    return res.status(400).json({ success: false, error: 'Không thể tự chuyển khoản cho chính mình' });
+  }
+
+  try {
+    // 1. Verify receiver exists
+    const recSnap = await get(ref(db, `users/${receiverId}`));
+    if (!recSnap.exists()) {
+      return res.status(404).json({ success: false, error: 'Người nhận không tồn tại trên hệ thống' });
+    }
+
+    // 2. Deduct from sender atomically
+    const deductTx = await executePPTransaction(senderUid, -cleanAmount);
+    if (!deductTx.success) {
+      return res.status(400).json({ success: false, error: deductTx.error || 'Số dư PP không đủ' });
+    }
+
+    // 3. Credit to receiver atomically
+    const creditTx = await executePPTransaction(receiverId, cleanAmount);
+    if (!creditTx.success) {
+      // Rollback sender balance in case of failure
+      await executePPTransaction(senderUid, cleanAmount);
+      return res.status(500).json({ success: false, error: 'Lỗi ghi nhận phía người nhận, đã hoàn tiền' });
+    }
+
+    // 4. Log transaction
+    const logRef = ref(db, 'transactions');
+    await push(logRef, {
+      sender: senderUid,
+      receiver: receiverId,
+      amount: cleanAmount,
+      timestamp: Date.now(),
+      time: new Date().toLocaleString('vi-VN')
+    });
+
+    res.json({
+      success: true,
+      amount: cleanAmount,
+      senderNewPP: deductTx.newPP
+    });
+  } catch (err: any) {
+    console.error('[Bank Transfer Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi hệ thống chuyển khoản' });
+  }
+});
+
+/**
+ * Server-authoritative Admin adjust PP endpoint
+ */
+app.post('/api/admin/adjust-pp', async (req, res) => {
+  const { adminUid, targetUid, amount } = req.body;
+
+  if (!adminUid || !targetUid || typeof amount !== 'number') {
+    return res.status(400).json({ success: false, error: 'Dữ liệu yêu cầu không hợp lệ' });
+  }
+
+  try {
+    // Verify admin role
+    const adminSnap = await get(ref(db, `users/${adminUid}`));
+    const isAdmin = adminSnap.exists() && (adminSnap.val().role === 'ADMIN' || adminSnap.val().role === 'TEACHER');
+    
+    // Also check admins node
+    const adminNodeSnap = await get(ref(db, `admins/${adminUid}`));
+    const isNodeAdmin = adminNodeSnap.exists() && adminNodeSnap.val() === true;
+
+    if (!isAdmin && !isNodeAdmin) {
+      return res.status(403).json({ success: false, error: 'Bạn không có quyền quản trị viên' });
+    }
+
+    // Execute transaction on target user's PP
+    const tx = await executePPTransaction(targetUid, Math.floor(amount), 0);
+    if (!tx.success) {
+      return res.status(400).json({ success: false, error: tx.error || 'Lỗi cập nhật số dư' });
+    }
+
+    res.json({
+      success: true,
+      targetUid,
+      oldPP: tx.oldPP,
+      newPP: tx.newPP,
+      delta: amount
+    });
+  } catch (err: any) {
+    console.error('[Admin Adjust PP Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi máy chủ khi điều chỉnh PP' });
+  }
+});
+
+/**
+ * Migration helper endpoint: Removes legacy plaintext password from RTDB after client Auth verification
+ */
+app.post('/api/auth/migrate-legacy', async (req, res) => {
+  const { uid } = req.body;
+  if (!uid) {
+    return res.status(400).json({ success: false, error: 'Thiếu UID' });
+  }
+
+  try {
+    // Safely remove plaintext pass field
+    const passRef = ref(db, `users/${uid}/pass`);
+    await set(passRef, null);
+    res.json({ success: true, message: 'Đã bảo mật và xóa mật khẩu lưu trữ dạng thô' });
+  } catch (err: any) {
+    console.error('[Migration Error]:', err);
+    res.status(500).json({ success: false, error: 'Lỗi cập nhật bảo mật' });
+  }
+});
+
+// ----------------- VITE DEV / STATIC HANDLER -----------------
 const setupVite = async () => {
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
@@ -117,350 +573,8 @@ const setupVite = async () => {
   }
 };
 
-// Firebase Configuration for Server-side gold simulation
-const firebaseConfig = {
-  apiKey: "AIzaSyCfrD1iS1yjfjuaPIKvGb-iWcirBg1lXJE",
-  authDomain: "appsinhvien-24482.firebaseapp.com",
-  databaseURL: "https://appsinhvien-24482-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "appsinhvien-24482"
-};
-
-const fApp = initializeApp(firebaseConfig);
-const db = getDatabase(fApp);
-
-// Live Gold Market Simulator
-async function runGoldSimulationTick() {
-  try {
-    const goldRef = ref(db, 'market/gold');
-    const snap = await get(goldRef);
-    
-    let currentPrice = 50000000;
-    let oldPrice = 50000000;
-    let history: number[] = [];
-    let high24h = 55000000;
-    let low24h = 45000000;
-
-    if (snap.exists()) {
-      const val = snap.val();
-      currentPrice = val.price || 50000000;
-      oldPrice = currentPrice;
-      history = val.history || [];
-      high24h = val.high24h || 55000000;
-      low24h = val.low24h || 45000000;
-    } else {
-      // Seed initial history
-      for (let i = 0; i < 60; i++) {
-        history.push(50000000 + Math.floor((Math.random() - 0.5) * 5000000));
-      }
-    }
-
-    // Volatility calculation (between -3.0% and +3.2%)
-    const changePercent = (Math.random() * 6.2 - 3.0) / 100;
-    const nextPrice = Math.floor(currentPrice * (1 + changePercent));
-    const finalizedPrice = Math.max(10000000, Math.min(150000000, nextPrice));
-
-    history.push(finalizedPrice);
-    if (history.length > 60) {
-      history.shift();
-    }
-
-    high24h = Math.max(high24h, finalizedPrice);
-    low24h = Math.min(low24h, finalizedPrice);
-
-    const statuses = [
-      { text: 'BIẾN ĐỘNG CỰC ĐỘ 🔥', color: '#ff0055' },
-      { text: 'TĂNG TRƯỞNG NÓNG 📈', color: '#00ff80' },
-      { text: 'SUY THOÁI KỸ THUẬT 📉', color: '#ff003c' },
-      { text: 'ỔN ĐỊNH BỀN VỮNG 💎', color: '#00f0ff' },
-      { text: 'TÍCH LŨY ĐI NGANG ⚡', color: '#ffd700' }
-    ];
-    
-    const randomStatus = statuses[Math.floor(Math.random() * statuses.length)];
-    const updateTime = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-    await set(goldRef, {
-      price: finalizedPrice,
-      oldPrice: oldPrice,
-      high24h: high24h,
-      low24h: low24h,
-      history: history,
-      lastUpdate: Date.now(),
-      statusText: randomStatus.text,
-      statusColor: randomStatus.color,
-      updateTimeString: updateTime,
-      volumeBuy: Math.floor(Math.random() * 500000) + 100000,
-      volumeSell: Math.floor(Math.random() * 500000) + 100000
-    });
-
-    console.log(`[Gold Sim] Updated price to ${finalizedPrice.toLocaleString()} PP at ${updateTime}`);
-  } catch (err) {
-    console.error('[Gold Sim Error]:', err);
-  }
-}
-
-function startGoldSimulator() {
-  // Run once immediately on start
-  runGoldSimulationTick();
-  // Set interval for every 1 minute (60,000 ms)
-  setInterval(runGoldSimulationTick, 60000);
-}
-
-// ----------------- 20 ACTIVE AI BOTS SIMULATOR -----------------
-
-const BOTS = [
-  { id: 'bot_1', name: 'Nguyễn Minh Đức', class: 'S88-SE1', avatar: 'stud_1', basePP: 87500, level: 4, frame: 'gold-ring' },
-  { id: 'bot_2', name: 'Lê Hoàng Nam', class: 'S88-SE2', avatar: 'stud_2', basePP: 54000, level: 3, frame: '' },
-  { id: 'bot_3', name: 'Trần Thu Thảo', class: 'S88-SE1', avatar: 'stud_3', basePP: 124500, level: 5, frame: 'neon-ring', title: 'Chúa Tể Học Thuật' },
-  { id: 'bot_4', name: 'Phạm Hải Đăng', class: 'S88-SA1', avatar: 'stud_4', basePP: 32000, level: 2, frame: '' },
-  { id: 'bot_5', name: 'Đỗ Gia Bảo', class: 'S88-GD1', avatar: 'stud_5', basePP: 95000, level: 4, frame: 'gold-ring' },
-  { id: 'bot_6', name: 'Vũ Khánh Linh', class: 'S88-SA2', avatar: 'stud_6', basePP: 142000, level: 5, frame: 'cyber-ring', title: 'Đại Gia Học Đường' },
-  { id: 'bot_7', name: 'Ngô Quốc Anh', class: 'S88-SE2', avatar: 'stud_1', basePP: 18000, level: 1, frame: '' },
-  { id: 'bot_8', name: 'Bùi Tuyết Mai', class: 'S88-GD2', avatar: 'stud_2', basePP: 71500, level: 3, frame: '' },
-  { id: 'bot_9', name: 'Dương Minh Khang', class: 'S88-SE1', avatar: 'stud_3', basePP: 110000, level: 5, frame: 'neon-ring', title: 'Thần Bài Las Vegas' },
-  { id: 'bot_10', name: 'Phan Thanh Trúc', class: 'S88-SA1', avatar: 'stud_4', basePP: 43500, level: 2, frame: '' },
-  { id: 'bot_11', name: 'Nguyễn Việt Anh', class: 'S88-SE3', avatar: 'stud_5', basePP: 65000, level: 3, frame: '' },
-  { id: 'bot_12', name: 'Đặng Hồng Nhung', class: 'S88-GD1', avatar: 'stud_6', basePP: 135000, level: 5, frame: 'cyber-ring', title: 'Ông Trùm Đầu Tư' },
-  { id: 'bot_13', name: 'Lý Gia Hưng', class: 'S88-SA2', avatar: 'stud_1', basePP: 22000, level: 2, frame: '' },
-  { id: 'bot_14', name: 'Trịnh Bảo Ngọc', class: 'S88-SE1', avatar: 'stud_2', basePP: 89000, level: 4, frame: 'gold-ring' },
-  { id: 'bot_15', name: 'Hoàng Văn Tiến', class: 'S88-GD2', avatar: 'stud_3', basePP: 51200, level: 3, frame: '' },
-  { id: 'bot_16', name: 'Mai Thùy Chi', class: 'S88-SE2', avatar: 'stud_4', basePP: 156000, level: 5, frame: 'cyber-ring', title: 'Đại Gia Học Đường' },
-  { id: 'bot_17', name: 'Phạm Minh Quân', class: 'S88-SA1', avatar: 'stud_5', basePP: 29500, level: 2, frame: '' },
-  { id: 'bot_18', name: 'Vũ Phương Thảo', class: 'S88-SE1', avatar: 'stud_6', basePP: 104000, level: 4, frame: 'neon-ring' },
-  { id: 'bot_19', name: 'Lê Hữu Đạt', class: 'S88-GD1', avatar: 'stud_1', basePP: 38000, level: 2, frame: '' },
-  { id: 'bot_20', name: 'Đỗ Thùy Linh', class: 'S88-SA2', avatar: 'stud_2', basePP: 77000, level: 3, frame: 'gold-ring' }
-];
-
-const BOT_CHATS = [
-  "Má ơi, sút phạt hỏng quả cuối tiếc đứt ruột... 😤",
-  "Đã bảo Tài là Tài mà ae không tin, ăn hũ x2 ấm cật",
-  "Phi thuyền nổ ở x12 luôn, đỉnh chóp thực sự!",
-  "Mới gom đủ PP xúc quả Khung Gold, đeo vào chất chơi hẳn",
-  "Có ai rảnh gạ kèo Oẳn Tù Tì không? Đang thừa PP nè",
-  "Điểm danh hàng ngày được cộng XP sướng quá ae ơi",
-  "Bộ câu hỏi trắc nghiệm của Trưởng Khoa khó thế, ai làm được chưa cứu tui với",
-  "Đang đua top căng đét, ae né ra cho tôi lên hạng 1 coi",
-  "Sàn vàng biến động kinh hoàng quá, mới lướt sóng kiếm được mớ PP",
-  "Xì dách phát bài đen thui, nhà cái húp hết trơn",
-  "Tiến lên solo kịch tính vđ, suýt chút nữa là ăn trắng rồi",
-  "Gia sư AI giải thích dễ hiểu vãi, đỡ phải tự mò",
-  "Ủy ban phòng chống gian lận gắt quá, ko dám lơ tơ mơ",
-  "Vừa được đại gia phương xa tặng 10k PP mừng sinh nhật, yêu thế",
-  "Reset Battle Pass còn bao nhiêu ngày nữa thế mọi người?",
-  "Mở hộp quà may mắn ra danh hiệu ngầu đét, lêu lêu ae",
-  "Hôm nay quyết tâm cày lên Cấp độ 5 để lấy Khung Cyber!"
-];
-
-async function seedAIBots() {
-  console.log('[AI Bots] Checking bot accounts...');
-  try {
-    for (const bot of BOTS) {
-      const botRef = ref(db, `users/${bot.id}`);
-      const snap = await get(botRef);
-      if (!snap.exists()) {
-        console.log(`[AI Bots] Seeding account for ${bot.name} (${bot.id})`);
-        await set(botRef, {
-          name: bot.name,
-          class: bot.class,
-          classKey: bot.class.toLowerCase().replace('-', '_'),
-          pp: bot.basePP,
-          role: 'STUDENT',
-          level: bot.level,
-          xp: Math.floor(Math.random() * 80),
-          avatar: bot.avatar,
-          activeFrame: bot.frame || null,
-          title: bot.title || null,
-          locked: false,
-          isPremiumBattlePass: Math.random() < 0.4,
-          inventory: {
-            frames: bot.frame ? [bot.frame] : [],
-            titles: bot.title ? [bot.title] : []
-          }
-        });
-      }
-    }
-    console.log('[AI Bots] All 20 bot accounts verified!');
-  } catch (err) {
-    console.error('[AI Bots Seeding Error]:', err);
-  }
-}
-
-async function runAIBotSimulationTick() {
-  try {
-    // Pick a random bot
-    const bot = BOTS[Math.floor(Math.random() * BOTS.length)];
-    const botRef = ref(db, `users/${bot.id}`);
-    const snap = await get(botRef);
-    if (!snap.exists()) return;
-
-    const botData = snap.val();
-    let currentPP = botData.pp || 10000;
-    let level = botData.level || 1;
-    let xp = botData.xp || 0;
-
-    const rand = Math.random();
-
-    if (rand < 0.6) {
-      // Simulate Game Bet (60% chance)
-      const games = ['Tài Xỉu', 'Phi Thuyền', 'Sút Phạt', 'Ngựa Đua'];
-      const chosenGame = games[Math.floor(Math.random() * games.length)];
-      
-      const bet = Math.floor(Math.random() * 9000) + 1000;
-      if (currentPP < bet) {
-        currentPP += 20000;
-        await set(ref(db, `users/${bot.id}/pp`), currentPP);
-        return;
-      }
-
-      const isWin = Math.random() < 0.48;
-      let pnl = -bet;
-      let resultText = '';
-
-      if (isWin) {
-        const multiplier = chosenGame === 'Phi Thuyền' ? (Math.random() * 2.5 + 1.2) : 2.0;
-        pnl = Math.floor(bet * (multiplier - 1));
-        resultText = chosenGame === 'Phi Thuyền' 
-          ? `Nhảy dù chốt x${multiplier.toFixed(2)} (Thắng)` 
-          : `Thắng cược nhân đôi tài sản`;
-      } else {
-        resultText = chosenGame === 'Phi Thuyền' 
-          ? `Nổ phi thuyền ở x${(Math.random() * 1.5 + 1.0).toFixed(2)} (Thua)` 
-          : `Thua cược trắng tay`;
-      }
-
-      const nextPP = currentPP + pnl;
-      const gainedXP = Math.floor(Math.random() * 15) + 10;
-      let nextXP = xp + gainedXP;
-      let nextLevel = level;
-      if (nextXP >= nextLevel * 100) {
-        nextXP -= nextLevel * 100;
-        nextLevel += 1;
-      }
-
-      await update(botRef, {
-        pp: nextPP,
-        level: nextLevel,
-        xp: nextXP
-      });
-
-      const logRef = ref(db, 'game_logs');
-      await set(push(logRef), {
-        uid: bot.id,
-        name: bot.name,
-        game: chosenGame,
-        bet: bet,
-        pnl: pnl,
-        result: resultText,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
-
-      if (Math.random() < 0.35) {
-        const chatRef = ref(db, 'global_chat');
-        let msg = '';
-        if (isWin) {
-          msg = chosenGame === 'Phi Thuyền' 
-            ? `Ngon lành cành đào! Chốt lời phi thuyền ăn x${(pnl/bet + 1).toFixed(2)} được +${pnl.toLocaleString()} PP ae ơi! 🔥`
-            : `Đã bảo mà, vừa húp trọn ván ${chosenGame} ngọt xớt +${pnl.toLocaleString()} PP! 🎉`;
-        } else {
-          msg = chosenGame === 'Phi Thuyền'
-            ? `Đen vãi chưởng, tham lam quá định chờ x5 ai dè phi thuyền nổ tung ở x${(Math.random()*1.5+1).toFixed(2)} 😭`
-            : `Đi đứt ${bet.toLocaleString()} PP bên ${chosenGame} rồi, hôm nay đen như chấy! 💀`;
-        }
-        await set(push(chatRef), {
-          senderId: bot.id,
-          senderName: bot.name,
-          senderAvatar: bot.avatar,
-          senderTitle: botData.title || '',
-          senderFrame: botData.activeFrame || '',
-          message: msg,
-          time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          timestamp: Date.now()
-        });
-      }
-
-    } else if (rand < 0.90) {
-      // Simulate General Chit-Chat (30% chance)
-      const chatRef = ref(db, 'global_chat');
-      const msg = BOT_CHATS[Math.floor(Math.random() * BOT_CHATS.length)];
-      await set(push(chatRef), {
-        senderId: bot.id,
-        senderName: bot.name,
-        senderAvatar: bot.avatar,
-        senderTitle: botData.title || '',
-        senderFrame: botData.activeFrame || '',
-        message: msg,
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        timestamp: Date.now()
-      });
-    } else {
-      // Simulate Marketplace Purchase & Equip (10% chance)
-      const frames = ['gold-ring', 'neon-ring', 'cyber-ring'];
-      const titles = ['Chúa Tể Học Thuật', 'Ông Trùm Đầu Tư', 'Thần Bài Las Vegas', 'Đại Gia Học Đường'];
-      
-      const isFrame = Math.random() < 0.5;
-      const purchaseValue = isFrame 
-        ? frames[Math.floor(Math.random() * frames.length)]
-        : titles[Math.floor(Math.random() * titles.length)];
-
-      const currentInventory = botData.inventory || { frames: [], titles: [] };
-      const ownedFrames = currentInventory.frames || [];
-      const ownedTitles = currentInventory.titles || [];
-
-      const alreadyOwned = isFrame ? ownedFrames.includes(purchaseValue) : ownedTitles.includes(purchaseValue);
-      if (!alreadyOwned) {
-        const cost = isFrame ? 25000 : 40000;
-        if (currentPP > cost) {
-          if (isFrame) {
-            ownedFrames.push(purchaseValue);
-          } else {
-            ownedTitles.push(purchaseValue);
-          }
-          await update(botRef, {
-            pp: currentPP - cost,
-            activeFrame: isFrame ? purchaseValue : (botData.activeFrame || null),
-            title: isFrame ? (botData.title || null) : purchaseValue,
-            inventory: {
-              frames: ownedFrames,
-              titles: ownedTitles
-            }
-          });
-
-          const chatRef = ref(db, 'global_chat');
-          const msg = isFrame 
-            ? `Tôi vừa tậu thành công Khung đại diện mới xịn xò chưa ae! Đeo vào nhìn uy tín hẳn 😎`
-            : `Chính thức lên chức "${purchaseValue}" rồi nhé, từ nay xin kiếu kiếp sinh viên nghèo! 💎`;
-          
-          await set(push(chatRef), {
-            senderId: bot.id,
-            senderName: bot.name,
-            senderAvatar: bot.avatar,
-            senderTitle: isFrame ? (botData.title || '') : purchaseValue,
-            senderFrame: isFrame ? purchaseValue : (botData.activeFrame || ''),
-            message: msg,
-            time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            timestamp: Date.now()
-          });
-        }
-      }
-    }
-  } catch (err) {
-    console.error('[AI Bots Sim Error]:', err);
-  }
-}
-
-function startAIBotSimulator() {
-  seedAIBots().then(() => {
-    // Run bot simulation tick every 20 seconds
-    setInterval(runAIBotSimulationTick, 20000);
-  });
-}
-
 setupVite().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server is running on http://0.0.0.0:${PORT}`);
-    // Start the background gold simulator
-    startGoldSimulator();
-    // Start the background AI bot activity simulator
-    startAIBotSimulator();
+    console.log(`[AYK MAIN 8686] Server is running on http://0.0.0.0:${PORT}`);
   });
 });

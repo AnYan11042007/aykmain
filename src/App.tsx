@@ -44,7 +44,6 @@ import BlackjackModal from './components/modals/BlackjackModal';
 import TienLenModal from './components/modals/TienLenModal';
 import RouletteModal from './components/modals/RouletteModal';
 import WorldCardBattleModal from './components/modals/WorldCardBattleModal';
-import AIBotSimulation from './components/AIBotSimulation';
 
 // Winnings Confetti trigger import
 import confetti from 'canvas-confetti';
@@ -356,9 +355,6 @@ export default function App() {
   return (
     <div className="flex min-h-screen bg-transparent text-slate-200 antialiased selection:bg-[#00ff80]/20 selection:text-[#00ff80] relative">
       <div className="bg-matrix" />
-      
-      {/* 10 AI Bots simulation service running in background */}
-      <AIBotSimulation />
 
       {/* OFFLINE MODE TOAST NOTIFICATION BANNER */}
       {isOffline && (

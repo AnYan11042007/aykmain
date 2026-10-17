@@ -10,6 +10,7 @@ import { User } from '../types';
 import { Shield, Edit2, Check, X, ArrowUp, ArrowDown, UserMinus, UserCheck, Key, Award, Flame } from 'lucide-react';
 
 interface AdminUserManageProps {
+  adminUid?: string;
   onShowResult?: (title: string, message: string, isWin: boolean) => void;
 }
 
@@ -25,7 +26,7 @@ interface PasswordResetReq {
   status: string;
 }
 
-export default function AdminUserManage({ onShowResult }: AdminUserManageProps) {
+export default function AdminUserManage({ adminUid, onShowResult }: AdminUserManageProps) {
   const [students, setStudents] = useState<DetailedStudent[]>([]);
   const [resetRequests, setResetRequests] = useState<PasswordResetReq[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -36,7 +37,6 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
   const [editingStudentId, setEditingStudentId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
   const [editClass, setEditClass] = useState('');
-  const [editPass, setEditPass] = useState('');
   const [editPP, setEditPP] = useState(0);
   const [editLevel, setEditLevel] = useState(1);
   const [editXP, setEditXP] = useState(0);
@@ -88,18 +88,18 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
 
   const handleApprovePasswordReset = async (req: PasswordResetReq) => {
     try {
-      // Reset user password to '123'
-      await update(ref(db, `users/${req.uid}`), { pass: '123' });
-      // Update request status
-      await update(ref(db, `password_reset_requests/${req.uid}`), { status: 'APPROVED' });
+      // Update request status to APPROVED (allows student to securely reset via Auth/security question)
+      await update(ref(db, `password_reset_requests/${req.uid}`), { 
+        status: 'APPROVED', 
+        approvedAt: Date.now() 
+      });
 
       setResetRequests(prev => prev.filter(r => r.uid !== req.uid));
-      setStudents(prev => prev.map(s => s.id === req.uid ? { ...s, pass: '123' } : s));
 
       if (onShowResult) {
-        onShowResult('DUYỆT ĐỔI MẬT KHẨU 🎉', `Đã đổi mật khẩu cho UID ${req.uid} (${req.name}) về "123"!`, true);
+        onShowResult('DUYỆT ĐỔI MẬT KHẨU 🎉', `Đã duyệt yêu cầu đổi mật khẩu cho UID ${req.uid} (${req.name})! Sinh viên có thể tự đổi mật khẩu mới an toàn.`, true);
       } else {
-        alert(`Đã đổi mật khẩu cho UID ${req.uid} về "123"!`);
+        alert(`Đã duyệt yêu cầu đổi mật khẩu cho UID ${req.uid}!`);
       }
     } catch (err) {
       if (onShowResult) {
@@ -112,7 +112,6 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
     setEditingStudentId(student.id);
     setEditName(student.name || '');
     setEditClass(student.class || 'AYK-SE1');
-    setEditPass(student.pass || '123456');
     setEditPP(student.pp || 0);
     setEditLevel(student.level || 1);
     setEditXP(student.xp || 0);
@@ -124,9 +123,9 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
   };
 
   const saveEdit = async (studentId: string) => {
-    if (!editName.trim() || !editClass.trim() || !editPass.trim()) {
+    if (!editName.trim() || !editClass.trim()) {
       if (onShowResult) {
-        onShowResult('THẤT BẠI ❌', 'Vui lòng nhập đầy đủ thông tin hợp lệ!', false);
+        onShowResult('THẤT BẠI ❌', 'Vui lòng nhập đầy đủ họ tên và lớp học!', false);
       } else {
         alert('Vui lòng nhập đầy đủ thông tin hợp lệ!');
       }
@@ -138,7 +137,6 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
         name: editName.trim(),
         class: editClass.trim(),
         classKey: editClass.trim().toLowerCase().replace('-', '_'),
-        pass: editPass.trim(),
         pp: editPP,
         level: editLevel,
         xp: editXP,
@@ -164,16 +162,30 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
     const nextPP = currentPP + amount;
     if (nextPP < 0) return;
     try {
-      await update(ref(db, `users/${studentId}`), { pp: nextPP });
-      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, pp: nextPP } : s));
+      const callerUid = adminUid || localStorage.getItem('s88_uid') || '';
+      const response = await fetch('/api/admin/adjust-pp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          adminUid: callerUid,
+          targetUid: studentId,
+          amount
+        })
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi điều chỉnh PP máy chủ');
+      }
+
+      setStudents(prev => prev.map(s => s.id === studentId ? { ...s, pp: data.newPP } : s));
       if (onShowResult) {
         onShowResult('CỘNG PP 💰', `Đã điều chỉnh tài sản: ${amount > 0 ? '+' : ''}${amount.toLocaleString()} PP cho sinh viên!`, true);
       }
-    } catch (err) {
+    } catch (err: any) {
       if (onShowResult) {
-        onShowResult('THẤT BẠI ❌', 'Không thể cập nhật PP!', false);
+        onShowResult('THẤT BẠI ❌', err?.message || 'Không thể cập nhật PP!', false);
       } else {
-        alert('Không thể cập nhật PP!');
+        alert(err?.message || 'Không thể cập nhật PP!');
       }
     }
   };
@@ -322,19 +334,6 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
                           onChange={(e) => setEditClass(e.target.value)}
                         />
                       </div>
-
-                      <div>
-                        <label className="block text-[9px] text-slate-400 mb-1 uppercase font-bold">Mật Khẩu Đăng Nhập:</label>
-                        <div className="relative">
-                          <input
-                            type="text"
-                            className="w-full bg-slate-950 border border-white/10 rounded-lg p-2 pl-7 text-yellow-400 font-bold"
-                            value={editPass}
-                            onChange={(e) => setEditPass(e.target.value)}
-                          />
-                          <Key className="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2.5" />
-                        </div>
-                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
@@ -438,7 +437,6 @@ export default function AdminUserManage({ onShowResult }: AdminUserManageProps) 
                               <Award className="w-3 h-3 text-yellow-500" /> CẤP ĐỘ {s.level || 1}
                             </span>
                             <span className="text-blue-400">XP: {s.xp || 0} / {(s.level || 1) * 100}</span>
-                            <span className="text-slate-500">Mật khẩu: {s.pass}</span>
                           </div>
                         </div>
                       </div>

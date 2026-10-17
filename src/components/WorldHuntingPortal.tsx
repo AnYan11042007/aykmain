@@ -730,9 +730,9 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
         if (boss.hp <= 0) return prev;
 
         const botNames = [
-          '🐉 Thần Bài Sài Gòn', '💎 Đại Gia Quận 1', '🔥 Nam Cương 88', 
-          '👑 Hoàng Tử Lắc Bát', '🎯 Thánh Soi Cầu', '🚀 Pro_Hunter_99',
-          '⚡ Thần Súng AYK', '🏆 Cao Thủ Săn Boss', '💥 Lắc Là Húp'
+          '🐉 Kiện Tướng Trí Tuệ', '💎 Học Bá AYK', '🔥 Tân Sinh Viên Xuất Sắc', 
+          '👑 Thủ Khoa Đấu Trường', '🎯 Chuyên Gia Toán Tin', '🚀 Pro_Hunter_99',
+          '⚡ Thần Đồng AYK', '🏆 Chiến Thần Tri Thức', '💥 Đại Diện Khoa'
         ];
         const randomBot = botNames[Math.floor(Math.random() * botNames.length)];
         

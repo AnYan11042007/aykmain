@@ -412,19 +412,30 @@ const getSoccerSimulation = (elapsed: number, blueScore: number, redScore: numbe
   };
 };
 
-// Get synchronized outcomes based on cycle index
-const getSyncResultForCycle = (cycleId: number, type: GameType) => {
-  try {
-    const cheat = localStorage.getItem('s88_cheat_' + type + '_' + cycleId);
-    if (cheat) return JSON.parse(cheat);
-  } catch(e) {}
-
-  let currentSeed = cycleId * 12345.678;
-  const rand = () => {
-    const x = Math.sin(currentSeed + Math.cos(currentSeed * 2.3)) * 10000;
-    currentSeed += 9.876543;
-    return x - Math.floor(x);
+// High-entropy deterministic PRNG based on cycle and game type (eliminates predictable sin RNG and cheats)
+function hashCycleRNG(seed: number) {
+  let t = (seed + 0x6D2B79F5) | 0;
+  return () => {
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
+}
+
+// Get fair synchronized outcomes based on cycle index
+const getSyncResultForCycle = (cycleId: number, type: GameType) => {
+  const typeOffsets: Record<GameType, number> = {
+    taixiu: 1013904223,
+    crash: 1664525,
+    penalty: 22695477,
+    horse: 2147483647,
+    claw: 48271,
+    dragontiger: 65537,
+    fcmobile: 134775813
+  };
+
+  const seed = (cycleId * 1664525 + (typeOffsets[type] || 0)) | 0;
+  const rand = hashCycleRNG(seed);
   
   const r1 = rand();
   const r2 = rand();
@@ -432,19 +443,10 @@ const getSyncResultForCycle = (cycleId: number, type: GameType) => {
   
   if (type === 'taixiu') {
     const d1 = Math.floor(r1 * 6) + 1;
-    const d2 = Math.floor(r2 * 2.1) + Math.floor(r3 * 3) + 1;
-    const d3 = Math.floor((r1 + r2) * 3) % 6 + 1;
-    const d1f = d1 < 1 ? 1 : d1 > 6 ? 6 : d1;
-    const d2f = d2 < 1 ? 1 : d2 > 6 ? 6 : d2;
-    const d3f = d3 < 1 ? 1 : d3 > 6 ? 6 : d3;
-    return { dices: [d1f, d2f, d3f] };
+    const d2 = Math.floor(r2 * 6) + 1;
+    const d3 = Math.floor(r3 * 6) + 1;
+    return { dices: [d1, d2, d3] };
   } else if (type === 'crash') {
-    const cheatKey = 's88_cheat_crash_' + cycleId;
-    const cheatVal = localStorage.getItem(cheatKey);
-    if (cheatVal) {
-      const parsed = parseFloat(cheatVal);
-      if (!isNaN(parsed) && parsed >= 1.0) return parsed;
-    }
     const baseChance = r1;
     let mult = 1.0;
     if (baseChance < 0.1) {
@@ -469,8 +471,8 @@ const getSyncResultForCycle = (cycleId: number, type: GameType) => {
     return { success, prizeIndex };
   } else if (type === 'dragontiger') {
     const suits = ['♠', '♣', '♦', '♥'];
-    const dVal = Math.floor(r1 * 13) + 1; // 1-13
-    const tVal = Math.floor(r2 * 13) + 1; // 1-13
+    const dVal = Math.floor(r1 * 13) + 1;
+    const tVal = Math.floor(r2 * 13) + 1;
     const dSuit = suits[Math.floor(r3 * 4)];
     const tSuit = suits[Math.floor((r1 + r2) * 2) % 4];
     return { dragonVal: dVal, dragonSuit: dSuit, tigerVal: tVal, tigerSuit: tSuit };
@@ -490,23 +492,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   const [currentTime, setCurrentTime] = useState<number>(Date.now());
   const [chatInput, setChatInput] = useState<string>('');
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
-  
-  // Custom states for free-form Admin Cheating
-  const [cheatTxDie1, setCheatTxDie1] = useState<number>(6);
-  const [cheatTxDie2, setCheatTxDie2] = useState<number>(6);
-  const [cheatTxDie3, setCheatTxDie3] = useState<number>(6);
-  const [cheatCrashPointInput, setCheatCrashPointInput] = useState<string>('5.00');
-  const [cheatPenTarget, setCheatPenTarget] = useState<number>(0);
-  const [cheatPenDive, setCheatPenDive] = useState<number>(1);
-  const [cheatPenGoal, setCheatPenGoal] = useState<boolean>(true);
-  const [cheatClawSuccess, setCheatClawSuccess] = useState<boolean>(true);
-  const [cheatClawPrize, setCheatClawPrize] = useState<number>(2);
-  const [cheatFcBlueScore, setCheatFcBlueScore] = useState<number>(2);
-  const [cheatFcRedScore, setCheatFcRedScore] = useState<number>(1);
-  const [cheatDtDragonVal, setCheatDtDragonVal] = useState<number>(10);
-  const [cheatDtTigerVal, setCheatDtTigerVal] = useState<number>(5);
-  const [cheatDtDragonSuit, setCheatDtDragonSuit] = useState<string>('♥');
-  const [cheatDtTigerSuit, setCheatDtTigerSuit] = useState<string>('♠');
   
   // Synchronized Realtime Chat Messages from Firebase DB 'live_arena_chat'
   interface LiveChatMessage {
@@ -550,53 +535,10 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     return () => unsubscribe();
   }, [uid]);
 
-  const [isAdminMode, setIsAdminMode] = useState(false);
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.ctrlKey && e.shiftKey && e.code === 'KeyH') {
-        setIsAdminMode(prev => !prev);
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
   // Track Picture-in-Picture mode
   const [isPipActive, setIsPipActive] = useState<boolean>(() => {
     return localStorage.getItem('s88_live_pip_active') === 'true';
   });
-  useEffect(() => {
-    const chatInterval = setInterval(async () => {
-      if (Math.random() < 0.35) {
-        const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-        const msgList = BOT_COMMENTS[activeTab] || [
-          "Cầu này chuẩn quá anh em ơi!",
-          "All in cửa này ấm lòng!",
-          "Nhà cái lắc quả này tín ghê",
-          "Thêm cược gỡ gạc thôi nào",
-          "Vút bay luôn phi thuyền ơi"
-        ];
-        const msg = msgList[Math.floor(Math.random() * msgList.length)];
-        const now = new Date();
-        const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-
-        try {
-          await push(ref(db, 'live_arena_chat'), {
-            sender: bot,
-            message: msg,
-            time,
-            timestamp: Date.now(),
-            role: 'BOT',
-            badge: 'AI VIP'
-          });
-        } catch (err) {
-          // Ignore
-        }
-      }
-    }, 4500);
-
-    return () => clearInterval(chatInterval);
-  }, [activeTab]);
 
 
   const [currentBetPlaced, setCurrentBetPlaced] = useState<{
@@ -974,130 +916,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     return () => unsubscribe();
   }, [activeTab, txCycleId, crashCycleId, penCycleId, horseCycleId, clawCycleId, fcCycleId, dtCycleId, uid]);
 
-  // Multi-Game Background Bot Bets Simulation synced into Firebase Realtime Database
-  useEffect(() => {
-    const gameList: GameType[] = ['taixiu', 'crash', 'penalty', 'horse', 'claw', 'fcmobile', 'dragontiger'];
 
-    const getBotBetAmount = () => {
-      const roll = Math.random();
-      if (roll < 0.60) return (Math.floor(Math.random() * 9) + 1) * 10000; // 10k - 90k
-      if (roll < 0.88) return (Math.floor(Math.random() * 20) + 1) * 50000; // 50k - 1M
-      if (roll < 0.97) return (Math.floor(Math.random() * 10) + 1) * 1000000; // 1M - 10M
-      return (Math.floor(Math.random() * 5) + 1) * 10000000; // 10M - 50M
-    };
-
-    const choicesMap: Record<GameType, string[]> = {
-      taixiu: ['TAI', 'XIU', 'TRIPLE_1', 'TRIPLE_6'],
-      crash: ['CRASH_RIDE'],
-      penalty: ['GOAL', 'MISS', 'QUAD_0', 'QUAD_1', 'QUAD_2', 'QUAD_3', 'QUAD_4'],
-      horse: ['HORSE_1', 'HORSE_2', 'HORSE_3', 'HORSE_4'],
-      claw: ['CLAW_WIN', 'CLAW_LOSE'],
-      dragontiger: ['DRAGON', 'TIGER', 'TIE'],
-      fcmobile: ['FC_BLUE', 'FC_RED', 'FC_DRAW']
-    };
-
-    const activeCycleMap: Record<GameType, number> = {
-      taixiu: txCycleId,
-      crash: crashCycleId,
-      penalty: penCycleId,
-      horse: horseCycleId,
-      claw: clawCycleId,
-      fcmobile: fcCycleId,
-      dragontiger: dtCycleId
-    };
-
-    const phaseMap: Record<GameType, boolean> = {
-      taixiu: txPhaseRef.current === 'BETTING',
-      crash: crashPhaseRef.current === 'BETTING',
-      penalty: penPhaseRef.current === 'BETTING',
-      horse: horsePhaseRef.current === 'BETTING',
-      claw: clawPhaseRef.current === 'BETTING',
-      fcmobile: fcPhaseRef.current === 'BETTING',
-      dragontiger: dtPhaseRef.current === 'BETTING'
-    };
-
-    const seededCyclesRef = (window as any)._s88_seeded_cycles || {};
-    (window as any)._s88_seeded_cycles = seededCyclesRef;
-
-    const betTickInterval = setInterval(async () => {
-      for (const gType of gameList) {
-        if (!phaseMap[gType]) continue;
-        const cId = activeCycleMap[gType];
-        const seedKey = `${gType}_${cId}`;
-
-        // Seed initial batch if new cycle starts to make board instantly crowded
-        if (!seededCyclesRef[seedKey]) {
-          seededCyclesRef[seedKey] = true;
-          const choices = choicesMap[gType];
-          const initialBotsCount = Math.floor(Math.random() * 6) + 10; // 10 - 15 bots
-          for (let i = 0; i < initialBotsCount; i++) {
-            const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-            const amount = getBotBetAmount();
-            let choice = choices[Math.floor(Math.random() * choices.length)];
-            if (gType === 'taixiu' && (choice === 'TRIPLE_1' || choice === 'TRIPLE_6') && Math.random() > 0.15) {
-              choice = Math.random() > 0.5 ? 'TAI' : 'XIU';
-            }
-            try {
-              await push(ref(db, `live_arena_bets/${gType}/${cId}`), {
-                uid: 'bot',
-                sender: bot,
-                amount,
-                choice,
-                timestamp: Date.now() - Math.floor(Math.random() * 4000),
-                isBot: true
-              });
-            } catch (e) {}
-          }
-        }
-
-        // Active ongoing bot bets
-        if (Math.random() < 0.80) {
-          const numBetsThisTick = Math.random() < 0.35 ? 2 : 1;
-          const choices = choicesMap[gType];
-
-          for (let k = 0; k < numBetsThisTick; k++) {
-            const bot = BOT_NAMES[Math.floor(Math.random() * BOT_NAMES.length)];
-            const amount = getBotBetAmount();
-            let choice = choices[Math.floor(Math.random() * choices.length)];
-            if (gType === 'taixiu' && (choice === 'TRIPLE_1' || choice === 'TRIPLE_6') && Math.random() > 0.15) {
-              choice = Math.random() > 0.5 ? 'TAI' : 'XIU';
-            }
-
-            try {
-              await push(ref(db, `live_arena_bets/${gType}/${cId}`), {
-                uid: 'bot',
-                sender: bot,
-                amount,
-                choice,
-                timestamp: Date.now(),
-                isBot: true
-              });
-
-              // Announce bot bet in live_arena_chat for current activeTab
-              if (gType === activeTab && Math.random() < 0.20) {
-                const now = new Date();
-                const time = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-                await push(ref(db, 'live_arena_chat'), {
-                  sender: bot,
-                  message: `đã đặt cược ${amount.toLocaleString()} PP vào cửa [${choice}] 🔥`,
-                  isBet: true,
-                  betAmount: amount,
-                  betChoice: choice,
-                  game: activeTab,
-                  time,
-                  timestamp: Date.now(),
-                  role: 'BOT',
-                  badge: 'AI VIP'
-                });
-              }
-            } catch (err) {}
-          }
-        }
-      }
-    }, 600);
-
-    return () => clearInterval(betTickInterval);
-  }, [activeTab, txCycleId, crashCycleId, penCycleId, horseCycleId, clawCycleId, fcCycleId, dtCycleId]);
 
 
   // Broadcast PIP state changes dynamically
@@ -3789,320 +3608,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
           </div>
       </div>
 
-      {/* 🔴 ADMIN CHEAT PANEL (SECRET) */}
-      {isAdminMode && (
-        <div className="fixed bottom-4 left-4 z-50 bg-black/90 border border-red-500 p-4 rounded-xl shadow-[0_0_30px_rgba(255,0,0,0.4)] font-mono text-[10px] w-80 text-red-400">
-          <h3 className="font-black text-xs text-white mb-2 flex items-center justify-between">
-            <span className="animate-pulse">⚠️ GOD MODE (CTRL+SHIFT+H)</span>
-            <button onClick={() => setIsAdminMode(false)} className="text-white/50 hover:text-white"><X className="w-3 h-3" /></button>
-          </h3>
-          <p className="text-white/60 mb-2">Thao túng kết quả LIVE Stream. Áp dụng cho chu kỳ hiện tại.</p>
-          
-          {activeTab === 'taixiu' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ TX: {txCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: {currentTxResult.dices.reduce((a,b)=>a+b,0)} ({currentTxResult.dices.reduce((a,b)=>a+b,0)>=11?'TÀI':'XỈU'})</span>
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-white/60 block font-mono">Chọn mặt xúc xắc tự do:</span>
-                <div className="flex gap-2">
-                  <select 
-                    value={cheatTxDie1} 
-                    onChange={(e) => setCheatTxDie1(parseInt(e.target.value))} 
-                    className="bg-black text-white border border-red-500/40 rounded px-1.5 py-1 text-center font-bold flex-1"
-                  >
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>Xúc sắc 1: {n}</option>)}
-                  </select>
-                  <select 
-                    value={cheatTxDie2} 
-                    onChange={(e) => setCheatTxDie2(parseInt(e.target.value))} 
-                    className="bg-black text-white border border-red-500/40 rounded px-1.5 py-1 text-center font-bold flex-1"
-                  >
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>Xúc sắc 2: {n}</option>)}
-                  </select>
-                  <select 
-                    value={cheatTxDie3} 
-                    onChange={(e) => setCheatTxDie3(parseInt(e.target.value))} 
-                    className="bg-black text-white border border-red-500/40 rounded px-1.5 py-1 text-center font-bold flex-1"
-                  >
-                    {[1,2,3,4,5,6].map(n => <option key={n} value={n}>Xúc sắc 3: {n}</option>)}
-                  </select>
-                </div>
-                <button 
-                  onClick={() => { 
-                    localStorage.setItem('s88_cheat_taixiu_' + txCycleId, JSON.stringify({ dices: [cheatTxDie1, cheatTxDie2, cheatTxDie3] })); 
-                    window.dispatchEvent(new Event('storage'));
-                    alert(`Đã ép kết quả xúc xắc: ${cheatTxDie1}-${cheatTxDie2}-${cheatTxDie3} (Tổng: ${cheatTxDie1+cheatTxDie2+cheatTxDie3})`);
-                  }} 
-                  className="w-full bg-red-600/90 text-white font-bold p-1 rounded hover:bg-red-500 font-mono mt-1"
-                >
-                  ÁP DỤNG KẾT QUẢ TX (Tự chọn: {cheatTxDie1+cheatTxDie2+cheatTxDie3})
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'penalty' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ Pen: {penCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: {currentPenResult.isGoal ? 'VÀO' : 'TRƯỢT'}</span>
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-white/60 block font-mono">Ép góc sút / hướng bay thủ môn tự do:</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <select 
-                    value={cheatPenTarget} 
-                    onChange={(e) => setCheatPenTarget(parseInt(e.target.value))} 
-                    className="bg-black text-white border border-red-500/40 rounded px-1 py-1 text-[9px]"
-                  >
-                    <option value={0}>Sút Góc cao trái (G.1)</option>
-                    <option value={1}>Sút Góc cao phải (G.2)</option>
-                    <option value={2}>Sút Góc thấp trái (G.3)</option>
-                    <option value={3}>Sút Góc thấp phải (G.4)</option>
-                    <option value={4}>Sút Chính giữa (G.5)</option>
-                  </select>
-                  <select 
-                    value={cheatPenDive} 
-                    onChange={(e) => setCheatPenDive(parseInt(e.target.value))} 
-                    className="bg-black text-white border border-red-500/40 rounded px-1 py-1 text-[9px]"
-                  >
-                    <option value={0}>Thủ môn Bay Trái</option>
-                    <option value={1}>Thủ môn Bay Phải</option>
-                    <option value={2}>Thủ môn Quỳ Trái</option>
-                    <option value={3}>Thủ môn Quỳ Phải</option>
-                    <option value={4}>Thủ môn Đứng im</option>
-                  </select>
-                </div>
-                <div className="flex items-center justify-between gap-2 mt-1">
-                  <span className="text-white/60">Ép kết quả:</span>
-                  <div className="flex gap-1 flex-1 justify-end">
-                    <button 
-                      onClick={() => setCheatPenGoal(true)}
-                      className={`px-2 py-0.5 rounded text-[9px] font-bold ${cheatPenGoal ? 'bg-emerald-600 text-white' : 'bg-black border border-white/10 text-white/40'}`}
-                    >
-                      ⚽ VÀO (GOAL)
-                    </button>
-                    <button 
-                      onClick={() => setCheatPenGoal(false)}
-                      className={`px-2 py-0.5 rounded text-[9px] font-bold ${!cheatPenGoal ? 'bg-red-600 text-white' : 'bg-black border border-white/10 text-white/40'}`}
-                    >
-                      🧤 CẢN PHÁ
-                    </button>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { 
-                    localStorage.setItem('s88_cheat_penalty_' + penCycleId, JSON.stringify({ target: cheatPenTarget, dive: cheatPenDive, isGoal: cheatPenGoal })); 
-                    window.dispatchEvent(new Event('storage'));
-                    alert(`Đã ép Penalty: sút góc ${cheatPenTarget}, thủ môn dive ${cheatPenDive}, kết quả: ${cheatPenGoal ? 'VÀO' : 'CẢN'}`);
-                  }} 
-                  className="w-full bg-red-600 text-white font-bold p-1 rounded hover:bg-red-500 mt-1"
-                >
-                  ÁP DỤNG KẾT QUẢ PENALTY
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'horse' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ Ngựa: {horseCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: Ngựa #{currentHorseResult.winner}</span>
-              </div>
-              <div className="space-y-1">
-                <span className="text-white/60 block font-mono">Chọn Ngựa về Nhất tự do:</span>
-                <div className="grid grid-cols-4 gap-1.5">
-                  {[1, 2, 3, 4].map((num) => (
-                    <button
-                      key={num}
-                      onClick={() => { 
-                        localStorage.setItem('s88_cheat_horse_' + horseCycleId, JSON.stringify({ winner: num })); 
-                        window.dispatchEvent(new Event('storage'));
-                        alert(`Đã ép Ngựa #${num} về nhất!`);
-                      }}
-                      className="bg-amber-500/20 border border-amber-500/50 p-1.5 rounded hover:bg-amber-500 hover:text-white text-center text-[9px] font-bold"
-                    >
-                      Ngựa #{num}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'claw' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ Gắp: {clawCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: {currentClawResult.success ? 'TRÚNG' : 'HỤT'}</span>
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-white/60 block font-mono">Tùy chỉnh thành công & vị trí thú gắp:</span>
-                <div className="flex items-center justify-between gap-1.5">
-                  <div className="flex gap-1">
-                    <button 
-                      onClick={() => setCheatClawSuccess(true)}
-                      className={`px-2 py-0.5 rounded text-[8px] font-bold ${cheatClawSuccess ? 'bg-emerald-600 text-white' : 'bg-black text-white/40 border border-white/5'}`}
-                    >
-                      🧸 GẮP TRÚNG
-                    </button>
-                    <button 
-                      onClick={() => setCheatClawSuccess(false)}
-                      className={`px-2 py-0.5 rounded text-[8px] font-bold ${!cheatClawSuccess ? 'bg-red-600 text-white' : 'bg-black text-white/40 border border-white/5'}`}
-                    >
-                      ❌ GẮP HỤT
-                    </button>
-                  </div>
-                  <select 
-                    value={cheatClawPrize} 
-                    onChange={(e) => setCheatClawPrize(parseInt(e.target.value))}
-                    className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 text-[9px] flex-1 text-center"
-                  >
-                    <option value={0}>Gấu Bông Thường (#1)</option>
-                    <option value={1}>Pikachu Tinh Nghịch (#2)</option>
-                    <option value={2}>Heo Hồng Vương Giả (JACKPOT #3)</option>
-                    <option value={3}>Mèo Chiêu Tài Nhỏ (#4)</option>
-                    <option value={4}>Thỏ Ngọc Cung Trăng (#5)</option>
-                  </select>
-                </div>
-                <button 
-                  onClick={() => { 
-                    localStorage.setItem('s88_cheat_claw_' + clawCycleId, JSON.stringify({ success: cheatClawSuccess, prizeIndex: cheatClawPrize })); 
-                    window.dispatchEvent(new Event('storage'));
-                    alert(`Đã ép Gắp Thú: ${cheatClawSuccess ? 'GẮP TRÚNG' : 'GẮP HỤT'}, Thú vị trí #${cheatClawPrize + 1}`);
-                  }} 
-                  className="w-full bg-red-600 text-white font-bold p-1 rounded hover:bg-red-500 mt-1"
-                >
-                  ÁP DỤNG KẾT QUẢ GẮP THÚ
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'fcmobile' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ Bóng đá: {fcCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: {currentFcResult.blueScore}-{currentFcResult.redScore}</span>
-              </div>
-              <div className="space-y-1.5">
-                <span className="text-white/60 block font-mono">Nhập tỉ số trận đấu tự do:</span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 flex-1">
-                    <span className="text-blue-400 font-bold">XANH:</span>
-                    <input 
-                      type="number" 
-                      min="0"
-                      max="9"
-                      value={cheatFcBlueScore}
-                      onChange={(e) => setCheatFcBlueScore(parseInt(e.target.value) || 0)}
-                      className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 w-12 text-center font-bold"
-                    />
-                  </div>
-                  <span className="text-white font-black">:</span>
-                  <div className="flex items-center gap-1 flex-1 justify-end">
-                    <input 
-                      type="number" 
-                      min="0"
-                      max="9"
-                      value={cheatFcRedScore}
-                      onChange={(e) => setCheatFcRedScore(parseInt(e.target.value) || 0)}
-                      className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 w-12 text-center font-bold"
-                    />
-                    <span className="text-red-400 font-bold">ĐỎ:</span>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { 
-                    localStorage.setItem('s88_cheat_fcmobile_' + fcCycleId, JSON.stringify({ blueScore: cheatFcBlueScore, redScore: cheatFcRedScore })); 
-                    window.dispatchEvent(new Event('storage'));
-                    alert(`Đã ép tỉ số Bóng Đá: Xanh ${cheatFcBlueScore} - ${cheatFcRedScore} Đỏ`);
-                  }} 
-                  className="w-full bg-red-600 text-white font-bold p-1 rounded hover:bg-red-500 mt-1"
-                >
-                  ÁP DỤNG TỈ SỐ BÓNG ĐÁ (Tự chọn: {cheatFcBlueScore}-{cheatFcRedScore})
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'dragontiger' && (
-            <div className="space-y-2 border-t border-red-500/20 pt-2 text-[10px]">
-              <div className="flex justify-between">
-                <span>Chu kỳ Rồng Hổ: {dtCycleId}</span>
-                <span className="text-white font-bold">KQ gốc: Rồng [{getCardLabel(currentDtResult.dragonVal)}{currentDtResult.dragonSuit}] - Hổ [{getCardLabel(currentDtResult.tigerVal)}{currentDtResult.tigerSuit}]</span>
-              </div>
-              <div className="space-y-1.5 font-mono">
-                <span className="text-white/60 block">Chọn lá bài Rồng & Hổ tự do:</span>
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <span className="text-red-400 font-bold block">🐉 RỒNG:</span>
-                    <div className="flex gap-1">
-                      <select 
-                        value={cheatDtDragonVal}
-                        onChange={(e) => setCheatDtDragonVal(parseInt(e.target.value))}
-                        className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 text-[9px] flex-1 text-center font-bold"
-                      >
-                        {[1,2,3,4,5,6,7,8,9,10,11,12,13].map(v => <option key={v} value={v}>{getCardLabel(v)}</option>)}
-                      </select>
-                      <select 
-                        value={cheatDtDragonSuit}
-                        onChange={(e) => setCheatDtDragonSuit(e.target.value)}
-                        className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 text-[9px] w-12 text-center"
-                      >
-                        {['♠', '♣', '♦', '♥'].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <span className="text-yellow-500 font-bold block">🐯 HỔ:</span>
-                    <div className="flex gap-1">
-                      <select 
-                        value={cheatDtTigerVal}
-                        onChange={(e) => setCheatDtTigerVal(parseInt(e.target.value))}
-                        className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 text-[9px] flex-1 text-center font-bold"
-                      >
-                        {[1,2,3,4,5,6,7,8,9,10,11,12,13].map(v => <option key={v} value={v}>{getCardLabel(v)}</option>)}
-                      </select>
-                      <select 
-                        value={cheatDtTigerSuit}
-                        onChange={(e) => setCheatDtTigerSuit(e.target.value)}
-                        className="bg-black text-white border border-red-500/40 rounded px-1 py-0.5 text-[9px] w-12 text-center"
-                      >
-                        {['♠', '♣', '♦', '♥'].map(s => <option key={s} value={s}>{s}</option>)}
-                      </select>
-                    </div>
-                  </div>
-                </div>
-                <button 
-                  onClick={() => { 
-                    localStorage.setItem('s88_cheat_dragontiger_' + dtCycleId, JSON.stringify({ dragonVal: cheatDtDragonVal, dragonSuit: cheatDtDragonSuit, tigerVal: cheatDtTigerVal, tigerSuit: cheatDtTigerSuit })); 
-                    window.dispatchEvent(new Event('storage'));
-                    alert(`Đã ép bài Rồng Hổ: Rồng [${getCardLabel(cheatDtDragonVal)}${cheatDtDragonSuit}] - Hổ [${getCardLabel(cheatDtTigerVal)}${cheatDtTigerSuit}]`);
-                  }} 
-                  className="w-full bg-red-600 text-white font-bold p-1 rounded hover:bg-red-500 mt-1"
-                >
-                  ÁP DỤNG KẾT QUẢ RỒNG HỔ
-                </button>
-              </div>
-            </div>
-          )}
-
-          <button onClick={() => {
-            localStorage.removeItem('s88_cheat_taixiu_' + txCycleId);
-            localStorage.removeItem('s88_cheat_crash_' + crashCycleId);
-            localStorage.removeItem('s88_cheat_penalty_' + penCycleId);
-            localStorage.removeItem('s88_cheat_horse_' + horseCycleId);
-            localStorage.removeItem('s88_cheat_claw_' + clawCycleId);
-            localStorage.removeItem('s88_cheat_fcmobile_' + fcCycleId);
-            localStorage.removeItem('s88_cheat_dragontiger_' + dtCycleId);
-            window.dispatchEvent(new Event('storage'));
-          }} className="w-full mt-2 bg-white/10 p-1.5 rounded text-white hover:bg-white/20">CLEAR CHEAT</button>
-        </div>
-      )}
 
       {/* Rules Modal Overlay */}
       <AnimatePresence>

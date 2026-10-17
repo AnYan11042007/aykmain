@@ -1,48 +1,73 @@
-name: Deploy to GitHub Pages
+name: Deploy Full-Stack to Google Cloud Run
 
 on:
   push:
     branches: ["main"]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  pages: write
-  id-token: write
-
-concurrency:
-  group: "pages"
-  cancel-in-progress: true
+env:
+  PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'appsinhvien-24482' }}
+  SERVICE_NAME: ayk-main-8686
+  REGION: asia-southeast1
+  IMAGE_NAME: gcr.io/${{ secrets.GCP_PROJECT_ID || 'appsinhvien-24482' }}/ayk-main-8686
 
 jobs:
   deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+    name: Build & Deploy Container
     runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write
+
     steps:
-      - name: Checkout
+      - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
+          cache: "npm"
 
-      - name: Install dependencies
-        run: npm ci || npm install
+      - name: Install Dependencies & Run Tests
+        run: |
+          npm ci
+          npm test
 
-      - name: Build
-        run: npx vite build
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+      - name: Authenticate to Google Cloud
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        uses: google-github-actions/auth@v2
         with:
-          path: './dist'
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
 
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Set up Cloud SDK
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        uses: google-github-actions/setup-gcloud@v2
+
+      - name: Configure Docker for Google Container Registry
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        run: gcloud auth configure-docker --quiet
+
+      - name: Build and Push Docker Container
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        run: |
+          docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ env.IMAGE_NAME }}:latest .
+          docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          docker push ${{ env.IMAGE_NAME }}:latest
+
+      - name: Deploy to Cloud Run
+        if: ${{ secrets.GCP_SA_KEY != '' }}
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: ${{ env.SERVICE_NAME }}
+          image: ${{ env.IMAGE_NAME }}:${{ github.sha }}
+          region: ${{ env.REGION }}
+          flags: '--port=3000 --allow-unauthenticated'
+          env_vars: |
+            NODE_ENV=production
+            GEMINI_API_KEY=${{ secrets.GEMINI_API_KEY }}
+            FIREBASE_API_KEY=${{ secrets.FIREBASE_API_KEY }}
+            FIREBASE_AUTH_DOMAIN=${{ secrets.FIREBASE_AUTH_DOMAIN }}
+            FIREBASE_DATABASE_URL=${{ secrets.FIREBASE_DATABASE_URL }}
+            FIREBASE_PROJECT_ID=${{ secrets.FIREBASE_PROJECT_ID }}
