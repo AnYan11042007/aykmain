@@ -11,6 +11,7 @@ import { Shield, Users, Ticket, Plus, Check, Play, Square, Ban, Trash2, Award, Z
 import AdminUserManage from './AdminUserManage';
 import { BALANCED_BP_TIERS, BPTier } from './BattlePassPortal';
 import { broadcastDailyMissionsToAllUsers } from '../utils/missions';
+import { AvatarFrameContainer } from './AvatarFrameContainer';
 
 interface AdminPortalProps {
   uid: string;
@@ -2082,27 +2083,14 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
               </span>
 
               {/* Sample Avatar Container */}
-              <div className="relative w-28 h-28 flex items-center justify-center my-2">
-                {/* Avatar picture */}
-                <img
-                  src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
-                  alt="Sample Avatar"
-                  className="w-20 h-20 rounded-full object-cover shadow-2xl"
+              {/* Avatar picture & frame preview */}
+              <div className="my-2">
+                <AvatarFrameContainer
+                  avatarUrl={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80'}
+                  frameUrl={newFrameStyle === 'custom_url' ? (newFrameImageUrl || null) : (newFrameStyle === 'gold-ring' ? 'gold-ring' : newFrameStyle === 'neon-ring' ? 'neon-ring' : 'cyber-ring')}
+                  size="2xl"
+                  showSparkles={true}
                 />
-
-                {/* Applied Frame Ring or Custom Image */}
-                {newFrameStyle !== 'custom_url' ? (
-                  <div className={`absolute inset-0 rounded-full pointer-events-none ${newFrameStyle}`} />
-                ) : newFrameImageUrl ? (
-                  <img
-                    src={newFrameImageUrl}
-                    alt="Custom Frame Preview"
-                    className="absolute inset-0 w-full h-full object-contain pointer-events-none"
-                    onError={(e) => (e.currentTarget.style.display = 'none')}
-                  />
-                ) : (
-                  <div className="absolute inset-0 border-2 border-dashed border-purple-400/50 rounded-full animate-spin-slow pointer-events-none" />
-                )}
               </div>
 
               <div className="space-y-1">
@@ -2129,18 +2117,12 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {customFrames.map((frame) => (
                   <div key={frame.id} className="p-4 bg-black/40 border border-purple-500/20 rounded-xl flex items-center justify-between gap-4">
-                    <div className="relative w-14 h-14 shrink-0 flex items-center justify-center">
-                      <img
-                        src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
-                        alt="Avatar"
-                        className="w-10 h-10 rounded-full object-cover"
-                      />
-                      {frame.value.startsWith('http') ? (
-                        <img src={frame.value} alt="Frame" className="absolute inset-0 w-full h-full object-contain pointer-events-none" />
-                      ) : (
-                        <div className={`absolute inset-0 rounded-full pointer-events-none ${frame.value}`} />
-                      )}
-                    </div>
+                    <AvatarFrameContainer
+                      avatarUrl={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                      frameUrl={frame.value}
+                      size="lg"
+                      showSparkles={true}
+                    />
 
                     <div className="flex-1 min-w-0">
                       <h5 className="text-white font-bold text-xs uppercase truncate">{frame.name}</h5>

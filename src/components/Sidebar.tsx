@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { BookOpen, Landmark, Coins, Trophy, LogOut, Music, Music2, User as UserIcon, ShieldAlert, MessageSquare, ShoppingBag, Award, Shield, Sparkles, X, Target, Newspaper, Crosshair, History, Settings, Volume2, VolumeX, Link as LinkIcon, Play, Pause, Gamepad2, Swords } from 'lucide-react';
 import { User } from '../types';
 import BackgroundMusic from './BackgroundMusic';
+import { AvatarFrameContainer } from './AvatarFrameContainer';
 
 interface SidebarProps {
   uid: string;
@@ -237,32 +238,15 @@ export default function Sidebar({
           <div className="user-card flex items-center gap-3.5 pb-5 border-b border-[#30363d] mb-6">
             <div 
               onClick={handleChangeAvatar}
-              className="relative w-12 h-12 rounded-full cursor-pointer flex items-center justify-center shrink-0 hover:scale-105 active:scale-95"
+              className="relative shrink-0"
               title="Nhấp để đổi ảnh đại diện & viền"
             >
-              <div className="w-10 h-10 rounded-full overflow-hidden bg-black/50 border border-white/20 flex items-center justify-center">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-                ) : (
-                  <UserIcon className="w-5 h-5 text-[#ffd700]" />
-                )}
-              </div>
-              {activeFrame && (
-                activeFrame.startsWith('http') ? (
-                  <img 
-                    src={activeFrame} 
-                    alt="Frame" 
-                    className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] object-contain pointer-events-none z-10 filter drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]" 
-                    referrerPolicy="no-referrer"
-                  />
-                ) : (
-                  <div className={`absolute inset-0 rounded-full pointer-events-none border-2 ${
-                    activeFrame === 'gold-ring' ? 'border-[#ffd700] shadow-[0_0_12px_rgba(255,215,0,0.6)]' :
-                    activeFrame === 'neon-ring' ? 'border-[#ff003c] shadow-[0_0_12px_rgba(255,0,60,0.6)] animate-pulse' :
-                    activeFrame === 'cyber-ring' ? 'border-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.6)]' : ''
-                  }`} />
-                )
-              )}
+              <AvatarFrameContainer
+                avatarUrl={avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                frameUrl={activeFrame}
+                size="lg"
+                showSparkles={true}
+              />
             </div>
             <div className="overflow-hidden">
               <span className={`badge inline-block py-0.5 px-2.5 border rounded-full text-[9px] font-black uppercase tracking-wider ${

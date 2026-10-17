@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { User } from '../types';
 import { ShoppingBag, Award, Tag, Gift, CheckCircle2, AlertCircle, Sparkles, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { AvatarFrameContainer } from './AvatarFrameContainer';
 
 interface MarketplacePortalProps {
   uid: string;
@@ -471,27 +472,12 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
                   {/* Frame Visual Live Preview */}
                   {item.type === 'frame' && (
                     <div className="mt-3 py-3 px-2 bg-black/40 rounded-xl flex items-center justify-center">
-                      <div className="relative w-14 h-14 rounded-full flex items-center justify-center">
-                        <img 
-                          src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} 
-                          alt="" 
-                          className="w-11 h-11 rounded-full object-cover border border-white/20" 
-                        />
-                        {item.value.startsWith('http') ? (
-                          <img 
-                            src={item.value} 
-                            alt="" 
-                            className="absolute -inset-2 w-[calc(100%+16px)] h-[calc(100%+16px)] object-contain pointer-events-none filter drop-shadow-[0_0_10px_rgba(255,215,0,0.8)]" 
-                            referrerPolicy="no-referrer"
-                          />
-                        ) : (
-                          <div className={`absolute inset-0 rounded-full border-2 ${
-                            item.value === 'gold-ring' ? 'border-[#ffd700] shadow-[0_0_12px_rgba(255,215,0,0.6)]' :
-                            item.value === 'neon-ring' ? 'border-[#ff003c] shadow-[0_0_12px_rgba(255,0,60,0.6)] animate-pulse' :
-                            'border-[#00f0ff] shadow-[0_0_12px_rgba(0,240,255,0.6)]'
-                          }`} />
-                        )}
-                      </div>
+                      <AvatarFrameContainer
+                        avatarUrl={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                        frameUrl={item.value}
+                        size="lg"
+                        showSparkles={true}
+                      />
                     </div>
                   )}
                 </div>
@@ -543,25 +529,12 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
                   return (
                     <div key={frame} className="p-4 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-10 h-10 rounded-full flex items-center justify-center shrink-0">
-                          <img 
-                            src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} 
-                            alt="" 
-                            className="w-8 h-8 rounded-full object-cover border border-white/20" 
-                          />
-                          {frame.startsWith('http') ? (
-                            <img 
-                              src={frame} 
-                              alt="" 
-                              className="absolute -inset-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] object-contain pointer-events-none filter drop-shadow-[0_0_8px_rgba(255,215,0,0.8)]" 
-                              referrerPolicy="no-referrer"
-                            />
-                          ) : (
-                            <div className={`absolute inset-0 rounded-full border-2 ${
-                              frame === 'gold-ring' ? 'border-[#ffd700]' : frame === 'neon-ring' ? 'border-[#ff003c]' : 'border-[#00f0ff]'
-                            }`} />
-                          )}
-                        </div>
+                        <AvatarFrameContainer
+                          avatarUrl={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                          frameUrl={frame}
+                          size="md"
+                          showSparkles={true}
+                        />
                         <div>
                           <strong className="block text-white text-xs uppercase">{frameName}</strong>
                           <span className="text-[10px] text-slate-400">Khung trang bị làm nổi bật Avatar</span>

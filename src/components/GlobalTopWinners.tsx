@@ -9,6 +9,7 @@ import { db } from '../firebase';
 import { User } from '../types';
 import { Trophy, Shield, Award, Sparkles, TrendingUp } from 'lucide-react';
 import { motion } from 'motion/react';
+import { AvatarFrameContainer } from './AvatarFrameContainer';
 
 interface LeaderboardUser {
   id: string;
@@ -127,21 +128,14 @@ export default function GlobalTopWinners() {
 
                     {/* User Profile */}
                     <div className="relative shrink-0">
-                      <img
-                        src={winner.avatar}
-                        alt={winner.name}
-                        className={`w-9 h-9 rounded-full object-cover border-2 ${
-                          (winner as any).activeFrame === 'gold-ring'
-                            ? 'border-[#ffd700] shadow-[0_0_8px_rgba(255,215,0,0.4)]'
-                            : (winner as any).activeFrame === 'neon-ring'
-                              ? 'border-[#ff003c] shadow-[0_0_8px_rgba(255,0,60,0.4)] animate-pulse'
-                              : (winner as any).activeFrame === 'cyber-ring'
-                                ? 'border-[#00f0ff] shadow-[0_0_8px_rgba(0,240,255,0.4)]'
-                                : idx === 0 ? 'border-yellow-400' : idx === 1 ? 'border-slate-300' : idx === 2 ? 'border-amber-600' : 'border-white/10'
-                        }`}
+                      <AvatarFrameContainer
+                        avatarUrl={winner.avatar}
+                        frameUrl={(winner as any).activeFrame || (idx === 0 ? 'gold-ring' : idx === 1 ? 'cyber-ring' : 'neon-ring')}
+                        size="sm"
+                        showSparkles={true}
                       />
                       {idx === 0 && (
-                        <div className="absolute -top-1.5 -right-1.5 text-xs animate-bounce">
+                        <div className="absolute -top-2 -right-2 text-xs animate-bounce z-30">
                           👑
                         </div>
                       )}

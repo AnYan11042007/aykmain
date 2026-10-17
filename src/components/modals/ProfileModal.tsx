@@ -8,6 +8,7 @@ import { ref, update, onValue } from 'firebase/database';
 import { db } from '../../firebase';
 import { User } from '../../types';
 import { X, Key, User as UserIcon, Camera, Check, Shield, Award, Sparkles, AlertTriangle, History, Clock, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
+import { AvatarFrameContainer } from '../AvatarFrameContainer';
 
 interface ProfileModalProps {
   uid: string;
@@ -188,35 +189,12 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
         {/* User Card Header */}
         <div className="flex items-center gap-4 mb-6 pb-4 border-b border-white/10">
           <div className="relative">
-            <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-[#00f0ff] shadow-[0_0_15px_rgba(0,240,255,0.4)] bg-black">
-              <img
-                src={selectedAvatar}
-                alt="Avatar"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = PRESET_AVATARS[0];
-                }}
-              />
-            </div>
-
-            {/* Active Avatar Frame Overlay */}
-            {user?.activeFrame === 'gold-ring' && (
-              <div className="absolute -inset-1 rounded-full border-2 border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)] pointer-events-none animate-pulse" />
-            )}
-            {user?.activeFrame === 'neon-ring' && (
-              <div className="absolute -inset-1 rounded-full border-2 border-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.9)] pointer-events-none" />
-            )}
-            {user?.activeFrame === 'cyber-ring' && (
-              <div className="absolute -inset-1 rounded-full border-2 border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.9)] pointer-events-none" />
-            )}
-            {user?.activeFrame && user.activeFrame.startsWith('http') && (
-              <img 
-                src={user.activeFrame} 
-                alt="Frame" 
-                className="absolute -top-3 -left-3 w-[calc(100%+24px)] h-[calc(100%+24px)] pointer-events-none object-contain z-20 max-w-none"
-              />
-            )}
-
+            <AvatarFrameContainer
+              avatarUrl={selectedAvatar}
+              frameUrl={user?.activeFrame}
+              size="xl"
+              showSparkles={true}
+            />
             <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-black rounded-full z-30" />
           </div>
 
@@ -425,30 +403,24 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
                   {user.inventory.frames.map((frameVal, fIdx) => {
                     const isEquipped = user.activeFrame === frameVal;
                     return (
-                      <button
+                      <div
                         key={fIdx}
                         onClick={async () => {
                           await update(ref(db, `users/${uid}`), { activeFrame: frameVal });
                           onShowResult('TRANG BỊ THÀNH CÔNG 🎉', 'Đã kích hoạt khung avatar!', true);
                         }}
-                        className={`relative aspect-square rounded-xl bg-black/80 border p-1 flex items-center justify-center cursor-pointer transition-all hover:scale-105 ${
-                          isEquipped ? 'border-amber-400 ring-2 ring-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]' : 'border-white/20 hover:border-white/50'
+                        className={`relative aspect-square rounded-xl bg-black/80 border p-2 flex items-center justify-center cursor-pointer transition-all ${
+                          isEquipped ? 'border-amber-400 ring-2 ring-amber-400/80 shadow-[0_0_12px_rgba(251,191,36,0.6)]' : 'border-white/20 hover:border-white/50'
                         }`}
                       >
-                        <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-800">
-                          <img src={user?.avatar || PRESET_AVATARS[0]} className="w-full h-full object-cover" alt="" />
-                          {frameVal.startsWith('http') ? (
-                            <img src={frameVal} className="absolute -top-1.5 -left-1.5 w-[calc(100%+12px)] h-[calc(100%+12px)] object-contain pointer-events-none" alt="" />
-                          ) : (
-                            <div className={`absolute -inset-0.5 rounded-full border ${frameVal === 'gold-ring' ? 'border-yellow-400' : frameVal === 'neon-ring' ? 'border-pink-500' : 'border-cyan-400'}`} />
-                          )}
-                        </div>
-                        {isEquipped && (
-                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 text-black font-black text-[9px] rounded-full flex items-center justify-center">
-                            ✓
-                          </span>
-                        )}
-                      </button>
+                        <AvatarFrameContainer
+                          avatarUrl={user?.avatar || PRESET_AVATARS[0]}
+                          frameUrl={frameVal}
+                          size="md"
+                          showSparkles={true}
+                          isEquipped={isEquipped}
+                        />
+                      </div>
                     );
                   })}
                 </div>

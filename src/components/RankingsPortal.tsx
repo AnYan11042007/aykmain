@@ -10,6 +10,7 @@ import { User } from '../types';
 import { Trophy, Award, Crown, Sparkles, User as UserIcon, PartyPopper, Search, Globe, Shield, Zap, Medal, Star, TrendingUp } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { motion, AnimatePresence } from 'motion/react';
+import { AvatarFrameContainer } from './AvatarFrameContainer';
 
 interface RankingsPortalProps {
   uid: string;
@@ -589,21 +590,12 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
 
                     {/* Name, Avatar & Title */}
                     <div className="col-span-6 sm:col-span-6 pl-2 flex items-center gap-3">
-                      <div className={`w-9 h-9 rounded-full shrink-0 flex items-center justify-center overflow-hidden bg-black/60 border-2 ${
-                        u.activeFrame === 'gold-ring'
-                          ? 'border-[#ffd700] shadow-[0_0_10px_rgba(255,215,0,0.5)]'
-                          : u.activeFrame === 'neon-ring'
-                            ? 'border-[#ff003c] shadow-[0_0_10px_rgba(255,0,60,0.5)] animate-pulse'
-                            : u.activeFrame === 'cyber-ring'
-                              ? 'border-[#00f0ff] shadow-[0_0_10px_rgba(0,240,255,0.5)]'
-                              : 'border-white/20'
-                      }`}>
-                        {u.avatar ? (
-                          <img src={u.avatar} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                          <UserIcon className="w-5 h-5 text-slate-400" />
-                        )}
-                      </div>
+                      <AvatarFrameContainer
+                        avatarUrl={u.avatar}
+                        frameUrl={u.activeFrame}
+                        size="sm"
+                        showSparkles={true}
+                      />
                       
                       <div className="min-w-0">
                         <strong className="block text-white text-xs sm:text-sm truncate flex items-center gap-1.5 font-bold">
