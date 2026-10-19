@@ -256,132 +256,164 @@ export default function ClawModal({ uid, user, onClose, onShowResult }: ClawModa
   };
 
   return (
-    <div className="overlay z-[5000]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[90vh] w-[95vw] md:w-full max-w-[620px] p-6 border-[#ff69b4] relative font-mono">
-        <button 
-          onClick={isClawDropping ? undefined : onClose} 
-          disabled={isClawDropping}
-          className={`absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition ${isClawDropping ? 'opacity-20 cursor-not-allowed' : ''}`}
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-[#ff69b4] text-glow-pink text-2xl font-black uppercase tracking-widest mb-1 flex items-center justify-center gap-1.5">
-          <Sparkles className="w-5 h-5 animate-pulse text-[#ff69b4]" /> MÁY GẮP THÚ S-88 VIP
-        </h2>
-        <p className="text-[10px] text-[#8b949e] uppercase mb-4 text-center">
-          Thú di chuyển sống động • Ngàm gắp kim loại ma trận
-        </p>
-
-        {/* Claw machine visual box */}
-        <div className="relative w-full h-[320px] bg-gradient-to-b from-[#1a0b1a] via-[#1f002b] to-[#0a0012] border-4 border-[#ff69b4] rounded-2xl overflow-hidden shadow-[inset_0_0_50px_rgba(255,105,180,0.6)] select-none mb-4">
-          
-          {/* Middle Targeting laser beam */}
-          <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-[#ff69b4]/40 border-l border-dashed border-[#ff69b4] z-0 animate-pulse" />
-          <div className="absolute left-1/2 top-2 -translate-x-1/2 text-[9px] bg-[#ff69b4] text-black font-black px-2 py-0.5 rounded-full z-20 uppercase tracking-widest shadow-[0_0_10px_rgba(255,105,180,0.8)]">
-            🎯 HỒNG TÂM
-          </div>
-          
-          {/* Grid visual overlay */}
-          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,105,180,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,105,180,0.08)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
-          
-          {/* Machine floor turf */}
-          <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-pink-950/80 to-transparent border-t border-pink-500/30 z-0" />
-
-          {/* Vertical claw rope thread */}
-          <motion.div 
-            animate={{ height: `${Math.max(0, craneTop + 24)}px` }}
-            transition={{ type: 'spring', stiffness: 50, damping: 12 }}
-            className="absolute left-1/2 -translate-x-1/2 w-2 bg-gradient-to-b from-slate-300 via-slate-100 to-pink-400 z-10 shadow-[0_0_8px_rgba(255,105,180,0.8)]"
-          />
-
-          {/* Crane Hook icon */}
-          <motion.div
-            animate={{ top: `${craneTop}px` }}
-            transition={{ type: 'spring', stiffness: 50, damping: 12 }}
-            className="absolute left-1/2 -translate-x-1/2 text-5xl z-10 select-none flex items-center justify-center filter drop-shadow-[0_4px_10px_rgba(255,105,180,0.8)]"
-          >
-            {craneChar}
-          </motion.div>
-
-          {/* Floating Walking Plushies list row */}
-          <div className="absolute bottom-[16px] left-0 w-full h-14 text-[42px] z-10 select-none">
-            {prizes.map((p) => (
-              <div
-                key={p.id}
-                style={{
-                  left: `${p.x}%`,
-                  display: p.visible !== false ? 'flex' : 'none'
-                }}
-                className={`absolute flex-col items-center justify-center transition-all duration-[0.04s] ease-linear leading-none ${
-                  p.dir > 0 ? 'scale-x-100' : '-scale-x-100'
-                }`}
-              >
-                <span className="animate-bounce inline-block filter drop-shadow-lg">
-                  {p.type}
-                </span>
-                <span className="text-[8px] font-black bg-black/80 text-pink-300 px-1 py-0.2 rounded border border-pink-500/40 uppercase whitespace-nowrap mt-0.5">
-                  x{p.mult}
-                </span>
-              </div>
-            ))}
-          </div>
-
-          {/* Visual Caught Prize pulling back up */}
-          {grabbedVisible && (
-            <motion.div
-              animate={{ top: `${grabbedTop}px` }}
-              transition={{ type: 'spring', stiffness: 50, damping: 12 }}
-              className="absolute left-1/2 -translate-x-1/2 text-[44px] z-20 select-none filter drop-shadow-[0_0_15px_rgba(255,215,0,0.9)] animate-pulse"
-            >
-              {grabbedType}
-            </motion.div>
-          )}
-        </div>
-
-        {/* Claw instructions display */}
-        <div className="bg-black/80 border border-[#ff69b4]/50 rounded-xl p-3 min-h-[52px] flex items-center justify-center text-center text-xs leading-relaxed text-pink-200 mb-4 select-none shadow-inner">
-          {clawMsg}
-        </div>
-
-        {/* Action Controls */}
-        <div className="space-y-3.5">
-          {!isClawActive && (
-            <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-[#8b949e] uppercase font-bold text-[10px]">SỐ PP ĐẶT CƯỢC 1 LƯỢT:</label>
-                <span className="text-emerald-400 font-bold text-[10px]">Số dư: {(user?.pp || 0).toLocaleString()} PP</span>
-              </div>
-              <input
-                type="number"
-                placeholder="Nhập số PP cược..."
-                className="w-full bg-black/70 border border-[#30363d] focus:border-[#ff69b4] rounded-xl p-3 text-center text-sm font-black text-[#ffd700] outline-none"
-                value={betAmount}
-                onChange={(e) => setBetAmount(e.target.value)}
-                disabled={isClawDropping}
-              />
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-2xl bg-[#0e0214] border-0 md:border-2 md:border-[#ff69b4] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] font-mono">
+        {/* Sticky Header with Title, Balance, and Always Visible Close Button */}
+        <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#180424]/95 border-b border-[#ff69b4]/40 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Sparkles className="w-5 h-5 text-[#ff69b4] shrink-0 animate-pulse" />
+            <div className="truncate">
+              <h2 className="text-[#ff69b4] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                MÁY GẮP THÚ S-88 VIP
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
             </div>
-          )}
-
-          <button
-            onClick={handleClawAction}
+          </div>
+          <button 
+            onClick={isClawDropping ? undefined : onClose} 
             disabled={isClawDropping}
-            className={`w-full py-3.5 font-black rounded-xl uppercase tracking-widest text-xs transition-all cursor-pointer border shadow-lg ${
-              isClawDropping
-                ? 'bg-slate-800 border-slate-600 text-slate-500 cursor-not-allowed'
-                : isClawActive
-                ? 'bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 text-black border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse'
-                : 'bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white border-pink-300 shadow-[0_0_20px_rgba(255,105,180,0.5)]'
-            }`}
+            aria-label="Đóng"
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0 ${isClawDropping ? 'opacity-20 cursor-not-allowed' : ''}`}
           >
-            {isClawDropping ? (
-              <>🦾 ĐANG HẠ NGÀM GẮP THÚ...</>
-            ) : isClawActive ? (
-              <>[ 🎯 GẮP XUỐNG NGAY ! ]</>
-            ) : (
-              <>[ CHƠI GẮP THÚ ]</>
-            )}
+            <X className="w-5 h-5" />
           </button>
+        </div>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 space-y-4">
+          <p className="text-[10px] text-[#8b949e] uppercase text-center tracking-wider">
+            Thú di chuyển sống động • Ngàm gắp kim loại ma trận
+          </p>
+
+          {/* Claw machine visual box - responsive height and aspect ratio */}
+          <div className="relative w-full h-[260px] sm:h-[300px] md:h-[340px] bg-gradient-to-b from-[#1a0b1a] via-[#1f002b] to-[#0a0012] border-2 md:border-4 border-[#ff69b4] rounded-2xl overflow-hidden shadow-[inset_0_0_50px_rgba(255,105,180,0.6)] select-none">
+            
+            {/* Middle Targeting laser beam */}
+            <div className="absolute left-1/2 top-0 bottom-0 w-[2px] bg-[#ff69b4]/40 border-l border-dashed border-[#ff69b4] z-0 animate-pulse" />
+            <div className="absolute left-1/2 top-2 -translate-x-1/2 text-[9px] bg-[#ff69b4] text-black font-black px-2 py-0.5 rounded-full z-20 uppercase tracking-widest shadow-[0_0_10px_rgba(255,105,180,0.8)]">
+              🎯 HỒNG TÂM
+            </div>
+            
+            {/* Grid visual overlay */}
+            <div className="absolute inset-0 bg-[linear-gradient(rgba(255,105,180,0.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,105,180,0.08)_1px,transparent_1px)] bg-[size:16px_16px] pointer-events-none" />
+            
+            {/* Machine floor turf */}
+            <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-pink-950/80 to-transparent border-t border-pink-500/30 z-0" />
+
+            {/* Vertical claw rope thread */}
+            <motion.div 
+              animate={{ height: `${Math.max(0, craneTop + 24)}px` }}
+              transition={{ type: 'spring', stiffness: 50, damping: 12 }}
+              className="absolute left-1/2 -translate-x-1/2 w-2 bg-gradient-to-b from-slate-300 via-slate-100 to-pink-400 z-10 shadow-[0_0_8px_rgba(255,105,180,0.8)]"
+            />
+
+            {/* Crane Hook icon */}
+            <motion.div
+              animate={{ top: `${craneTop}px` }}
+              transition={{ type: 'spring', stiffness: 50, damping: 12 }}
+              className="absolute left-1/2 -translate-x-1/2 text-4xl sm:text-5xl z-10 select-none flex items-center justify-center filter drop-shadow-[0_4px_10px_rgba(255,105,180,0.8)]"
+            >
+              {craneChar}
+            </motion.div>
+
+            {/* Floating Walking Plushies list row */}
+            <div className="absolute bottom-[16px] left-0 w-full h-14 text-[36px] sm:text-[42px] z-10 select-none">
+              {prizes.map((p) => (
+                <div
+                  key={p.id}
+                  style={{
+                    left: `${p.x}%`,
+                    display: p.visible !== false ? 'flex' : 'none'
+                  }}
+                  className={`absolute flex-col items-center justify-center transition-all duration-[0.04s] ease-linear leading-none ${
+                    p.dir > 0 ? 'scale-x-100' : '-scale-x-100'
+                  }`}
+                >
+                  <span className="animate-bounce inline-block filter drop-shadow-lg">
+                    {p.type}
+                  </span>
+                  <span className="text-[8px] font-black bg-black/80 text-pink-300 px-1 py-0.2 rounded border border-pink-500/40 uppercase whitespace-nowrap mt-0.5">
+                    x{p.mult}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Visual Caught Prize pulling back up */}
+            {grabbedVisible && (
+              <motion.div
+                animate={{ top: `${grabbedTop}px` }}
+                transition={{ type: 'spring', stiffness: 50, damping: 12 }}
+                className="absolute left-1/2 -translate-x-1/2 text-[40px] sm:text-[44px] z-20 select-none filter drop-shadow-[0_0_15px_rgba(255,215,0,0.9)] animate-pulse"
+              >
+                {grabbedType}
+              </motion.div>
+            )}
+          </div>
+
+          {/* Claw instructions display */}
+          <div className="bg-black/80 border border-[#ff69b4]/50 rounded-xl p-3 min-h-[48px] flex items-center justify-center text-center text-xs leading-relaxed text-pink-200 select-none shadow-inner">
+            {clawMsg}
+          </div>
+
+          {/* Action Controls */}
+          <div className="space-y-3">
+            {!isClawActive && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="block text-[#8b949e] uppercase font-bold text-[10px]">SỐ PP ĐẶT CƯỢC 1 LƯỢT:</label>
+                  <span className="text-emerald-400 font-bold text-[10px]">Số dư: {(user?.pp || 0).toLocaleString()} PP</span>
+                </div>
+                <input
+                  type="number"
+                  placeholder="Nhập số PP cược..."
+                  className="w-full min-h-[44px] bg-black/70 border border-[#30363d] focus:border-[#ff69b4] rounded-xl p-3 text-center text-sm font-black text-[#ffd700] outline-none"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value)}
+                  disabled={isClawDropping}
+                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  {['10000', '50000', '100000', '500000'].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      disabled={isClawDropping}
+                      onClick={() => setBetAmount(amt)}
+                      className={`min-h-[44px] text-xs font-black rounded-lg border transition cursor-pointer flex items-center justify-center ${
+                        betAmount === amt
+                          ? 'bg-[#ff69b4]/20 border-[#ff69b4] text-[#ff69b4]'
+                          : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      {parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}K` : amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <button
+              onClick={handleClawAction}
+              disabled={isClawDropping}
+              className={`w-full min-h-[48px] py-3.5 font-black rounded-xl uppercase tracking-widest text-xs transition-all cursor-pointer border shadow-lg flex items-center justify-center ${
+                isClawDropping
+                  ? 'bg-slate-800 border-slate-600 text-slate-500 cursor-not-allowed'
+                  : isClawActive
+                  ? 'bg-gradient-to-r from-emerald-500 to-green-400 hover:from-emerald-400 hover:to-green-300 text-black border-emerald-300 shadow-[0_0_20px_rgba(16,185,129,0.6)] animate-pulse active:scale-95'
+                  : 'bg-gradient-to-r from-pink-600 to-rose-500 hover:from-pink-500 hover:to-rose-400 text-white border-pink-300 shadow-[0_0_20px_rgba(255,105,180,0.5)] active:scale-95'
+              }`}
+            >
+              {isClawDropping ? (
+                <>🦾 ĐANG HẠ NGÀM GẮP THÚ...</>
+              ) : isClawActive ? (
+                <>[ 🎯 GẮP XUỐNG NGAY ! ]</>
+              ) : (
+                <>[ CHƠI GẮP THÚ ]</>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>

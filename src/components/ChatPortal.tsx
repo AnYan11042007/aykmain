@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, push, onValue, set } from 'firebase/database';
+import { get, ref, push, onValue, set, query, limitToLast } from 'firebase/database';
 import { db } from '../firebase';
 import { User } from '../types';
 import { incrementMissionProgress } from '../utils/missions';
@@ -53,9 +53,9 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
         ? `class_chat/${user?.class || 'N_A'}` 
         : 'live_arena_chat';
 
-    const chatRef = ref(db, channelNode);
+    const chatQuery = query(ref(db, channelNode), limitToLast(100));
 
-    const unsubscribe = onValue(chatRef, (snap) => {
+    const unsubscribe = onValue(chatQuery, (snap) => {
       const list: ChatMessage[] = [];
       if (snap.exists()) {
         snap.forEach((child) => {

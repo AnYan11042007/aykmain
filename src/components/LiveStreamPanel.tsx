@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, push, update, onValue } from 'firebase/database';
+import { get, ref, push, update, onValue, query, limitToLast, remove } from 'firebase/database';
 import { db } from '../firebase';
 import { User } from '../types';
 import { incrementMissionProgress } from '../utils/missions';
@@ -516,8 +516,8 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   const [chatMessages, setChatMessages] = useState<LiveChatMessage[]>([]);
 
   useEffect(() => {
-    const chatRef = ref(db, 'live_arena_chat');
-    const unsubscribe = onValue(chatRef, (snapshot) => {
+    const chatQuery = query(ref(db, 'live_arena_chat'), limitToLast(50));
+    const unsubscribe = onValue(chatQuery, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const list: LiveChatMessage[] = Object.entries(data).map(([id, val]: [string, any]) => ({
@@ -568,8 +568,8 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
   useEffect(() => {
     if (!uid) return;
-    const logsRef = ref(db, 'game_logs');
-    const unsubscribe = onValue(logsRef, (snapshot) => {
+    const logsQuery = query(ref(db, 'game_logs'), limitToLast(50));
+    const unsubscribe = onValue(logsQuery, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const logsArray = Object.values(data)
@@ -895,6 +895,11 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     else if (activeTab === 'claw') currentCycle = clawCycleId;
     else if (activeTab === 'fcmobile') currentCycle = fcCycleId;
     else if (activeTab === 'dragontiger') currentCycle = dtCycleId;
+
+    // Self-prune old cycles (> 5 rounds ago) to keep RTDB lightweight and prevent bloating
+    if (currentCycle > 5) {
+      remove(ref(db, `live_arena_bets/${activeTab}/${currentCycle - 5}`)).catch(() => {});
+    }
 
     const betsRef = ref(db, `live_arena_bets/${activeTab}/${currentCycle}`);
     const unsubscribe = onValue(betsRef, (snapshot) => {

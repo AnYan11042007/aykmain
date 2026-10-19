@@ -218,31 +218,29 @@ export default function ExclusiveIdeasModal({ onClose }: ExclusiveIdeasModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-xl flex items-center justify-center p-2 sm:p-4 font-mono select-none animate-fadeIn">
-      <div className="relative w-full max-w-5xl h-[90vh] bg-[#080c14] border border-cyan-500/40 rounded-3xl p-4 sm:p-6 md:p-8 flex flex-col shadow-[0_0_80px_rgba(0,240,255,0.25)] overflow-hidden">
+    <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-xl flex items-center justify-center p-0 sm:p-4 font-mono select-none animate-fadeIn">
+      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-[90vh] bg-[#080c14] border-0 sm:border sm:border-cyan-500/40 rounded-none sm:rounded-3xl p-3 sm:p-6 md:p-8 flex flex-col shadow-[0_0_80px_rgba(0,240,255,0.25)] overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
         
         {/* Background Ambient Glow */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-0 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-xs font-bold rounded-full uppercase tracking-widest mb-1">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+        <div className="relative z-10 flex items-center justify-between border-b border-white/10 pb-3 mb-3 shrink-0">
+          <div className="min-w-0 pr-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 text-[10px] sm:text-xs font-bold rounded-full uppercase tracking-widest mb-1 truncate">
+              <Sparkles className="w-3.5 h-3.5 text-cyan-400 animate-pulse shrink-0" />
               ĐỘC QUYỀN AYK SERVER (1,000 Ý TƯỞNG)
             </div>
-            <h2 className="text-lg md:text-2xl font-black text-white uppercase tracking-wider flex items-center gap-2">
-              <Trophy className="w-6 h-6 text-yellow-400 animate-bounce" />
-              1,000 Ý TƯỞNG & TÍNH NĂNG ĐỘC QUYỀN AYK
+            <h2 className="text-sm sm:text-lg md:text-2xl font-black text-white uppercase tracking-wider flex items-center gap-1.5 truncate">
+              <Trophy className="w-5 h-5 text-yellow-400 animate-bounce shrink-0" />
+              1,000 Ý TƯỞNG & TÍNH NĂNG AYK
             </h2>
-            <p className="text-slate-400 text-xs font-sans mt-0.5">
-              Tra cứu nhanh 1,000 ý tưởng game, học tập, tài chính & hệ thống dành riêng cho sinh viên!
-            </p>
           </div>
           <button
             onClick={onClose}
-            className="p-2 bg-white/5 border border-white/10 hover:bg-white/15 text-slate-300 hover:text-white rounded-xl transition cursor-pointer"
+            aria-label="Đóng"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/15 active:scale-95 text-slate-300 hover:text-white rounded-xl transition cursor-pointer shrink-0"
           >
             <X className="w-6 h-6" />
           </button>

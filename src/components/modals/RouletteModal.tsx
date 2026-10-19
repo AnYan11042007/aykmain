@@ -312,29 +312,46 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
   const isAdmin = (user?.role as any) === 'ADMIN' || (user?.role as any) === 'TEACHER';
 
   return (
-    <div className="fixed inset-0 bg-black/90 backdrop-blur-md flex items-center justify-center z-50 p-4 overflow-y-auto select-none">
-      <div className="bg-[#0b0c10] border-2 border-[#ffd700]/30 rounded-2xl w-full max-w-4xl p-6 relative shadow-[0_0_50px_rgba(255,215,0,0.15)] flex flex-col md:flex-row gap-6 max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden select-none">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#0b0c10] border-0 md:border-2 md:border-[#ffd700]/30 rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(255,215,0,0.15)] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
         
-        {/* Close Button */}
-        <button 
-          onClick={onClose} 
-          disabled={isSpinning}
-          className="absolute top-4 right-4 text-white/50 hover:text-white transition-all p-1.5 hover:bg-white/10 rounded-full cursor-pointer z-50 disabled:opacity-30"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* LEFT COLUMN: Circular Roulette Wheel Display */}
-        <div className="flex flex-col items-center justify-center flex-1 space-y-4">
-          <div className="text-center font-sans">
-            <span className="text-[10px] tracking-widest text-[#ffd700] uppercase font-black block">🎰 HIGH-ROLLER ARENA</span>
-            <h2 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-1.5 justify-center">
-              🔴 ĐẤU TRƯỜNG ROULETTE
-            </h2>
+        {/* Sticky Header with Title, Balance, and 44px Close Button */}
+        <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#13141a]/95 border-b border-[#ffd700]/30 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <span className="text-lg">🔴</span>
+            <div className="truncate">
+              <h2 className="text-[#ffd700] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                ĐẤU TRƯỜNG ROULETTE VIP
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
           </div>
+          <button 
+            onClick={onClose} 
+            disabled={isSpinning}
+            aria-label="Đóng"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-white/70 hover:text-white transition cursor-pointer shrink-0 disabled:opacity-30"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          {/* Styled Roulette Wheel */}
-          <div className="relative w-64 h-64 md:w-72 md:h-72 rounded-full border-4 border-[#ffd700]/40 flex items-center justify-center bg-radial from-[#1f1e24] to-[#0d0c12] shadow-[0_10px_35px_rgba(0,0,0,0.8)] overflow-hidden">
+        {/* Scrollable Modal Content (2 columns on md/lg, single column on mobile) */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 flex flex-col md:flex-row gap-6">
+          
+          {/* LEFT COLUMN: Circular Roulette Wheel Display */}
+          <div className="flex flex-col items-center justify-center flex-1 space-y-4">
+            <div className="text-center font-sans hidden md:block">
+              <span className="text-[10px] tracking-widest text-[#ffd700] uppercase font-black block">🎰 HIGH-ROLLER ARENA</span>
+              <h2 className="text-xl font-black text-white uppercase tracking-wider flex items-center gap-1.5 justify-center">
+                🔴 ĐẤU TRƯỜNG ROULETTE
+              </h2>
+            </div>
+
+            {/* Styled Roulette Wheel */}
+            <div className="relative w-56 h-56 sm:w-64 sm:h-64 md:w-72 md:h-72 rounded-full border-4 border-[#ffd700]/40 flex items-center justify-center bg-radial from-[#1f1e24] to-[#0d0c12] shadow-[0_10px_35px_rgba(0,0,0,0.8)] overflow-hidden shrink-0">
             
             {/* Spinning inner segment */}
             <motion.div
@@ -635,20 +652,20 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
               <button
                 onClick={handlePlaceBet}
                 disabled={isSpinning}
-                className="px-4 py-2 bg-yellow-950/20 border border-yellow-500 hover:bg-yellow-500 hover:text-black font-extrabold rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                className="min-h-[44px] px-4 py-2 bg-yellow-950/20 border border-yellow-500 hover:bg-yellow-500 hover:text-black font-extrabold rounded-xl uppercase text-[10px] tracking-wider transition-all cursor-pointer disabled:opacity-50 shrink-0 flex items-center justify-center active:scale-95"
               >
                 + CHỐT CƯỢC
               </button>
             </div>
 
             {/* Quick Stake Shortcuts */}
-            <div className="grid grid-cols-4 gap-1">
+            <div className="grid grid-cols-4 gap-1.5">
               {[5000, 10000, 50000, 100000].map((v) => (
                 <button
                   key={v}
                   onClick={() => setBetAmount(v.toString())}
                   disabled={isSpinning}
-                  className="py-1 bg-white/5 border border-white/10 hover:border-yellow-500/40 text-slate-300 rounded text-[9px] font-bold"
+                  className="min-h-[44px] bg-white/5 border border-white/10 hover:border-yellow-500/40 text-slate-300 rounded-lg text-xs font-bold transition flex items-center justify-center cursor-pointer active:scale-95"
                 >
                   {(v / 1000).toFixed(0)}K
                 </button>
@@ -658,7 +675,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
             <button
               onClick={handleSpinWheel}
               disabled={isSpinning}
-              className="w-full py-3.5 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-black uppercase text-xs tracking-widest rounded-xl transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] disabled:opacity-50 cursor-pointer"
+              className="w-full min-h-[48px] py-3.5 bg-gradient-to-r from-yellow-500 to-amber-600 hover:from-yellow-400 hover:to-amber-500 text-black font-black uppercase text-xs tracking-widest rounded-xl transition-all hover:shadow-[0_0_20px_rgba(245,158,11,0.3)] disabled:opacity-50 cursor-pointer flex items-center justify-center active:scale-95"
             >
               {isSpinning ? '[ ĐANG QUAY VÒNG SỐ... ]' : '[ BẮT ĐẦU QUAY ROULETTE ]'}
             </button>
@@ -694,6 +711,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
             </div>
           )}
 
+        </div>
         </div>
       </div>
     </div>

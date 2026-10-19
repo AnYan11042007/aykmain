@@ -879,42 +879,40 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
   }, [viewMode, playerSeat, selectedTierIndex, showRules, currentRoom, user?.pp]);
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-2 sm:p-4 font-mono select-none animate-fadeIn">
-      <div className="relative w-full max-w-6xl h-[94vh] max-h-[900px] bg-[#050811] border border-cyan-500/40 rounded-3xl flex flex-col shadow-[0_0_100px_rgba(0,240,255,0.3)] overflow-hidden">
+    <div className="fixed inset-0 z-[5000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 font-mono select-none overflow-hidden">
+      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-6xl bg-[#050811] border-0 md:border md:border-cyan-500/40 rounded-none md:rounded-3xl flex flex-col shadow-[0_0_100px_rgba(0,240,255,0.3)] overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
         
         {/* Top Glow Bar */}
-        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-pink-500 to-yellow-400" />
+        <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-pink-500 to-yellow-400 z-50" />
 
         {/* Modal Header */}
-        <div className="relative z-10 p-3.5 sm:p-4 border-b border-white/10 flex items-center justify-between bg-slate-950/90 backdrop-blur-md">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.4)]">
-              <Crosshair className="w-6 h-6 animate-spin" style={{ animationDuration: '10s' }} />
+        <div className="sticky top-0 z-40 p-3 sm:p-4 border-b border-white/10 flex items-center justify-between bg-slate-950/95 backdrop-blur-md shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.4)] shrink-0">
+              <Crosshair className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" style={{ animationDuration: '10s' }} />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="px-2 py-0.5 bg-pink-500/20 text-pink-400 border border-pink-500/40 text-[9px] font-black rounded-full uppercase tracking-wider">
-                  PHÒNG 3 NGƯỜI MULTIPLAYER
+            <div className="truncate">
+              <div className="flex items-center gap-1.5 truncate">
+                <span className="px-2 py-0.5 bg-pink-500/20 text-pink-400 border border-pink-500/40 text-[8px] sm:text-[9px] font-black rounded-full uppercase tracking-wider shrink-0">
+                  3D MULTIPLAYER
                 </span>
-                {currentRoom && (
-                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-black rounded-full uppercase tracking-wider">
-                    {currentRoom.stakeName}
-                  </span>
-                )}
+                <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                  {(user?.pp || 0).toLocaleString()} PP
+                </span>
               </div>
-              <h2 className="text-lg sm:text-xl font-black text-white uppercase tracking-wider text-glow-cyan flex items-center gap-2 mt-0.5">
-                ĐẤU TRƯỜNG 3D: SẮN QUÁI BAY MULTIPLAYER
+              <h2 className="text-sm sm:text-lg font-black text-white uppercase tracking-wider text-glow-cyan truncate mt-0.5">
+                ĐẤU TRƯỜNG 3D: SĂN QUÁI BAY
               </h2>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button
               onClick={() => setShowRules(!showRules)}
-              className="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-xl flex items-center gap-1.5 cursor-pointer transition-all"
+              className="px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 border border-cyan-500/40 text-cyan-300 text-xs font-bold rounded-xl flex items-center gap-1 cursor-pointer transition-all"
             >
               <HelpCircle className="w-4 h-4 text-cyan-400" />
-              <span>LUẬT CHƠI</span>
+              <span className="hidden sm:inline">LUẬT CHƠI</span>
             </button>
 
             <button
@@ -922,7 +920,8 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
                 leaveAndCleanupRoom();
                 onClose();
               }}
-              className="w-9 h-9 rounded-xl bg-slate-900 border border-white/20 text-slate-400 hover:text-white hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center transition-all cursor-pointer"
+              aria-label="Đóng"
+              className="min-w-[44px] min-h-[44px] rounded-xl bg-slate-900 border border-white/20 text-slate-400 hover:text-white hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center transition-all cursor-pointer active:scale-95"
             >
               <X className="w-5 h-5" />
             </button>

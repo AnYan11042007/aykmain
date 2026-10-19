@@ -303,18 +303,36 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
   };
 
   return (
-    <div className="overlay z-[5000] p-2 sm:p-4 overflow-y-auto">
-      <div className="glass-box login-panel overflow-y-auto max-h-[92vh] w-full max-w-[760px] p-3 sm:p-6 border-[#00ff80] relative flex flex-col my-auto">
-        <button onClick={onClose} className="absolute top-3 right-3 text-[#8b949e] hover:text-white cursor-pointer transition z-50">
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-3xl bg-[#09170e] border-0 md:border-2 md:border-[#00ff80]/60 rounded-none md:rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+        
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#0d2215]/95 border-b border-[#00ff80]/30 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Trophy className="w-5 h-5 text-[#00ff80] shrink-0" />
+            <div className="truncate">
+              <h2 className="text-[#00ff80] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                SÚT PENALTY ĐỈNH CAO
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={onClose}
+            aria-label="Đóng"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <h2 className="text-[#00ff80] text-glow-green text-xl sm:text-2xl font-black font-mono uppercase tracking-widest mb-1 flex items-center justify-center gap-1.5 text-center">
-          <Trophy className="w-5 h-5 shrink-0" /> SÚT PENALTY ĐỈNH CAO
-        </h2>
-        <p className="text-[10px] font-mono text-[#8b949e] uppercase mb-3 text-center">
-          Giải bóng đá S-System siêu cấp 88
-        </p>
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 space-y-3">
+          <p className="text-[10px] font-mono text-[#8b949e] uppercase text-center tracking-wider">
+            Giải bóng đá S-System siêu cấp 88
+          </p>
 
         {/* Lives & scoring header */}
         <div className="flex justify-between items-center bg-black/50 border border-white/5 rounded-lg p-2.5 text-xs sm:text-sm font-mono font-bold mb-3">
@@ -449,6 +467,7 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
             </p>
           </div>
         )}
+        </div>
       </div>
     </div>
   );

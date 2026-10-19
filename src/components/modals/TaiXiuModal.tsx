@@ -307,50 +307,43 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
 
   return (
     <div 
-      className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 overflow-y-auto"
+      className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden"
       onMouseMove={handleDragMove} 
       onMouseUp={handleDragEnd} 
       onTouchMove={handleDragMove} 
       onTouchEnd={handleDragEnd}
     >
-      <div className={`relative w-full ${isPipMode ? 'max-w-[420px]' : 'max-w-[960px]'} bg-gradient-to-b from-[#1a1c1e] via-[#0f1115] to-[#07080a] border-2 border-[#d4af37]/60 rounded-2xl shadow-[0_0_50px_rgba(212,175,55,0.25)] flex flex-col justify-between overflow-hidden transition-all duration-300`}>
+      <div className={`relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] ${isPipMode ? 'max-w-[420px]' : 'max-w-full md:max-w-4xl'} bg-gradient-to-b from-[#1a1c1e] via-[#0f1115] to-[#07080a] border-0 md:border-2 md:border-[#d4af37]/60 rounded-none md:rounded-2xl shadow-[0_0_50px_rgba(212,175,55,0.25)] flex flex-col justify-between overflow-hidden transition-all duration-300 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]`}>
         
         {/* ================= HEADER BAR ================= */}
-        <div className="bg-gradient-to-r from-black via-slate-900 to-black px-3 py-2 border-b border-amber-500/30 flex items-center justify-between text-xs font-mono select-none">
-          <div className="flex items-center gap-2">
+        <div className="sticky top-0 z-40 shrink-0 bg-gradient-to-r from-black via-slate-900 to-black px-3 py-2.5 border-b border-amber-500/30 flex items-center justify-between text-xs font-mono select-none">
+          <div className="flex items-center gap-2 min-w-0">
             {/* Live Stream Badge */}
-            <span className="bg-red-600 text-white font-black px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(220,38,38,0.8)] uppercase">
+            <span className="bg-red-600 text-white font-black px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1.5 shadow-[0_0_10px_rgba(220,38,38,0.8)] uppercase shrink-0">
               <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-              LIVE STREAM AYK
-            </span>
-
-            {/* Viewers counter */}
-            <span className="bg-black/60 text-slate-300 border border-white/10 px-2 py-0.5 rounded-full text-[10px] flex items-center gap-1">
-              <Eye className="w-3 h-3 text-cyan-400" /> 188 người xem
+              LIVE AYK
             </span>
 
             {/* Rules Button */}
             <button 
               onClick={() => setShowRules(true)}
-              className="bg-amber-500 hover:bg-amber-400 text-black font-extrabold px-2.5 py-0.5 rounded-full text-[10px] flex items-center gap-1 cursor-pointer transition shadow"
+              className="bg-amber-500 hover:bg-amber-400 text-black font-extrabold px-2.5 py-1 rounded-full text-[10px] flex items-center gap-1 cursor-pointer transition shadow shrink-0"
             >
-              <HelpCircle className="w-3 h-3" /> LUẬT CHƠI
+              <HelpCircle className="w-3 h-3" /> LUẬT
             </button>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
             <button 
               onClick={() => setIsPipMode(!isPipMode)}
-              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 px-2 py-0.5 rounded text-[10px] flex items-center gap-1 cursor-pointer"
+              className="bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/10 px-2 py-1 rounded text-[10px] flex items-center gap-1 cursor-pointer"
             >
-              <Tv className="w-3 h-3 text-yellow-400" /> {isPipMode ? 'MỞ RỘNG' : 'CHẾ ĐỘ PIP'}
+              <Tv className="w-3 h-3 text-yellow-400" /> {isPipMode ? 'MỞ RỘNG' : 'PIP'}
             </button>
-            <span className="text-emerald-400 text-[10px] font-bold border border-emerald-500/30 px-1.5 py-0.5 rounded bg-emerald-950/40 hidden sm:inline">
-              1080p HD
-            </span>
             <button 
               onClick={onClose} 
-              className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-white/10 cursor-pointer transition ml-1"
+              aria-label="Đóng"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 cursor-pointer transition"
             >
               <X className="w-5 h-5" />
             </button>
@@ -382,7 +375,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
         )}
 
         {/* ================= MAIN ARENA AREA ================= */}
-        <div className="p-3 sm:p-5 space-y-4 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 space-y-4 relative bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-amber-950/20 via-black to-black">
           
           {/* CENTERPIECE: BÁT VÀNG AYK ELITE */}
           <div className="relative flex flex-col items-center justify-center my-1 select-none">

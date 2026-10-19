@@ -435,34 +435,40 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
   };
 
   return (
-    <div className="overlay z-[6000] p-2 sm:p-4 overflow-y-auto">
-      <div className="glass-box max-w-[850px] w-full p-3 sm:p-6 border-white/20 relative overflow-y-auto max-h-[92vh] flex flex-col gap-3 sm:gap-4 shadow-3xl animate-scale-up my-auto">
+    <div className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#031109] border-0 md:border-2 md:border-white/20 rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-3xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
         
         {/* Glow visual accents */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-red-500 z-10" />
-        <div className="absolute top-0 right-0 w-48 h-48 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-red-500 z-50" />
 
-        {/* Modal Close Button */}
-        <button
-          onClick={isMatchActive ? undefined : onClose}
-          disabled={isMatchActive}
-          className={`absolute top-3 right-3 text-[#8b949e] hover:text-white transition duration-200 p-1.5 rounded-lg hover:bg-white/5 cursor-pointer z-20 ${
-            isMatchActive ? 'opacity-20 cursor-not-allowed' : ''
-          }`}
-        >
-          <X className="w-5 h-5" />
-        </button>
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#061c10]/95 border-b border-white/10 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Activity className="w-5 h-5 text-emerald-400 shrink-0 animate-pulse" />
+            <div className="truncate">
+              <h2 className="text-white text-base md:text-lg font-black uppercase tracking-wider truncate">
+                FC MOBILE ARENA 2D
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
 
-        {/* Title Block */}
-        <div className="text-center md:text-left select-none pr-8">
-          <h2 className="text-white text-glow-blue text-lg sm:text-2xl font-black font-sans uppercase tracking-wider flex items-center justify-center md:justify-start gap-2">
-            <Activity className="w-5 h-5 text-emerald-400 animate-pulse shrink-0" />
-            FC MOBILE ARENA 2D
-          </h2>
-          <p className="text-[9px] md:text-xs font-mono text-[#8b949e] uppercase mt-0.5">
-            BÓNG ĐÁ SIÊU THỰC // 12 CẦU THỦ CHUYỂN ĐỘNG TỪNG BƯỚC
-          </p>
+          <button
+            onClick={isMatchActive ? undefined : onClose}
+            disabled={isMatchActive}
+            aria-label="Đóng"
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0 ${
+              isMatchActive ? 'opacity-20 cursor-not-allowed' : ''
+            }`}
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
+
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 space-y-3 sm:space-y-4">
 
         {/* Score Board Display */}
         <div className="grid grid-cols-3 items-center bg-black/60 border border-white/10 rounded-2xl p-2.5 sm:p-4 text-center relative overflow-hidden select-none">
@@ -636,6 +642,7 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
               Trận đấu đang truyền hình trực tiếp... Vui lòng đợi mãn cuộc đấu kịch tính!
             </div>
           )}
+        </div>
         </div>
       </div>
     </div>

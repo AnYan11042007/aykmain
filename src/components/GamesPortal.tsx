@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { get, ref, onValue, push, set, update } from 'firebase/database';
 import { db } from '../firebase';
-import { Swords, Play, Trophy, Users, Shield, Plus, ArrowRight, Rocket, Flame } from 'lucide-react';
+import { Swords, Play, Trophy, Users, Shield, Plus, ArrowRight, Rocket, Flame, Dices, Layers, Coins, Target, TrendingUp, Sparkles, Award, Zap, Gamepad2 } from 'lucide-react';
 import { User, RpsRoom, BlackjackRoom, TienLenRoom } from '../types';
 
 interface GamesPortalProps {
@@ -358,11 +358,354 @@ export default function GamesPortal({ uid, user, onOpenGame, onJoinRps, onJoinBj
       {/* FULL WIDTH GAME LOBBY */}
       <div className="w-full space-y-8">
 
+        {/* COMPREHENSIVE RESPONSIVE GAME GRID (2 cols on mobile 360-430px, 3 on tablet, 4 on laptop) */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
+            <div>
+              <h3 className="text-base sm:text-lg font-black text-white uppercase tracking-wider flex items-center gap-2">
+                <Gamepad2 className="w-5 h-5 text-cyan-400" />
+                DANH MỤC GAME MINI & ĐẤU TRƯỜNG TRỰC TUYẾN
+              </h3>
+              <p className="text-xs text-slate-400 font-sans">
+                Giữ nguyên toàn bộ luật chơi & game - Tối ưu 100dvh mượt mà trên điện thoại và laptop.
+              </p>
+            </div>
+            <span className="text-[10px] font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-3 py-1 rounded-full self-start sm:self-auto">
+              12 GAME TRỰC TUYẾN ĐỒNG BỘ
+            </span>
+          </div>
 
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {[
+              {
+                id: 'taixiu',
+                title: 'TÀI XỈU ELITE',
+                desc: 'Lắc bát xúc xắc kinh điển',
+                icon: '🎲',
+                badge: 'LIVE HOT',
+                badgeColor: 'bg-red-500/20 text-red-400 border-red-500/40',
+                border: 'border-amber-500/30 hover:border-amber-400',
+                bg: 'from-amber-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('taixiu')
+              },
+              {
+                id: 'airplane',
+                title: 'KHÔNG CHIẾN CRASH',
+                desc: 'Phi thuyền bay nhảy dù x100',
+                icon: '🚀',
+                badge: 'CỰC CĂNG',
+                badgeColor: 'bg-cyan-500/20 text-cyan-400 border-cyan-500/40',
+                border: 'border-cyan-500/30 hover:border-cyan-400',
+                bg: 'from-cyan-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('airplane')
+              },
+              {
+                id: 'roulette',
+                title: 'ROULETTE VIP',
+                desc: 'Vòng quay 37 số hoàng gia',
+                icon: '🔴',
+                badge: 'VIP CLUB',
+                badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+                border: 'border-yellow-500/30 hover:border-yellow-400',
+                bg: 'from-yellow-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('roulette')
+              },
+              {
+                id: 'bj',
+                title: 'XÌ DÁCH VEGAS',
+                desc: 'Sòng bài 21 điểm solo BOT',
+                icon: '🃏',
+                badge: 'MULTI-ROOM',
+                badgeColor: 'bg-orange-500/20 text-orange-400 border-orange-500/40',
+                border: 'border-orange-500/30 hover:border-orange-400',
+                bg: 'from-orange-950/30 via-slate-900 to-black',
+                action: () => {
+                  if (bjRooms.length > 0) handleJoinBlackjackRoom(bjRooms[0].id!);
+                  else handleCreateBlackjackRoom();
+                }
+              },
+              {
+                id: 'horse',
+                title: 'ĐUA NGỰA HOÀNG GIA',
+                desc: 'Trường đua 6 chiến mã',
+                icon: '🏇',
+                badge: 'POPULAR',
+                badgeColor: 'bg-amber-500/20 text-amber-300 border-amber-500/40',
+                border: 'border-amber-600/30 hover:border-amber-500',
+                bg: 'from-amber-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('horse')
+              },
+              {
+                id: 'claw',
+                title: 'MÁY GẮP THÚ S-88',
+                desc: 'Ngàm kim loại thưởng x10',
+                icon: '🧸',
+                badge: 'ARCADE',
+                badgeColor: 'bg-pink-500/20 text-pink-400 border-pink-500/40',
+                border: 'border-pink-500/30 hover:border-pink-400',
+                bg: 'from-pink-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('claw')
+              },
+              {
+                id: 'fcmobile',
+                title: 'FC MOBILE ARENA',
+                desc: 'Trận cầu đỉnh cao 2D',
+                icon: '⚽',
+                badge: 'SPORTS',
+                badgeColor: 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40',
+                border: 'border-emerald-500/30 hover:border-emerald-400',
+                bg: 'from-emerald-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('fcmobile')
+              },
+              {
+                id: 'penalty',
+                title: 'SÚT PENALTY',
+                desc: 'Canh lực sút thủ môn',
+                icon: '🎯',
+                badge: 'MINI GAME',
+                badgeColor: 'bg-green-500/20 text-green-400 border-green-500/40',
+                border: 'border-green-500/30 hover:border-green-400',
+                bg: 'from-green-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('penalty')
+              },
+              {
+                id: 'crypto',
+                title: 'CRYPTO TRADING',
+                desc: 'Gồng lãi nến xanh xả đỉnh',
+                icon: '📈',
+                badge: 'TRENDING',
+                badgeColor: 'bg-yellow-500/20 text-yellow-300 border-yellow-500/40',
+                border: 'border-yellow-500/30 hover:border-yellow-400',
+                bg: 'from-amber-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('crypto')
+              },
+              {
+                id: 'rps',
+                title: 'OẲN TÙ TÌ 1VS1',
+                desc: 'Kéo búa bao đối kháng thực',
+                icon: '✌️',
+                badge: 'PVP LIVE',
+                badgeColor: 'bg-purple-500/20 text-purple-300 border-purple-500/40',
+                border: 'border-purple-500/30 hover:border-purple-400',
+                bg: 'from-purple-950/30 via-slate-900 to-black',
+                action: () => {
+                  if (rpsRooms.length > 0) handleJoinRpsRoom(rpsRooms[0].id!);
+                  else handleCreateRpsRoom();
+                }
+              },
+              {
+                id: 'tienlen',
+                title: 'TIẾN LÊN MIỀN NAM',
+                desc: 'Đấu bài 4 người thời gian thực',
+                icon: '🎴',
+                badge: 'PVP 4P',
+                badgeColor: 'bg-lime-500/20 text-lime-300 border-lime-500/40',
+                border: 'border-lime-500/30 hover:border-lime-400',
+                bg: 'from-lime-950/30 via-slate-900 to-black',
+                action: () => {
+                  if (tlRooms.length > 0) handleJoinTienLenRoom(tlRooms[0].id!);
+                  else handleCreateTienLenRoom();
+                }
+              },
+              {
+                id: 'world_card_battle',
+                title: 'ĐẤU THẺ THẾ GIỚI',
+                desc: '100+ thẻ bài công thủ 1v1',
+                icon: '🃏',
+                badge: 'FEATURED',
+                badgeColor: 'bg-fuchsia-500/20 text-fuchsia-300 border-fuchsia-500/40',
+                border: 'border-fuchsia-500/30 hover:border-fuchsia-400',
+                bg: 'from-fuchsia-950/30 via-slate-900 to-black',
+                action: () => onOpenGame('world_card_battle')
+              }
+            ].map((game) => (
+              <div
+                key={game.id}
+                className={`group relative overflow-hidden rounded-2xl border ${game.border} bg-gradient-to-b ${game.bg} p-3.5 sm:p-4 flex flex-col justify-between transition-all duration-300 hover:scale-[1.02] shadow-lg`}
+              >
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-2xl sm:text-3xl filter drop-shadow">{game.icon}</span>
+                    <span className={`text-[8px] sm:text-[9px] font-mono font-black uppercase px-2 py-0.5 rounded-full border ${game.badgeColor}`}>
+                      {game.badge}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-white font-black text-xs sm:text-sm uppercase tracking-wide truncate group-hover:text-cyan-300 transition-colors">
+                      {game.title}
+                    </h4>
+                    <p className="text-[10px] text-slate-400 line-clamp-1 font-sans mt-0.5">
+                      {game.desc}
+                    </p>
+                  </div>
+                </div>
 
+                <button
+                  onClick={game.action}
+                  className="mt-3 w-full min-h-[44px] py-2.5 px-3 bg-white/10 hover:bg-cyan-500 hover:text-black text-white font-mono font-bold text-[11px] uppercase tracking-wider rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 group-hover:shadow-[0_0_15px_rgba(0,240,255,0.4)]"
+                >
+                  <Play className="w-3.5 h-3.5 fill-current" />
+                  <span>VÀO CHƠI NGAY</span>
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
 
+        {/* MULTIPLAYER LOBBY HUB (Oẳn Tù Tì, Xì Dách, Tiến Lên) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pt-2">
+          
+          {/* RPS 1v1 Room Hub */}
+          <div className="glass-box p-4 border border-purple-500/30 bg-purple-950/15 rounded-2xl space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-purple-500/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">✌️</span>
+                  <h4 className="text-white font-black text-xs uppercase tracking-wider">OẲN TÙ TÌ 1V1</h4>
+                </div>
+                <span className="text-[10px] font-mono text-purple-400 font-bold">{rpsRooms.length} BÀN ĐẤU</span>
+              </div>
 
-          {/* EXCLUSIVE FEATURED: WORLD CARD BATTLE 1V1 ARENA */}
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="number"
+                  value={rpsStake}
+                  onChange={(e) => setRpsStake(e.target.value)}
+                  placeholder="Mức cược..."
+                  className="w-1/2 bg-black/60 border border-purple-500/30 rounded-xl px-2.5 py-2 text-xs text-purple-300 font-mono outline-none text-center"
+                />
+                <button
+                  onClick={handleCreateRpsRoom}
+                  className="w-1/2 min-h-[44px] bg-purple-600 hover:bg-purple-500 active:scale-95 text-white font-black text-[10px] font-mono uppercase tracking-wider rounded-xl cursor-pointer transition flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> TẠO BÀN
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-1.5 max-h-36 overflow-y-auto">
+                {rpsRooms.length === 0 ? (
+                  <div className="text-center py-4 text-[10px] text-slate-500 italic">Chưa có bàn Oẳn Tù Tì nào...</div>
+                ) : (
+                  rpsRooms.map((r) => (
+                    <div key={r.id} className="p-2 bg-black/40 border border-white/5 rounded-xl flex items-center justify-between text-[11px] font-mono">
+                      <div>
+                        <span className="text-white font-bold block">{r.p1Name}</span>
+                        <span className="text-amber-400 text-[10px]">Cược: {r.bet.toLocaleString()} PP</span>
+                      </div>
+                      <button
+                        onClick={() => handleJoinRpsRoom(r.id!)}
+                        className="min-h-[36px] px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500 text-purple-300 hover:text-white rounded-lg font-bold text-[10px] transition cursor-pointer"
+                      >
+                        {r.p1 === uid ? 'VÀO BÀN' : 'CHIẾN'}
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Blackjack Room Hub */}
+          <div className="glass-box p-4 border border-orange-500/30 bg-orange-950/15 rounded-2xl space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-orange-500/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🃏</span>
+                  <h4 className="text-white font-black text-xs uppercase tracking-wider">XÌ DÁCH SÒNG VEGAS</h4>
+                </div>
+                <span className="text-[10px] font-mono text-orange-400 font-bold">{bjRooms.length} BÀN ĐẤU</span>
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="number"
+                  value={bjStake}
+                  onChange={(e) => setBjStake(e.target.value)}
+                  placeholder="Mức cược..."
+                  className="w-1/2 bg-black/60 border border-orange-500/30 rounded-xl px-2.5 py-2 text-xs text-orange-300 font-mono outline-none text-center"
+                />
+                <button
+                  onClick={handleCreateBlackjackRoom}
+                  className="w-1/2 min-h-[44px] bg-orange-600 hover:bg-orange-500 active:scale-95 text-white font-black text-[10px] font-mono uppercase tracking-wider rounded-xl cursor-pointer transition flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> TẠO BÀN
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-1.5 max-h-36 overflow-y-auto">
+                {bjRooms.length === 0 ? (
+                  <div className="text-center py-4 text-[10px] text-slate-500 italic">Chưa có bàn Xì Dách nào...</div>
+                ) : (
+                  bjRooms.map((r) => (
+                    <div key={r.id} className="p-2 bg-black/40 border border-white/5 rounded-xl flex items-center justify-between text-[11px] font-mono">
+                      <div>
+                        <span className="text-white font-bold block">{r.creatorName}</span>
+                        <span className="text-amber-400 text-[10px]">Cược: {r.bet.toLocaleString()} PP ({Object.keys(r.players || {}).length}/5)</span>
+                      </div>
+                      <button
+                        onClick={() => handleJoinBlackjackRoom(r.id!)}
+                        className="min-h-[36px] px-3 py-1.5 bg-orange-500/20 hover:bg-orange-500 text-orange-300 hover:text-white rounded-lg font-bold text-[10px] transition cursor-pointer"
+                      >
+                        VÀO SÒNG
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Tien Len Room Hub */}
+          <div className="glass-box p-4 border border-lime-500/30 bg-lime-950/15 rounded-2xl space-y-3 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-lime-500/20 pb-2.5">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg">🎴</span>
+                  <h4 className="text-white font-black text-xs uppercase tracking-wider">TIẾN LÊN MIỀN NAM</h4>
+                </div>
+                <span className="text-[10px] font-mono text-lime-400 font-bold">{tlRooms.length} BÀN ĐẤU</span>
+              </div>
+
+              <div className="mt-3 flex gap-2">
+                <input
+                  type="number"
+                  value={tlStake}
+                  onChange={(e) => setTlStake(e.target.value)}
+                  placeholder="Mức cược..."
+                  className="w-1/2 bg-black/60 border border-lime-500/30 rounded-xl px-2.5 py-2 text-xs text-lime-300 font-mono outline-none text-center"
+                />
+                <button
+                  onClick={handleCreateTienLenRoom}
+                  className="w-1/2 min-h-[44px] bg-lime-600 hover:bg-lime-500 active:scale-95 text-black font-black text-[10px] font-mono uppercase tracking-wider rounded-xl cursor-pointer transition flex items-center justify-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" /> TẠO BÀN
+                </button>
+              </div>
+
+              <div className="mt-3 space-y-1.5 max-h-36 overflow-y-auto">
+                {tlRooms.length === 0 ? (
+                  <div className="text-center py-4 text-[10px] text-slate-500 italic">Chưa có bàn Tiến Lên nào...</div>
+                ) : (
+                  tlRooms.map((r) => (
+                    <div key={r.id} className="p-2 bg-black/40 border border-white/5 rounded-xl flex items-center justify-between text-[11px] font-mono">
+                      <div>
+                        <span className="text-white font-bold block">{r.creatorName}</span>
+                        <span className="text-amber-400 text-[10px]">Cược: {r.bet.toLocaleString()} PP ({Object.keys(r.players || {}).length}/4)</span>
+                      </div>
+                      <button
+                        onClick={() => handleJoinTienLenRoom(r.id!)}
+                        className="min-h-[36px] px-3 py-1.5 bg-lime-500/20 hover:bg-lime-500 text-lime-300 hover:text-black rounded-lg font-bold text-[10px] transition cursor-pointer"
+                      >
+                        VÀO SÒNG
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+        </div>
           <div className="relative overflow-hidden rounded-2xl border-2 border-purple-500/60 bg-gradient-to-r from-purple-950/90 via-slate-900 to-indigo-950 p-6 shadow-[0_0_35px_rgba(168,85,247,0.35)] space-y-6">
             <div className="absolute top-0 right-0 w-80 h-80 bg-purple-500/10 rounded-full blur-3xl pointer-events-none animate-pulse" />
             

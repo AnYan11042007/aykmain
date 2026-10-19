@@ -69,37 +69,33 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
 
     try {
       let authSuccess = false;
+      let matchedUid = u;
 
-      // 1. Attempt login with Firebase Auth
-      try {
-        await signInWithEmailAndPassword(auth, virtualEmail, p);
-        authSuccess = true;
-      } catch (authErr: any) {
-        // 2. Check for legacy account migration if not found in Firebase Auth
-        const snap = await get(ref(db, `users/${u}`));
-        if (snap.exists()) {
-          const uData = snap.val();
-          // If legacy plaintext password matches, register to Firebase Auth immediately and wipe plaintext pass
-          if (uData.pass === p) {
-            try {
-              await createUserWithEmailAndPassword(auth, virtualEmail, p);
-              authSuccess = true;
-              // Clean legacy plaintext password on backend
-              fetch('/api/auth/migrate-legacy', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ uid: u })
-              }).catch(() => {});
-            } catch (createErr) {
-              // Might already exist in Auth, attempt sign-in once more
-              try {
-                await signInWithEmailAndPassword(auth, virtualEmail, p);
-                authSuccess = true;
-              } catch (retryErr) {
-                authSuccess = false;
-              }
-            }
-          }
+      // 1. Direct validation via RTDB user credentials
+      let snap = await get(ref(db, `users/${u}`));
+      if (!snap.exists()) {
+        const lowerU = u.toLowerCase();
+        const lowerSnap = await get(ref(db, `users/${lowerU}`));
+        if (lowerSnap.exists()) {
+          snap = lowerSnap;
+          matchedUid = lowerU;
+        }
+      }
+
+      if (snap.exists()) {
+        const uData = snap.val();
+        if (uData.pass && uData.pass === p) {
+          authSuccess = true;
+        }
+      }
+
+      // 2. Fallback check with Firebase Auth if available
+      if (!authSuccess) {
+        try {
+          await signInWithEmailAndPassword(auth, virtualEmail, p);
+          authSuccess = true;
+        } catch (authErr: any) {
+          // Both failed
         }
       }
 
@@ -110,22 +106,23 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       }
 
       // 3. Verify user profile in RTDB
-      const snap = await get(ref(db, `users/${u}`));
+      snap = await get(ref(db, `users/${matchedUid}`));
       let uData = snap.exists() ? snap.val() : null;
 
       if (!uData) {
         // Create initial profile if missing
         uData = {
-          uid: u,
-          name: `Sinh Viên ${u}`,
-          bankAccount: u,
+          uid: matchedUid,
+          name: `Sinh Viên ${matchedUid}`,
+          pass: p,
+          bankAccount: matchedUid,
           pp: 100000,
           role: 'STUDENT',
           class: 'Tân Sinh Viên AYK8686',
           avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
           createdAt: Date.now()
         };
-        await set(ref(db, `users/${u}`), uData);
+        await set(ref(db, `users/${matchedUid}`), uData);
       }
 
       if (uData.locked) {
@@ -138,25 +135,25 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
                         Date.now().toString(36) + 
                         Math.random().toString(36).substring(2, 15);
 
-      await update(ref(db, `users/${u}`), {
+      await update(ref(db, `users/${matchedUid}`), {
         sessionToken: randToken
       });
 
       const timestamp = Date.now();
       const logTime = new Date().toLocaleString('vi-VN');
-      await set(ref(db, `online_logs/${u}/L_${timestamp}`), {
-        action: 'LOGIN_FIREBASE_AUTH',
+      await set(ref(db, `online_logs/${matchedUid}/L_${timestamp}`), {
+        action: 'LOGIN_SUCCESS',
         name: uData.name || 'Sinh Viên',
         time: logTime,
         timestamp: timestamp
       });
 
-      try { localStorage.setItem('s88_uid', u); } catch (e) {}
-      try { sessionStorage.setItem('s88_uid', u); } catch (e) {}
+      try { localStorage.setItem('s88_uid', matchedUid); } catch (e) {}
+      try { sessionStorage.setItem('s88_uid', matchedUid); } catch (e) {}
       try { localStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
       try { sessionStorage.setItem('s88_sessionToken', randToken); } catch (e) {}
 
-      onLoginSuccess(u, randToken);
+      onLoginSuccess(matchedUid, randToken);
     } catch (err: any) {
       console.error('Login Error:', err);
       setErrorMsg(err?.message || 'Lỗi đăng nhập hệ thống bảo mật Firebase!');
@@ -218,17 +215,22 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
         return;
       }
 
-      // 2. Register with Firebase Authentication
-      const virtualEmail = formatVirtualEmail(numericId);
-      await createUserWithEmailAndPassword(auth, virtualEmail, pass);
+      // 2. Try registering with Firebase Authentication if available
+      try {
+        const virtualEmail = formatVirtualEmail(numericId);
+        await createUserWithEmailAndPassword(auth, virtualEmail, pass);
+      } catch (authErr) {
+        console.warn('Firebase Auth registration skipped/unavailable:', authErr);
+      }
 
-      // 3. Create user profile in RTDB WITHOUT plaintext password!
+      // 3. Create user profile in RTDB with password
       const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
       const randToken = Math.random().toString(36).substring(2, 15) + Date.now().toString(36);
 
       await set(ref(db, `users/${numericId}`), {
         uid: numericId,
         name: name,
+        pass: pass,
         bankAccount: numericId,
         pp: 100000, // 100k PP starting bonus
         role: 'STUDENT',
@@ -347,10 +349,14 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     setIsLoading(true);
 
     try {
-      const virtualEmail = formatVirtualEmail(targetUser.uid);
-      
-      // Update Firebase Auth credential
+      // 1. Update password in RTDB
+      await update(ref(db, `users/${targetUser.uid}`), {
+        pass: newPass
+      });
+
+      // 2. Update Firebase Auth credential if available
       try {
+        const virtualEmail = formatVirtualEmail(targetUser.uid);
         if (auth.currentUser) {
           await updatePassword(auth.currentUser, newPass);
         } else {
@@ -365,13 +371,6 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       } catch (authErr) {
         console.warn('Firebase Auth password update fallback:', authErr);
       }
-
-      // Ensure no plaintext pass in RTDB
-      await fetch('/api/auth/migrate-legacy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uid: targetUser.uid })
-      }).catch(() => {});
 
       setSuccessMsg(`🎉 ĐỔI MẬT KHẨU THÀNH CÔNG! Vui lòng đăng nhập bằng mật khẩu mới.`);
       setForgotStep(1);

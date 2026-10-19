@@ -1,118 +1,140 @@
-# Kế hoạch Tái cấu trúc & Nâng cấp Toàn diện AYK MAIN 8686
+# Firebase Pruning Automation & Responsive Modal Architecture
 
-Kế hoạch tái thiết kế bảo mật, kiến trúc backend server-authoritative, chuẩn hóa trải nghiệm mini-game học đường và tối ưu mã nguồn cho hệ thống AYK MAIN 8686 theo đúng 4 nhóm ưu tiên.
+A comprehensive system plan to clean up and protect Firebase Realtime Database growth while delivering an edge-to-edge, responsive mobile/laptop experience across all game portals and modals without altering gameplay or betting rules.
 
-***
+---
 
-## Quyết định Đã Thống nhất & Định hướng Triển khai
+### User Review & Critical Decisions
 
 > [!IMPORTANT]
-> Dựa trên phản hồi trong bước làm rõ yêu cầu, các quyết định kiến trúc chính đã được chốt như sau:
-> - **Mini-game**: Giữ lại các trò chơi tương tác hiện có nhưng áp dụng **giới hạn cược trần giải trí** (tránh cờ bạc hóa, cấm quy đổi giá trị ngoài đời), đổi mới danh hiệu và giao diện sang phong cách thi đua học thuật/học đường.
-> - **Kiến trúc Triển khai**: Triển khai theo mô hình **Full-stack container trên Cloud Run** (chạy Express server phục vụ API xác thực, proxy Gemini 2.5 Flash, xử lý giao dịch PP an toàn và serve Vite build).
-> - **Chuyển đổi Firebase Authentication**: Tự động liên kết tài khoản định danh hiện tại (`username`) thành email nội bộ định danh hệ thống (`${username}@ayk8686.internal`) để bảo toàn dữ liệu hồ sơ, cấp độ và tài sản của người dùng mà không làm gián đoạn trải nghiệm đăng nhập.
+> The following architectural parameters have been confirmed based on the initial interview and requirements:
 
-***
+- **Authentication Method for Cleanup Script**: Dual-mode support using `firebase-admin` service account credentials if provided via `FIREBASE_SERVICE_ACCOUNT_KEY` / `serviceAccountKey.json`, with automated fallback to Firebase REST API / Firebase Client admin auth so the script executes seamlessly in both local and hosted environments.
+- **Pre-Cleanup Backup Strategy**: Full database snapshot automatically exported to `backups/firebase-backup-[timestamp].json` before any delete or update mutations are executed under `--apply`.
+- **Mobile Game Modal Experience**: On screens 360px–430px, modals will transform into an immersive native-like full-screen layout using `100dvh`, hardware safe-area paddings for notch/home indicators, persistent sticky top navigation with an always-visible Close button, and 44px+ touch targets with 2–3 column betting chips.
+- **Zero Gameplay Alteration**: All game logic, betting mechanics, odds, names, and user balances remain 100% intact.
 
-## 1. Tổng quan & Mục tiêu Cốt lõi
+---
 
-- **Mục tiêu**: Loại bỏ triệt để các lỗ hổng bảo mật nghiêm trọng (lưu mật khẩu dạng thô `pass`, reset mật khẩu về `123`, client-side tự ghi đè số dư `pp`), ngăn chặn gian lận, xóa bot ảo/chat rác, cấu trúc lại mã nguồn sạch sẽ, dễ bảo trì và sẵn sàng cho môi trường trường học.
-- **Đối tượng**: Sinh viên và giảng viên/quản trị viên học viện AYK 8686.
-- **Giá trị đem lại**: Hệ sinh thái học tập kết hợp giải trí lành mạnh, bảo mật đa lớp, số dư điểm thưởng (PP) được kiểm soát bởi server không thể can thiệp từ DevTools, vận hành ổn định trên Cloud Run.
+## 1. Overview & Core Concept
 
-***
+- **What It Does**:
+  1. **Firebase Database Pruning & Hygiene**: Implements `scripts/cleanup-firebase.js` supporting `--dry-run` and `--apply` flags. Backs up the entire database to JSON, purges expired rounds in `live_arena_bets` (>24h), enforces retention on `game_logs` (30 days general, 90 days real users, 3 days bots), trims `global_chat` & `live_arena_chat` to the latest 500 records (protecting real user chats), purges stale entries in `online` and `online_logs` (>24h), cleans old `transactions` (>90 days), removes plaintext `pass` attributes from `users`, and integrates automated rolling window cleanup in active client/bot loops to permanently prevent database bloat.
+  2. **Comprehensive Responsive Layout Overhaul**: Upgrades all modals (`ClawModal`, `HorseModal`, `CryptoModal`, `RouletteModal`, `ProfileModal`, `TaiXiuModal`, `BlackjackModal`, `AirplaneModal`, `Cyber3DArenaModal`, `FcMobileModal`, `PenaltyModal`, `RpsModal`, `TienLenModal`, `WorldCardBattleModal`, `ExclusiveIdeasModal`), `GamesPortal.tsx`, `LiveStreamPanel.tsx`, `Sidebar.tsx`, and `App.tsx` for seamless operation on mobile (360px–430px), tablet (768px), and laptop/desktop (>=1024px).
+- **Target Audience**: Students and players on both iOS/Android mobile devices (narrow viewports, notch safe areas, touch-first gestures) and laptop/desktop screens (multi-column split layout, expansive betting dashboards).
+- **Key Value**: Guarantees Firebase stability and prevents quota exhaustion while elevating the visual fidelity and ergonomics of all mini-games.
 
-## 2. Trải nghiệm Người dùng & Giao diện
+---
 
-- **Trải nghiệm Đăng nhập**: Giao diện đăng nhập giữ nét nhận diện Cyberpunk học viện nhưng bảo mật bằng Firebase Auth (ẩn hoàn toàn mật khẩu thô trong cơ sở dữ liệu), có cơ chế khôi phục mật khẩu chuẩn qua liên kết an toàn hoặc mã xác thực OTP thay vì reset cứng về `'123'`.
-- **Bộ Danh hiệu & Mini-game Học đường**:
-  - Đổi các danh hiệu mang hơi hướng sòng bạc (ví dụ: *"Thần Bài Las Vegas"*, *"Ông Trùm Cờ Bạc"*) thành danh hiệu học thuật & thử thách trí tuệ: *"Bậc Thầy Toán Xác Suất"*, *"Thủ Khoa Trí Tuệ"*, *"Chiến Thần Đấu Trí"*, *"Học Giả Xuất Sắc"*.
-  - Các mini-game Tài Xỉu, Phi Thuyền, Sút Phạt, Vòng Quay áp dụng trần cược nội bộ (tối đa theo hạn mức cấp độ sinh viên), hiển thị rõ thông điệp rèn luyện tư duy xác suất và tính toán logic.
-- **Cộng đồng Thật 100%**: Xóa hoàn toàn 20 bot tự sinh tin nhắn và cược ảo trong khung chat, đảm bảo bảng xếp hạng và lịch sử cược chỉ phản ánh tương tác của sinh viên thật trong trường.
+## 2. User Experience & Visual Design
 
-***
+### Mobile Layout (360px – 430px)
+- **Viewport Dimension**: Bound strictly to `min-h-[100dvh] max-h-[100dvh] h-[100dvh]`, avoiding broken viewports caused by mobile browser address bars.
+- **Safe-Area Insets**: Uses `pt-[env(safe-area-inset-top,12px)]` and `pb-[env(safe-area-inset-bottom,16px)]` to prevent clipping behind iPhone dynamic islands and Android gesture bars.
+- **Header & Navigation**: Fixed top banner with prominent modal title, user PP balance counter, and an always-accessible touch target Close button (`min-w-[44px] min-h-[44px]`).
+- **Betting Controls**: Replaces horizontal scrolling chip overflow with responsive 2-column or 3-column grid layouts with tactile active states and minimum 44px button tap bounds.
+- **Zero Horizontal Spill**: Strict `overflow-x-hidden w-full max-w-full` on all modal bodies.
 
-## 3. Kiến trúc Kỹ thuật & Luồng Xử lý Dữ liệu
+### Tablet & Laptop Layout (768px – 1440px+)
+- **Desktop Modal Bounds**: Centered overlay modal with `max-w-4xl` or `max-w-5xl`, `max-h-[90vh]`, subtle backdrop blur, and custom micro-scrollbars.
+- **Split-Column Composition**: Where applicable (e.g. `TaiXiuModal`, `LiveStreamPanel`, `RouletteModal`, `AirplaneModal`), splits viewport into:
+  - **Left / Main Column**: Primary animated canvas or card arena.
+  - **Right / Bottom Sidebar**: Betting panel, history charts, and live feed.
+- **Canvas & 3D Autoscaling**: Three.js canvases, HTML5 2D canvases, and dynamic particle arenas (`Cyber3DArenaModal`, `AirplaneModal`, `WorldCardBattleModal`) scale responsively using container-relative aspect ratios (`aspect-video`, `aspect-[4/3]`, or `w-full h-full`) paired with ResizeObserver observers.
+
+### Priority Order for Refactoring
+1. **Low-Breakpoint Outliers First**:
+   - `ClawModal.tsx`
+   - `HorseModal.tsx`
+   - `CryptoModal.tsx`
+   - `RouletteModal.tsx`
+   - `ProfileModal.tsx`
+2. **Complex Canvas & High-Touch Games**:
+   - `TaiXiuModal.tsx`
+   - `BlackjackModal.tsx`
+   - `AirplaneModal.tsx` (Crash)
+   - `Cyber3DArenaModal.tsx`
+   - `FcMobileModal.tsx` & `PenaltyModal.tsx`
+   - `RpsModal.tsx` & `TienLenModal.tsx`
+   - `WorldCardBattleModal.tsx`
+3. **Core App Frame & Hubs**:
+   - `LiveStreamPanel.tsx`
+   - `GamesPortal.tsx`
+   - `Sidebar.tsx`
+   - `App.tsx`
+
+---
+
+## 3. Key Product Decisions & Trade-Offs
+
+### Decision 1: Node.js Cleanup Script Dual Execution Engine
+- **Chosen Approach**: Build `scripts/cleanup-firebase.js` using `firebase-admin` when a service account file is present, while providing an automatic fallback to the Firebase REST API using project credentials if service account JSON is not configured.
+- **Why**: Allows instant one-click execution without blocking users on credential setup, while remaining fully compliant with production `firebase-admin` requirements.
+- **Safety Gate**: Default execution is `--dry-run` which calculates exact deletion counts and payload sizes without writing changes. The `--apply` flag enforces a mandatory database JSON backup to `backups/` before any delete request is initiated.
+
+### Decision 2: Self-Pruning Bot & Rolling Windows
+- **Chosen Approach**: In addition to the batch cleanup script, modify write handlers in `LiveStreamPanel.tsx` and bot simulation routines to clean up historical cycles upon round completion and limit realtime listeners to `limitToLast(50)`.
+- **Why**: Prevents Firebase RTDB from ever bloating back to unsustainable sizes between manual cleanups.
+
+### Decision 3: Protected Datastores
+- **Whitelisted Nodes (NEVER TOUCHED)**:
+  - `users` (preserves all real students and bot profiles, balances, experience, inventory)
+  - `settings` (preserves global system configurations and payout rules)
+  - `market` (preserves marketplace items)
+  - `games` (preserves active game definitions and configurations)
+  - `classes` (preserves student classroom structures)
+  - `s88_news` (preserves announcements and broadcasts)
+  - `promo_codes` (preserves active vouchers)
+- **Sanitization on Users**: Only removes the legacy plaintext `pass` node to conclude the Firebase Auth migration.
+
+---
+
+## 4. Technical Architecture & Data Strategy
 
 ```
-┌────────────────────────────────────────────────────────┐
-│                   CLIENT (React 19 + Vite)             │
-│  - Firebase Auth SDK (Email: username@ayk8686.internal) │
-│  - Không còn quyền ghi trực tiếp pp, role, xp          │
-│  - Gọi REST API server để thực hiện cược & nhiệm vụ    │
-└───────────────────────────┬────────────────────────────┘
-                            │ Bearer Firebase ID Token
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│              SERVER (Express Full-Stack / Node 20)     │
-│  - verifyIdToken xác thực danh tính người dùng         │
-│  - Environment Variables (.env) cho mọi secret & config │
-│  - crypto.randomInt sinh kết quả ngẫu nhiên bảo mật    │
-│  - Firebase Admin SDK Transaction cập nhật PP & XP     │
-│  - Gemini 2.5 Flash Proxy (AI Gia sư & AI Chat)        │
-└───────────────────────────┬────────────────────────────┘
-                            │ Admin Privileges
-                            ▼
-┌────────────────────────────────────────────────────────┐
-│           FIREBASE REALTIME DATABASE (asia-southeast1) │
-│  - database.rules.json:                                │
-│      * auth != null                                    │
-│      * users/$uid: Chỉ user đó được đọc                │
-│      * pp, role, xp, locked: .write = false (Admin only)│
-│      * Admin custom claims kiểm tra role ADMIN         │
-└────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│                   FIREBASE PRUNING & HYGIENE ENGINE                    │
+│                                                                        │
+│   node scripts/cleanup-firebase.js [--dry-run | --apply]               │
+│                                                                        │
+│   Step 1: Backup Entire RTDB                                           │
+│   └─> backups/firebase-backup-[timestamp].json                        │
+│                                                                        │
+│   Step 2: Dry Run Scan & Count Purge Candidates                        │
+│   ├─ live_arena_bets  (Keep active cycle + last 5; delete >24h)       │
+│   ├─ game_logs        (Keep 30d general, 90d real users, 3d bots)      │
+│   ├─ global_chat      (Keep latest 500 messages, prioritize users)     │
+│   ├─ live_arena_chat  (Keep latest 500 messages)                       │
+│   ├─ online / logs    (Delete entries older than 24h)                 │
+│   ├─ transactions     (Delete entries older than 90h)                 │
+│   └─ users            (Delete legacy 'pass' plaintext attribute only)  │
+│                                                                        │
+│   Step 3: Atomic / Batch Deletion (Only on --apply)                    │
+└────────────────────────────────────────────────────────────────────────┘
+                                    │
+                                    ▼
+┌────────────────────────────────────────────────────────────────────────┐
+│                RESPONSIVE UI COMPONENT ARCHITECTURE                    │
+│                                                                        │
+│   Mobile (360px - 430px)             Laptop / Desktop (>= 1024px)     │
+│   ┌─────────────────────────────┐    ┌───────────────────────────────┐ │
+│   │ Top Header (Safe Area) [X]  │    │ Centered Modal / Dual Column  │ │
+│   ├─────────────────────────────┤    ├───────────────┬───────────────┤ │
+│   │ Game Canvas (Auto-fit)      │    │ Game Canvas   │ Betting Panel │ │
+│   ├─────────────────────────────┤    │ (Aspect ratio │ & Feed        │ │
+│   │ Responsive 2/3-Col Chips    │    │  managed)     │ (Scrollable)  │ │
+│   ├─────────────────────────────┤    │               │               │ │
+│   │ Action Buttons (>= 44px)    │    └───────────────┴───────────────┘ │
+│   └─────────────────────────────┘                                      │
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
-***
+### Script Parameters & Command Signatures
+- `node scripts/cleanup-firebase.js --dry-run`: Runs full scan, displays count of records to be deleted per node, backup estimate, and takes no destructive action.
+- `node scripts/cleanup-firebase.js --apply`: Backs up full database to `backups/firebase-backup-[timestamp].json`, then performs targeted deletions with clear progress logging.
 
-## 4. Lộ trình Thực hiện Chi tiết Theo 4 Bước Ưu tiên
-
-### BƯỚC 1: BẢO MẬT HỆ THỐNG & DỮ LIỆU
-1. **Firebase Authentication & Khai trừ Mật khẩu Plaintext**:
-   - Cấu hình Firebase Auth client & server.
-   - Viết cơ chế đăng ký / đăng nhập dùng email ảo định danh `${username}@ayk8686.internal` với mật khẩu mã hóa an toàn qua Firebase Auth.
-   - Xóa bỏ trường `pass` trong node `users/{uid}/pass` và loại bỏ hoàn toàn chức năng reset mật khẩu về `'123'` trong Admin portal.
-2. **Thiết lập database.rules.json Nghiêm ngặt**:
-   - Khóa toàn bộ quyền tự ý ghi đè `pp`, `role`, `xp`, `locked`, `isPremiumBattlePass` từ client.
-   - Chỉ cho phép người dùng đọc dữ liệu của chính mình (ngoại trừ các trường public cho bảng xếp hạng như tên, avatar, cấp độ, khung).
-   - Kiểm tra `auth.token.admin === true` cho các thao tác quản trị.
-3. **Chuyển Toàn bộ Logic PP & Thưởng sang Server Express**:
-   - Xây dựng các route `/api/game/bet-taixiu`, `/api/game/bet-penalty`, `/api/game/bet-airplane`, `/api/missions/claim`, v.v.
-   - Sử dụng `crypto.randomInt` (thay thế hoàn toàn `Math.random` và các hàm sin dự đoán được).
-   - Sử dụng atomic transaction để loại trừ race condition khi người dùng nhấn cược liên tục.
-4. **Bảo mật Biến môi trường**:
-   - Đưa `FIREBASE_API_KEY`, `FIREBASE_DATABASE_URL`, `FIREBASE_PROJECT_ID`, `GEMINI_API_KEY` vào `.env` và `.env.example`.
-   - Xóa bỏ mọi chuỗi khóa API hard-code trong `server.ts` và `src/firebase.ts`.
-
-### BƯỚC 2: CHUẨN HÓA GAME & MÔI TRƯỜNG HỌC ĐƯỜNG
-1. **Xóa Bỏ Mã Cheat & Phím tắt Lén lút**:
-   - Xóa listener `Ctrl+Shift+A` và các logic can thiệp kết quả game (`s88_cheat_*`, backdoor tài khoản admin).
-2. **Loại bỏ Hoàn toàn Bot Ảo**:
-   - Xóa bỏ `AIBotSimulation.tsx` ở client.
-   - Xóa bỏ `seedAIBots()` và `startAIBotSimulator()` trong `server.ts` (không còn bot tự đặt cược và spam chat).
-3. **Chuẩn hóa Học đường & Hạn mức Cược**:
-   - Đổi danh hiệu sòng bài thành danh hiệu học viện tri thức.
-   - Áp dụng hạn mức cược trần giải trí tối đa (ví dụ tối đa 20,000 PP/lần cược), hiển thị cảnh báo giải trí điều độ.
-
-### BƯỚC 3: DỌN DẸP MÃ NGUỒN & MODULARIZE
-1. **Xóa File Rác ở Thư mục Gốc**:
-   - Xóa toàn bộ: `fix_*.cjs`, `make_*.cjs`, `move_to_*.cjs`, `parse.js`, `revert_thumbnails.cjs`, `update_livestream.cjs`.
-2. **Phân rã Component Quá khổ (< 400 dòng)**:
-   - `AdminPortal.tsx` (~2800 dòng) ➔ Tách thành các sub-tabs: AdminGeneral, AdminQuests, AdminMarketplace, AdminAudits.
-   - `WorldCardBattleModal.tsx` ➔ Tách CardDeck, BattleArena, BattleEffects.
-   - `LiveStreamPanel.tsx` ➔ Tách VideoPlayer, StreamChat, BettingControls.
-   - Hợp nhất `DailyMissions` / `DailyMissionsPortal` và `BattlePass` / `BattlePassPortal`.
-3. **Cấu hình Chất lượng Mã nguồn**:
-   - Cập nhật `name` trong `package.json` thành `"ayk-main-8686"`.
-   - Cấu hình ESLint chuẩn và viết test case (sử dụng Vitest/Node test runner) kiểm tra tính đúng đắn của logic tính toán cộng trừ PP và transaction.
-
-### BƯỚC 4: TRIỂN KHAI (DEPLOYMENT)
-1. **Cập nhật Dockerfile / GitHub Actions**:
-   - Sửa file `.github/workflows/deploy.yml` chuyển từ deploy static GitHub Pages sang containerized build hỗ trợ deploy Cloud Run.
-   - Đảm bảo dev server và production server (`npm run build && npm start`) khởi chạy mượt mà trên môi trường container.
-
-***
-
-## 5. Quy trình Báo cáo
-
-Sau khi người dùng nhấn duyệt kế hoạch (Proceed), hệ thống sẽ tiến hành tuần tự từng bước từ Bước 1 đến Bước 4. Sau mỗi bước hoàn tất, hệ thống sẽ kiểm tra biên dịch (`compile_applet`) và báo cáo cụ thể danh sách các file đã được chỉnh sửa/thêm mới.
+### Component Verification Matrix
+Upon completing each phase, each game modal will be verified and documented across three viewport tiers:
+1. **375px** (Mobile Safari / Chrome, portrait, notch safe-area)
+2. **768px** (Tablet / iPad, portrait/landscape transition)
+3. **1280px** (Laptop / Desktop, wide aspect ratio)

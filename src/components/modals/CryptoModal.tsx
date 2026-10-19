@@ -232,85 +232,134 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
     }
   };
 
+  // Handle canvas responsive sizing
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const updateSize = () => {
+      if (canvas.parentElement) {
+        canvas.width = canvas.parentElement.clientWidth;
+        canvas.height = canvas.parentElement.clientHeight;
+      }
+    };
+    updateSize();
+    window.addEventListener('resize', updateSize);
+    return () => window.removeEventListener('resize', updateSize);
+  }, []);
+
   return (
-    <div className="overlay z-[5000]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[90vh] w-[95vw] md:w-full max-w-[620px] p-6 border-[#ffd700] relative">
-        <button 
-          onClick={isTrading ? undefined : onClose} 
-          disabled={isTrading}
-          className={`absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition ${isTrading ? 'opacity-20 cursor-not-allowed' : ''}`}
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-2xl bg-[#080705] border-0 md:border-2 md:border-[#ffd700] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] font-mono">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#141208]/95 border-b border-[#ffd700]/40 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <TrendingUp className="w-5 h-5 text-[#ffd700] shrink-0" />
+            <div className="truncate">
+              <h2 className="text-[#ffd700] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                TRADING CRYPTO LIVE
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={isTrading ? undefined : onClose} 
+            disabled={isTrading}
+            aria-label="Đóng"
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0 ${isTrading ? 'opacity-20 cursor-not-allowed' : ''}`}
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <h2 className="text-[#ffd700] text-glow-gold text-2xl font-black font-mono uppercase tracking-widest mb-1 flex items-center justify-center gap-1.5">
-          <TrendingUp className="w-5 h-5 text-[#ffd700]" /> TRADING CRYPTO LIVE
-        </h2>
-        <p className="text-[10px] font-mono text-[#8b949e] uppercase mb-5">
-          Gồng lãi nến xanh và thoát hàng trước khi cá mập xả kho
-        </p>
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 space-y-4">
+          <p className="text-[10px] text-[#8b949e] uppercase text-center tracking-wider">
+            Gồng lãi nến xanh và thoát hàng trước khi cá mập xả kho
+          </p>
 
-        {/* Live chart trading area */}
-        <div className="relative w-full h-[280px] bg-[#050505] border-2 border-[#ffd700] rounded-xl overflow-y-auto max-h-[90vh] shadow-inner select-none mb-4">
-          
-          {/* Big multiplier backdrop */}
-          <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-5xl font-black tracking-widest font-mono text-glow-gold text-[#ffd700]/10 z-0">
-            X{multiplier.toFixed(2)}
+          {/* Live chart trading area */}
+          <div className="relative w-full h-[220px] sm:h-[260px] md:h-[280px] bg-[#050505] border-2 border-[#ffd700]/80 rounded-xl overflow-hidden shadow-inner select-none">
+            
+            {/* Big multiplier backdrop */}
+            <div className="absolute top-[30%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-4xl sm:text-5xl font-black tracking-widest font-mono text-glow-gold text-[#ffd700]/15 z-0 select-none">
+              X{multiplier.toFixed(2)}
+            </div>
+
+            <canvas ref={canvasRef} className="absolute inset-0 w-full h-full z-10" />
+
+            {/* Rug pull warning card overlay */}
+            {hasRugPulled && (
+              <div className="absolute inset-0 bg-black/85 flex flex-col items-center justify-center z-20 animate-fade-in font-mono border-2 border-[#ff003c]/60 rounded-xl p-4 text-center">
+                <h1 className="text-2xl sm:text-3xl font-black text-[#ff003c] text-glow-red tracking-widest uppercase mb-1.5 animate-bounce">
+                  📉 RUG PULL !!!
+                </h1>
+                <p className="text-xs text-[#8b949e] uppercase">SÀN ĐÃ CHÁY TÀI KHOẢN</p>
+              </div>
+            )}
           </div>
 
-          <canvas ref={canvasRef} width={570} height={280} className="absolute bottom-0 left-0 w-full h-full z-10" />
+          {/* Action Controls */}
+          {!isTrading && !hasRugPulled ? (
+            <div className="space-y-3 font-mono text-xs">
+              <div className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <label className="block text-[#8b949e] uppercase font-bold text-[10px]">Số lượng PP đặt cược giao dịch:</label>
+                  <span className="text-emerald-400 font-bold text-[10px]">Ví: {(user?.pp || 0).toLocaleString()} PP</span>
+                </div>
+                <input
+                  type="number"
+                  placeholder="Nhập số PP đầu tư coin..."
+                  className="w-full min-h-[44px] bg-black/60 border border-[#30363d] focus:border-[#ffd700] rounded-xl p-3 text-center text-sm font-black text-[#ffd700] text-glow-gold outline-none"
+                  value={betAmount}
+                  onChange={(e) => setBetAmount(e.target.value)}
+                />
+                <div className="grid grid-cols-4 gap-1.5">
+                  {['5000', '20000', '50000', '100000'].map((amt) => (
+                    <button
+                      key={amt}
+                      type="button"
+                      onClick={() => setBetAmount(amt)}
+                      className={`min-h-[44px] text-xs font-black rounded-lg border transition cursor-pointer flex items-center justify-center ${
+                        betAmount === amt
+                          ? 'bg-[#ffd700]/20 border-[#ffd700] text-[#ffd700]'
+                          : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
+                      }`}
+                    >
+                      {parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}K` : amt}
+                    </button>
+                  ))}
+                </div>
+              </div>
 
-          {/* Rug pull warning card overlay */}
-          {hasRugPulled && (
-            <div className="absolute inset-0 bg-black/80 flex flex-col items-center justify-center z-20 animate-fade-in font-mono border border-[#ff003c]/50 rounded-lg">
-              <h1 className="text-3xl font-black text-[#ff003c] text-glow-red tracking-widest uppercase mb-1.5 animate-bounce">
-                📉 RUG PULL !!!
-              </h1>
-              <p className="text-xs text-[#8b949e] uppercase">SÀN ĐÃ CHÁY TÀI KHOẢN</p>
+              <button
+                onClick={handleStartTrade}
+                className="w-full min-h-[48px] py-3.5 bg-yellow-950/20 hover:bg-[#ffd700] hover:text-black border border-[#ffd700] text-[#ffd700] font-black uppercase text-xs tracking-widest cursor-pointer rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+              >
+                <span>🚀</span> [ MUA VÀO & GỒNG LÃI ]
+              </button>
+            </div>
+          ) : (
+            <div className="font-mono">
+              {isTrading ? (
+                <button
+                  onClick={handleCashOut}
+                  className="w-full min-h-[48px] py-4 bg-emerald-950/30 border-2 border-dashed border-[#00ff80] text-[#00ff80] text-glow-green hover:bg-[#00ff80]/15 font-black uppercase tracking-widest text-sm rounded-xl cursor-pointer transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                  <span>💰</span> [ BÁN THOÁT HÀNG (CHỐT X{multiplier.toFixed(2)}) ]
+                </button>
+              ) : (
+                <button
+                  disabled
+                  className="w-full min-h-[48px] py-4 bg-red-950/20 border border-[#ff003c] text-[#ff003c] text-glow-red font-black uppercase tracking-widest text-sm rounded-xl cursor-not-allowed flex items-center justify-center"
+                >
+                  📉 CHÁY TÀI KHOẢN ! RUG PULLED
+                </button>
+              )}
             </div>
           )}
         </div>
-
-        {/* Action Controls */}
-        {!isTrading && !hasRugPulled ? (
-          <div className="space-y-4 font-mono text-xs">
-            <div>
-              <label className="block text-[#8b949e] uppercase font-bold tracking-wider mb-1.5">Số lượng PP đặt cược giao dịch:</label>
-              <input
-                type="number"
-                placeholder="Nhập số PP đầu tư coin..."
-                className="w-full bg-black/60 border border-[#30363d] focus:border-[#ffd700] rounded-lg p-3 text-center text-sm font-black text-[#ffd700] text-glow-gold"
-                value={betAmount}
-                onChange={(e) => setBetAmount(e.target.value)}
-              />
-            </div>
-
-            <button
-              onClick={handleStartTrade}
-              className="w-full py-3.5 bg-yellow-950/20 hover:bg-[#ffd700] hover:text-black border border-[#ffd700] text-[#ffd700] font-black uppercase text-xs tracking-widest cursor-pointer rounded-xl transition-all"
-            >
-              [ 🚀 MUA VÀO & GỒNG LÃI ]
-            </button>
-          </div>
-        ) : (
-          <div className="font-mono">
-            {isTrading ? (
-              <button
-                onClick={handleCashOut}
-                className="w-full py-4 bg-emerald-950/20 border-2 border-dashed border-[#00ff80] text-[#00ff80] text-glow-green hover:bg-[#00ff80]/10 font-black uppercase tracking-widest text-sm rounded-xl cursor-pointer transition-all active:scale-95"
-              >
-                [ 💰 BÁN THOÁT HÀNG (CHỐT X{multiplier.toFixed(2)}) ]
-              </button>
-            ) : (
-              <button
-                disabled
-                className="w-full py-4 bg-red-950/10 border border-[#ff003c] text-[#ff003c] text-glow-red font-black uppercase tracking-widest text-sm rounded-xl cursor-not-allowed"
-              >
-                📉 CHÁY TÀI KHOẢN ! RUG PULLED
-              </button>
-            )}
-          </div>
-        )}
       </div>
     </div>
   );

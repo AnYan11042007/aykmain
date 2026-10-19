@@ -618,51 +618,56 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
   }).reverse();
 
   return (
-    <div className="overlay z-[5000]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[94vh] w-[95vw] md:w-full max-w-[540px] p-3 sm:p-5 border-[#00f0ff] relative flex flex-col justify-between max-sm:rounded-3xl">
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-2xl bg-[#030d1a] border-0 md:border-2 md:border-[#00f0ff]/50 rounded-none md:rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
         
-        {/* Top bar controls: Rules & Mute */}
-        <div className="flex items-center justify-between mb-2">
-          <button 
-            onClick={() => setShowRules(true)} 
-            className="text-[#8b949e] hover:text-white cursor-pointer transition flex items-center gap-1 text-[9px] font-mono font-bold uppercase tracking-wider bg-black/40 px-2.5 py-1 rounded-lg border border-white/10"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
-            Luật Chơi
-          </button>
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#061426]/95 border-b border-[#00f0ff]/30 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Navigation className="w-5 h-5 text-cyan-400 shrink-0 animate-pulse" />
+            <div className="truncate">
+              <h2 className="text-[#00f0ff] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                KHÔNG CHIẾN AYK 🚀
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 shrink-0">
+            <button 
+              onClick={() => setShowRules(true)} 
+              className="text-[#8b949e] hover:text-white cursor-pointer transition flex items-center gap-1 text-[10px] font-mono font-bold uppercase tracking-wider bg-black/40 px-2 py-1 rounded-lg border border-white/10"
+            >
+              <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+              Luật
+            </button>
             <button
               onClick={() => setIsMuted(!isMuted)}
-              className="text-slate-400 hover:text-white p-1 rounded-lg bg-black/40 border border-white/10 cursor-pointer"
-              title={isMuted ? "Bật âm thanh" : "Tắt âm thanh"}
+              aria-label="Âm thanh"
+              className="text-slate-400 hover:text-white p-2 rounded-lg bg-black/40 border border-white/10 cursor-pointer"
             >
               {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
             </button>
-
             <button 
               onClick={onClose} 
-              className="text-[#8b949e] hover:text-white cursor-pointer transition"
+              aria-label="Đóng"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Modal Header */}
-        <div className="text-center mb-2">
-          <h2 className="text-[#00f0ff] text-glow-blue text-lg sm:text-2xl font-black font-mono uppercase tracking-widest flex items-center justify-center gap-2">
-            <Navigation className="w-5 h-5 animate-pulse text-cyan-400" /> KHÔNG CHIẾN AYK 🚀
-          </h2>
-          <div className="flex items-center justify-center gap-2 mt-0.5">
-            <span className="text-[10px] font-mono text-[#8b949e] uppercase font-bold">
-              ROUND: #{currentRoundId}
-            </span>
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-5 space-y-3">
+          <div className="flex items-center justify-between">
             <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 py-0.5 px-2 rounded uppercase font-bold font-mono animate-pulse">
               LIVE ARENA
             </span>
+            <span className="text-[9px] text-slate-400 font-mono">Phiên cược thời gian thực</span>
           </div>
-        </div>
 
         {/* Recent Rounds Multipliers History Bar */}
         <div className="mb-2 bg-black/50 p-1.5 rounded-xl border border-white/10 flex items-center gap-1.5 overflow-x-auto scrollbar-none">
@@ -1041,6 +1046,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
               )}
             </div>
           )}
+        </div>
         </div>
 
         {/* Standalone Airplane Rules Overlay */}

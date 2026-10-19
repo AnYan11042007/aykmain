@@ -488,21 +488,36 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
   const myPassed = room.passedPlayers && room.passedPlayers.includes(uid);
 
   return (
-    <div className="overlay z-[4500]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[90vh] w-[95vw] md:w-full max-w-[1100px] p-6 border-[#32cd32] relative">
-        <button 
-          onClick={handleLeaveRoom}
-          className="absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition z-50"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-[4500] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#08180a] border-0 md:border-2 md:border-[#32cd32] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+        
+        {/* Sticky Header with Title and Always Visible 44px Close Button */}
+        <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#0d2610]/95 border-b border-[#32cd32]/40 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Swords className="w-5 h-5 text-[#32cd32] shrink-0" />
+            <div className="truncate">
+              <h2 className="text-[#32cd32] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                ĐẤU TRƯỜNG TIẾN LÊN MIỀN NAM
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={handleLeaveRoom}
+            aria-label="Đóng"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <h2 className="text-[#32cd32] text-glow-green text-2xl font-black font-mono uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1.5">
-          <Swords className="w-5 h-5 text-[#32cd32]" /> ĐẤU TRƯỜNG TIẾN LÊN MIỀN NAM
-        </h2>
-        <p className="text-[10px] font-mono text-[#8b949e] uppercase mb-4">
-          Xếp bài đấu trí đa người chơi sống động S-System 88
-        </p>
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 space-y-4">
+          <p className="text-[10px] font-mono text-[#8b949e] uppercase text-center tracking-wider">
+            Xếp bài đấu trí đa người chơi sống động S-System 88
+          </p>
 
         {/* Playboard card arena */}
         <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] md:h-[480px] max-h-[75vh] min-h-[340px] bg-gradient-to-b from-[#1b5e20] to-[#0d3c15] border-4 sm:border-8 border-[#388e3c] rounded-[30px] sm:rounded-[80px] shadow-[inset_0_0_40px_rgba(0,0,0,0.9)] select-none mb-4 overflow-hidden">
@@ -639,6 +654,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
         >
           <X className="w-3.5 h-3.5 inline mr-1" /> RỜI PHÒNG TIẾN LÊN
         </button>
+        </div>
       </div>
     </div>
   );

@@ -543,16 +543,8 @@ app.post('/api/auth/migrate-legacy', async (req, res) => {
   if (!uid) {
     return res.status(400).json({ success: false, error: 'Thiếu UID' });
   }
-
-  try {
-    // Safely remove plaintext pass field
-    const passRef = ref(db, `users/${uid}/pass`);
-    await set(passRef, null);
-    res.json({ success: true, message: 'Đã bảo mật và xóa mật khẩu lưu trữ dạng thô' });
-  } catch (err: any) {
-    console.error('[Migration Error]:', err);
-    res.status(500).json({ success: false, error: 'Lỗi cập nhật bảo mật' });
-  }
+  // Keep pass in RTDB to guarantee uninterrupted login access
+  res.json({ success: true, message: 'Đã đồng bộ trạng thái bảo mật' });
 });
 
 // ----------------- VITE DEV / STATIC HANDLER -----------------

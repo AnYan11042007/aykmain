@@ -478,21 +478,36 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
   const isMyTurn = room.status === 'PLAYING' && room.activePlayers && room.activePlayers[room.turnIdx || 0] === uid;
 
   return (
-    <div className="overlay z-[4500]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[90vh] w-[95vw] md:w-full max-w-[1100px] p-6 border-[#ff8c00] relative">
-        <button 
-          onClick={handleLeaveRoom}
-          className="absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition z-50"
-        >
-          <X className="w-5 h-5" />
-        </button>
+    <div className="fixed inset-0 z-[4500] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#030a18] border-0 md:border-2 md:border-[#ff8c00] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+        
+        {/* Sticky Header with Title and Always Visible 44px Close Button */}
+        <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#081226]/95 border-b border-[#ff8c00]/40 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Layers className="w-5 h-5 text-[#ff8c00] shrink-0" />
+            <div className="truncate">
+              <h2 className="text-[#ff8c00] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                SÒNG XÌ DÁCH VEGAS LIVE
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={handleLeaveRoom}
+            aria-label="Đóng"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-        <h2 className="text-[#ff8c00] text-glow-gold text-2xl font-black font-mono uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1.5">
-          <Layers className="w-5 h-5 text-[#ff8c00]" /> SÒNG XÌ DÁCH VEGAS LIVE
-        </h2>
-        <p className="text-[10px] font-mono text-[#8b949e] uppercase mb-4">
-          Xì dách hoàng gia - Đấu tay đôi cùng BOT Nhà Cái
-        </p>
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 space-y-4">
+          <p className="text-[10px] font-mono text-[#8b949e] uppercase text-center tracking-wider">
+            Xì dách hoàng gia - Đấu tay đôi cùng BOT Nhà Cái
+          </p>
 
         {/* Blackjack table board */}
         <div className="relative w-full aspect-[16/10] sm:aspect-[16/9] md:h-[480px] max-h-[75vh] min-h-[340px] bg-gradient-to-b from-[#0d47a1] to-[#001030] border-4 sm:border-8 border-[#1a237e] rounded-[30px] sm:rounded-[80px] shadow-[inset_0_0_40px_rgba(0,0,0,0.9)] select-none mb-4 overflow-hidden">
@@ -644,6 +659,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
         >
           <Layers className="w-3.5 h-3.5 inline mr-1" /> RỜI SÒNG ĐẤU BÀI
         </button>
+        </div>
       </div>
     </div>
   );

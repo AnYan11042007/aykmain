@@ -215,159 +215,176 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
   };
 
   return (
-    <div className="overlay z-[5000]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[90vh] w-[95vw] md:w-full max-w-[760px] p-6 border-[#d2a679]">
-        <button 
-          onClick={isRacing ? undefined : onClose} 
-          disabled={isRacing}
-          className={`absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition ${isRacing ? 'opacity-20 cursor-not-allowed' : ''}`}
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        <h2 className="text-[#d2a679] text-glow-pink text-2xl font-black font-mono uppercase tracking-widest mb-1.5 flex items-center justify-center gap-1.5">
-          <Award className="w-5 h-5 text-[#d2a679]" /> TRƯỜNG ĐUA NGỰA HOÀNG GIA
-        </h2>
-        <p className="text-[10px] font-mono text-[#8b949e] uppercase mb-5">
-          Đặt 1 ăn 3 - Lựa chọn chiến mã tài ba S-System
-        </p>
-
-        {/* Horse race track stadium */}
-        <div className="relative w-full h-[250px] bg-[#2e1f11] border-4 border-white rounded-xl overflow-y-auto max-h-[90vh] shadow-[inset_0_0_50px_rgba(0,0,0,0.9)] select-none mb-4">
-          
-          {/* Finish Line checker board */}
-          <div className="absolute top-0 bottom-0 right-[15%] w-1.5 bg-[repeating-linear-gradient(to_bottom,#fff_0,#fff_10px,#ff003c_10px,#ff003c_20px)] z-0"></div>
-
-          {/* Horse 1 lane */}
-          <motion.div
-            animate={{ left: `${positions[0]}%` }}
-            transition={{ type: 'spring', stiffness: 45, damping: 11 }}
-            className="absolute top-[8%] text-3xl z-10 flex items-center font-bold"
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-3xl bg-[#120b05] border-0 md:border-2 md:border-[#d2a679] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] font-mono">
+        {/* Sticky Header */}
+        <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#1e1208]/95 border-b border-[#d2a679]/40 backdrop-blur-md">
+          <div className="flex items-center gap-2 min-w-0">
+            <Award className="w-5 h-5 text-[#d2a679] shrink-0" />
+            <div className="truncate">
+              <h2 className="text-[#d2a679] text-base md:text-lg font-black uppercase tracking-wider truncate">
+                TRƯỜNG ĐUA NGỰA HOÀNG GIA
+              </h2>
+              <span className="text-[10px] text-emerald-400 font-bold block truncate">
+                Số dư: {(user?.pp || 0).toLocaleString()} PP
+              </span>
+            </div>
+          </div>
+          <button 
+            onClick={isRacing ? undefined : onClose} 
+            disabled={isRacing}
+            aria-label="Đóng"
+            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0 ${isRacing ? 'opacity-20 cursor-not-allowed' : ''}`}
           >
-            🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center line-height-4 font-mono font-black border border-black shadow">1</span>
-          </motion.div>
-
-          {/* Horse 2 lane */}
-          <motion.div
-            animate={{ left: `${positions[1]}%` }}
-            transition={{ type: 'spring', stiffness: 45, damping: 11 }}
-            className="absolute top-[32%] text-3xl z-10 flex items-center font-bold"
-          >
-            🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center line-height-4 font-mono font-black border border-black shadow">2</span>
-          </motion.div>
-
-          {/* Horse 3 lane */}
-          <motion.div
-            animate={{ left: `${positions[2]}%` }}
-            transition={{ type: 'spring', stiffness: 45, damping: 11 }}
-            className="absolute top-[56%] text-3xl z-10 flex items-center font-bold"
-          >
-            🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center line-height-4 font-mono font-black border border-black shadow">3</span>
-          </motion.div>
-
-          {/* Horse 4 lane */}
-          <motion.div
-            animate={{ left: `${positions[3]}%` }}
-            transition={{ type: 'spring', stiffness: 45, damping: 11 }}
-            className="absolute top-[80%] text-3xl z-10 flex items-center font-bold"
-          >
-            🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center line-height-4 font-mono font-black border border-black shadow">4</span>
-          </motion.div>
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
-        {/* Live track commentary box */}
-        <div className="bg-black/80 border border-[#d2a679]/40 rounded-lg p-3.5 min-h-[50px] flex items-center justify-center text-center font-mono text-sm leading-relaxed text-slate-100 mb-4 select-none">
-          {commentary}
-        </div>
+        {/* Scrollable Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 space-y-4">
+          <p className="text-[10px] text-[#8b949e] uppercase text-center tracking-wider">
+            Đặt 1 ăn 3 - Lựa chọn chiến mã tài ba S-System
+          </p>
 
-        {/* Action Controls */}
-        <div className="space-y-4 font-mono text-xs">
-          <div>
-            <label className="block text-[#8b949e] uppercase font-bold tracking-wider mb-1.5">Số lượng PP đặt cược đua ngựa:</label>
-            <input
-              type="number"
-              placeholder="Nhập số PP cược..."
-              className="w-full bg-black/60 border border-[#30363d] focus:border-[#d2a679] rounded-lg p-3 text-center text-sm font-black text-[#ffd700] text-glow-gold"
-              value={betAmount}
-              onChange={(e) => setBetAmount(e.target.value)}
-              disabled={isRacing}
-            />
+          {/* Horse race track stadium - responsive height */}
+          <div className="relative w-full h-[220px] sm:h-[260px] md:h-[280px] bg-[#2e1f11] border-2 md:border-4 border-amber-800/80 rounded-xl overflow-hidden shadow-[inset_0_0_50px_rgba(0,0,0,0.9)] select-none">
+            
+            {/* Finish Line checker board */}
+            <div className="absolute top-0 bottom-0 right-[15%] w-2 bg-[repeating-linear-gradient(to_bottom,#fff_0,#fff_10px,#ff003c_10px,#ff003c_20px)] z-0 shadow-lg"></div>
+
+            {/* Horse 1 lane */}
+            <motion.div
+              animate={{ left: `${positions[0]}%` }}
+              transition={{ type: 'spring', stiffness: 45, damping: 11 }}
+              className="absolute top-[8%] text-2xl sm:text-3xl z-10 flex items-center font-bold"
+            >
+              🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center leading-4 font-mono font-black border border-black shadow">1</span>
+            </motion.div>
+
+            {/* Horse 2 lane */}
+            <motion.div
+              animate={{ left: `${positions[1]}%` }}
+              transition={{ type: 'spring', stiffness: 45, damping: 11 }}
+              className="absolute top-[32%] text-2xl sm:text-3xl z-10 flex items-center font-bold"
+            >
+              🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center leading-4 font-mono font-black border border-black shadow">2</span>
+            </motion.div>
+
+            {/* Horse 3 lane */}
+            <motion.div
+              animate={{ left: `${positions[2]}%` }}
+              transition={{ type: 'spring', stiffness: 45, damping: 11 }}
+              className="absolute top-[56%] text-2xl sm:text-3xl z-10 flex items-center font-bold"
+            >
+              🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center leading-4 font-mono font-black border border-black shadow">3</span>
+            </motion.div>
+
+            {/* Horse 4 lane */}
+            <motion.div
+              animate={{ left: `${positions[3]}%` }}
+              transition={{ type: 'spring', stiffness: 45, damping: 11 }}
+              className="absolute top-[80%] text-2xl sm:text-3xl z-10 flex items-center font-bold"
+            >
+              🐎 <span className="text-[9px] bg-white text-black rounded-full w-4 h-4 text-center leading-4 font-mono font-black border border-black shadow">4</span>
+            </motion.div>
           </div>
 
-          {!isRacing ? (
-            <div className="grid grid-cols-4 gap-2">
-              <button
-                onClick={() => handleStartRace(1)}
-                className="py-3 bg-zinc-950/20 hover:bg-[#d2a679]/15 border border-[#d2a679] text-[#d2a679] font-bold rounded-lg uppercase cursor-pointer"
-              >
-                Ngựa 1
-              </button>
-              <button
-                onClick={() => handleStartRace(2)}
-                className="py-3 bg-zinc-950/20 hover:bg-[#d2a679]/15 border border-[#d2a679] text-[#d2a679] font-bold rounded-lg uppercase cursor-pointer"
-              >
-                Ngựa 2
-              </button>
-              <button
-                onClick={() => handleStartRace(3)}
-                className="py-3 bg-zinc-950/20 hover:bg-[#d2a679]/15 border border-[#d2a679] text-[#d2a679] font-bold rounded-lg uppercase cursor-pointer"
-              >
-                Ngựa 3
-              </button>
-              <button
-                onClick={() => handleStartRace(4)}
-                className="py-3 bg-zinc-950/20 hover:bg-[#d2a679]/15 border border-[#d2a679] text-[#d2a679] font-bold rounded-lg uppercase cursor-pointer"
-              >
-                Ngựa 4
-              </button>
-            </div>
-          ) : (
-            <button
-              disabled
-              className="w-full py-3.5 bg-zinc-950/10 border border-[#444] text-[#8b949e] font-black uppercase text-xs tracking-widest cursor-not-allowed"
-            >
-              🐎 CÁC CHIẾN MÃ ĐANG VỨT TỐC TRÊN ĐƯỜNG ĐUA !
-            </button>
-          )}
+          {/* Live track commentary box */}
+          <div className="bg-black/80 border border-[#d2a679]/40 rounded-xl p-3 min-h-[46px] flex items-center justify-center text-center font-mono text-xs sm:text-sm leading-relaxed text-slate-100 select-none shadow-inner">
+            {commentary}
+          </div>
 
-          {/* REQUIREMENT 5: ADMIN MANUAL OVERRIDE */}
-          {((user?.role as any) === 'ADMIN' || (user?.role as any) === 'TEACHER') && (
-            <div className="mt-4 border-t border-red-500/20 pt-4 space-y-2 text-left">
-              <span className="text-red-500 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
-                <ShieldCheck className="w-4 h-4 animate-pulse" /> ⚙️ ADMIN MANUAL OVERRIDE (CHỈ ADMIN THẤY)
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => setAdminForceWinner(null)}
-                  className={`px-3 py-1.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                    adminForceWinner === null
-                      ? 'border-red-500 text-red-500 bg-red-950/20 scale-105'
-                      : 'border-white/5 bg-black/40 text-slate-400 hover:border-white/20'
-                  }`}
-                >
-                  ❌ Thả tự do
-                </button>
-                {[1, 2, 3, 4].map((num) => (
+          {/* Action Controls */}
+          <div className="space-y-3 font-mono text-xs">
+            <div className="space-y-2">
+              <div className="flex justify-between items-center">
+                <label className="block text-[#8b949e] uppercase font-bold text-[10px]">Số lượng PP đặt cược đua ngựa:</label>
+                <span className="text-emerald-400 font-bold text-[10px]">Tài sản: {(user?.pp || 0).toLocaleString()} PP</span>
+              </div>
+              <input
+                type="number"
+                placeholder="Nhập số PP cược..."
+                className="w-full min-h-[44px] bg-black/60 border border-[#30363d] focus:border-[#d2a679] rounded-xl p-3 text-center text-sm font-black text-[#ffd700] text-glow-gold outline-none"
+                value={betAmount}
+                onChange={(e) => setBetAmount(e.target.value)}
+                disabled={isRacing}
+              />
+              <div className="grid grid-cols-4 gap-1.5">
+                {['5000', '10000', '50000', '100000'].map((amt) => (
                   <button
-                    key={num}
+                    key={amt}
                     type="button"
-                    onClick={() => setAdminForceWinner(num)}
-                    className={`px-3 py-1.5 rounded text-[10px] font-bold border transition-all cursor-pointer ${
-                      adminForceWinner === num
-                        ? 'border-red-500 text-red-500 bg-red-950/20 scale-105'
-                        : 'border-white/5 bg-black/40 text-slate-400 hover:border-white/20'
+                    disabled={isRacing}
+                    onClick={() => setBetAmount(amt)}
+                    className={`min-h-[44px] text-xs font-black rounded-lg border transition cursor-pointer flex items-center justify-center ${
+                      betAmount === amt
+                        ? 'bg-[#d2a679]/20 border-[#d2a679] text-[#ffd700]'
+                        : 'bg-white/5 border-white/10 text-slate-300 hover:bg-white/10'
                     }`}
                   >
-                    🐎 Ép Ngựa {num} thắng
+                    {parseInt(amt) >= 1000 ? `${parseInt(amt) / 1000}K` : amt}
                   </button>
                 ))}
               </div>
-              <p className="text-[9px] text-red-400/80 leading-snug">
-                * Kích hoạt can thiệp kết quả đua ngựa trước khi chọn chiến mã xuất phát. Chiến mã được ép sẽ được tăng lực vứt tốc bền bỉ để về nhất.
-              </p>
             </div>
-          )}
+
+            {!isRacing ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {[1, 2, 3, 4].map((num) => (
+                  <button
+                    key={num}
+                    onClick={() => handleStartRace(num)}
+                    className="min-h-[44px] py-3 bg-zinc-950/40 hover:bg-[#d2a679]/20 border border-[#d2a679] text-[#ffd700] font-black rounded-xl uppercase cursor-pointer active:scale-95 transition flex items-center justify-center gap-1.5 shadow-md"
+                  >
+                    <span>🐎</span> Ngựa {num} [x3]
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <button
+                disabled
+                className="w-full min-h-[48px] py-3.5 bg-zinc-950/20 border border-[#444] text-[#8b949e] font-black uppercase text-xs tracking-widest cursor-not-allowed rounded-xl flex items-center justify-center"
+              >
+                🐎 CÁC CHIẾN MÃ ĐANG BỨT TỐC TRÊN ĐƯỜNG ĐUA !
+              </button>
+            )}
+
+            {/* REQUIREMENT 5: ADMIN MANUAL OVERRIDE */}
+            {((user?.role as any) === 'ADMIN' || (user?.role as any) === 'TEACHER') && (
+              <div className="mt-4 border-t border-red-500/20 pt-4 space-y-2 text-left">
+                <span className="text-red-500 text-[10px] font-black uppercase tracking-wider flex items-center gap-1">
+                  <ShieldCheck className="w-4 h-4 animate-pulse" /> ⚙️ ADMIN MANUAL OVERRIDE (CHỈ ADMIN THẤY)
+                </span>
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setAdminForceWinner(null)}
+                    className={`min-h-[44px] px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center justify-center ${
+                      adminForceWinner === null
+                        ? 'border-red-500 text-red-500 bg-red-950/20'
+                        : 'border-white/5 bg-black/40 text-slate-400 hover:border-white/20'
+                    }`}
+                  >
+                    ❌ Thả tự do
+                  </button>
+                  {[1, 2, 3, 4].map((num) => (
+                    <button
+                      key={num}
+                      type="button"
+                      onClick={() => setAdminForceWinner(num)}
+                      className={`min-h-[44px] px-2 py-1.5 rounded-lg text-[10px] font-bold border transition-all cursor-pointer flex items-center justify-center ${
+                        adminForceWinner === num
+                          ? 'border-red-500 text-red-500 bg-red-950/20'
+                          : 'border-white/5 bg-black/40 text-slate-400 hover:border-white/20'
+                      }`}
+                    >
+                      🐎 Ép Ngựa {num}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

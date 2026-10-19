@@ -4288,10 +4288,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 md:p-6 bg-black/85 backdrop-blur-md overflow-y-auto">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 lg:p-6 bg-black/90 backdrop-blur-md overflow-hidden">
       
       {/* BALANCED LAPTOP & MOBILE RESPONSIVE CONTAINER */}
-      <div className={`glass-box w-full max-w-xl lg:max-w-6xl p-3 sm:p-5 border-[#00f0ff]/40 bg-[#050608]/95 max-h-[95vh] overflow-y-auto flex flex-col justify-between space-y-3 relative mx-auto my-auto rounded-2xl shadow-[0_0_50px_rgba(0,240,255,0.25)] select-none ${
+      <div className={`glass-box w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full lg:max-w-6xl p-3 sm:p-5 border-0 md:border md:border-[#00f0ff]/40 bg-[#050608]/95 overflow-y-auto overflow-x-hidden flex flex-col justify-between space-y-3 relative mx-auto rounded-none md:rounded-2xl shadow-[0_0_50px_rgba(0,240,255,0.25)] select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] ${
         isScreenShaking ? 'animate-shake' : ''
       }`}>
         
@@ -4645,42 +4645,43 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             {(roomData?.status === 'PLAYING' || roomData?.status === 'BETTING') && (
               <button
                 onClick={handleSurrender}
-                className="px-2.5 py-1.5 bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 rounded-lg text-[9px] font-mono font-bold uppercase transition cursor-pointer flex items-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.3)] z-30"
+                className="min-h-[38px] px-2 sm:px-2.5 py-1.5 bg-red-600/30 hover:bg-red-600 text-red-300 hover:text-white border border-red-500/50 rounded-lg text-[9px] font-mono font-bold uppercase transition cursor-pointer flex items-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.3)] z-30"
                 title="Đầu hàng và nhận thua trận này"
               >
-                🏳️ ĐẦU HÀNG
+                🏳️ <span className="hidden sm:inline">ĐẦU HÀNG</span>
               </button>
             )}
             <button
               onClick={handleFindPlayer}
-              className="px-3 py-1.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:brightness-125 text-black font-black rounded-lg text-[9px] font-mono transition cursor-pointer flex items-center gap-1 border border-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.4)]"
+              className="min-h-[38px] px-2 sm:px-3 py-1.5 bg-gradient-to-r from-cyan-500 via-blue-600 to-cyan-500 hover:brightness-125 text-black font-black rounded-lg text-[9px] font-mono transition cursor-pointer flex items-center gap-1 border border-cyan-300 shadow-[0_0_12px_rgba(0,240,255,0.4)]"
               title="Tìm đối thủ người chơi thật (60s tự động ghép AI Bot)"
             >
-              <Users className="w-3.5 h-3.5" /> TÌM NGƯỜI CHƠI (SOLO 1V1)
+              <Users className="w-3.5 h-3.5" /> <span className="hidden sm:inline">TÌM ĐỐI THỦ</span>
             </button>
             <button
               onClick={() => setShowCompendium(true)}
-              className="px-3 py-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:brightness-125 text-white rounded-lg text-[9px] font-mono font-bold transition cursor-pointer flex items-center gap-1 border border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
+              className="min-h-[38px] px-2 sm:px-3 py-1.5 bg-gradient-to-r from-purple-700 to-indigo-700 hover:brightness-125 text-white rounded-lg text-[9px] font-mono font-bold transition cursor-pointer flex items-center gap-1 border border-purple-400/50 shadow-[0_0_10px_rgba(168,85,247,0.3)]"
               title="Xem Thư Viện 100+ Thẻ Bài & Kĩ Năng"
             >
-              <Layers className="w-3.5 h-3.5 text-yellow-300" /> THƯ VIỆN THẺ (100+ THẺ)
+              <Layers className="w-3.5 h-3.5 text-yellow-300" /> <span className="hidden sm:inline">THƯ VIỆN</span>
             </button>
             <button
               onClick={handleResetMatch}
-              className="p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-xs transition cursor-pointer"
+              className="min-w-[38px] min-h-[38px] flex items-center justify-center p-1.5 bg-white/5 hover:bg-white/10 text-slate-300 rounded-lg text-xs transition cursor-pointer"
               title="Tải lại / Đấu lại"
             >
               <RefreshCw className="w-3.5 h-3.5" />
             </button>
             <button
               onClick={handleCloseModal}
-              className="p-1.5 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-lg transition cursor-pointer"
+              aria-label="Đóng"
+              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-xl transition cursor-pointer active:scale-95 shrink-0"
             >
-              <X className="w-4 h-4" />
+              <X className="w-5 h-5" />
             </button>
           </div>
         </div>

@@ -4,7 +4,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { ref, update, onValue } from 'firebase/database';
+import { ref, update, onValue, query, limitToLast } from 'firebase/database';
 import { db } from '../../firebase';
 import { User } from '../../types';
 import { X, Key, User as UserIcon, Camera, Check, Shield, Award, Sparkles, AlertTriangle, History, Clock, ArrowDownLeft, ArrowUpRight } from 'lucide-react';
@@ -41,8 +41,8 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
   // Fetch unified logs
   useEffect(() => {
     if (!uid) return;
-    const logsRef = ref(db, 'game_logs');
-    const unsubscribe = onValue(logsRef, (snapshot) => {
+    const logsQuery = query(ref(db, 'game_logs'), limitToLast(100));
+    const unsubscribe = onValue(logsQuery, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
         const logsArray = Object.keys(data).map((key) => ({
@@ -176,78 +176,77 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
   };
 
   return (
-    <div className="overlay z-[5000]">
-      <div className="glass-box login-panel overflow-y-auto max-h-[90vh] w-[95vw] md:w-full max-w-[540px] p-6 border-[#00f0ff] relative text-left font-mono">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 text-[#8b949e] hover:text-white cursor-pointer transition p-1 rounded-lg hover:bg-white/10"
-        >
-          <X className="w-5 h-5" />
-        </button>
-
-        {/* User Card Header */}
-        <div className="flex items-center gap-4 mb-6 pb-4 border-b border-white/10">
-          <div className="relative">
-            <AvatarFrameContainer
-              avatarUrl={selectedAvatar}
-              frameUrl={user?.activeFrame}
-              size="xl"
-              showSparkles={true}
-            />
-            <span className="absolute bottom-0 right-0 w-4 h-4 bg-emerald-500 border-2 border-black rounded-full z-30" />
-          </div>
-
-          <div>
-            <h2 className="text-white text-lg font-black uppercase flex items-center gap-1.5">
-              {user?.name || 'Sinh Viên'}
-            </h2>
-            <div className="flex items-center gap-2 mt-1 text-xs">
-              <span className="text-[#00f0ff] font-bold">UID / STK: {uid}</span>
-              <span className="text-slate-400">•</span>
-              <span className="text-amber-400 font-bold">{user?.class || 'AYK'}</span>
+    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden text-left font-mono">
+      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-2xl bg-[#090d14] border-0 md:border-2 md:border-[#00f0ff]/40 rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+        
+        {/* Sticky Header with User Info and Always Visible 44px Close Button */}
+        <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#0d1420]/95 border-b border-[#00f0ff]/30 backdrop-blur-md">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="relative shrink-0">
+              <AvatarFrameContainer
+                avatarUrl={selectedAvatar}
+                frameUrl={user?.activeFrame}
+                size="md"
+                showSparkles={true}
+              />
+              <span className="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-black rounded-full z-30" />
             </div>
-            <div className="mt-1 text-emerald-400 font-black text-xs">
-              Tài sản: {(user?.pp || 0).toLocaleString()} PP
+            <div className="truncate">
+              <h2 className="text-white text-sm sm:text-base font-black uppercase truncate flex items-center gap-1.5">
+                {user?.name || 'Sinh Viên'}
+              </h2>
+              <div className="flex items-center gap-2 text-[10px] truncate">
+                <span className="text-[#00f0ff] font-bold">UID: {uid}</span>
+                <span className="text-slate-500">•</span>
+                <span className="text-emerald-400 font-bold">{(user?.pp || 0).toLocaleString()} PP</span>
+              </div>
             </div>
           </div>
+          <button
+            onClick={onClose}
+            aria-label="Đóng"
+            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
         {/* Tab Switcher */}
-        <div className="grid grid-cols-3 border-b border-white/10 mb-5 gap-1 font-mono text-[11px] font-bold">
+        <div className="grid grid-cols-3 border-b border-white/10 shrink-0 bg-black/40 font-mono text-[11px] font-bold">
           <button
             onClick={() => setActiveTab('history')}
-            className={`py-2.5 uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`min-h-[44px] py-2.5 uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'history'
                 ? 'border-amber-400 text-amber-400 bg-amber-400/10 font-black'
                 : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <History className="w-4 h-4" /> LỊCH SỬ CƯỢC
+            <History className="w-4 h-4" /> <span className="truncate">LỊCH SỬ</span>
           </button>
           <button
             onClick={() => setActiveTab('avatar')}
-            className={`py-2.5 uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`min-h-[44px] py-2.5 uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'avatar'
                 ? 'border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/10 font-black'
                 : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <Camera className="w-4 h-4" /> AVATAR
+            <Camera className="w-4 h-4" /> <span className="truncate">AVATAR</span>
           </button>
           <button
             onClick={() => setActiveTab('password')}
-            className={`py-2.5 uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
+            className={`min-h-[44px] py-2.5 uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center justify-center gap-1.5 ${
               activeTab === 'password'
                 ? 'border-[#00f0ff] text-[#00f0ff] bg-[#00f0ff]/10 font-black'
                 : 'border-transparent text-slate-400 hover:text-white'
             }`}
           >
-            <Key className="w-4 h-4" /> MẬT KHẨU
+            <Key className="w-4 h-4" /> <span className="truncate">BẢO MẬT</span>
           </button>
         </div>
 
-        {/* TAB 1: UNIFIED HISTORY TABLE (20 RECENT) */}
+        {/* Scrollable Content Body */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-3 md:p-6 space-y-4">
         {activeTab === 'history' && (
           <div className="space-y-3 font-mono">
             <div className="flex items-center justify-between text-xs text-amber-400 font-bold uppercase pb-1 border-b border-white/10">
@@ -584,6 +583,7 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
             </form>
           </div>
         )}
+        </div>
       </div>
     </div>
   );
