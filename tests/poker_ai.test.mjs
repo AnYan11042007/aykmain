@@ -40,7 +40,7 @@ describe('Texas Hold\'em AI & Simulation Tests', () => {
 
     // AA vs 1 random hand has ~85% equity
     assert.ok(result.equity >= 0.75 && result.equity <= 0.95, `Expected AA equity around 85%, got ${(result.equity * 100).toFixed(1)}%`);
-    assert.strictEqual(result.winRate + result.tieRate, result.equity);
+    assert.ok(Math.abs((result.winRate + result.tieRate) - result.equity) < 1e-9);
 
     // Nut flush on river vs 1 opponent -> 100% equity
     const holeNutFlush = [parseCard('As'), parseCard('Ks')];

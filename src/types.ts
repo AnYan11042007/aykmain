@@ -241,6 +241,10 @@ export interface PokerSeat {
   personality?: 'TAG' | 'LAG' | 'NIT' | 'TRICKY';
   consecutiveTimeouts?: number;
   lastAction?: string;
+  /** true once the player has voluntarily acted on the current street */
+  hasActed?: boolean;
+  /** player stood up mid-hand; seat is kept (folded, 0 chips) so their bet stays in the pot */
+  left?: boolean;
 }
 
 export interface PokerWinner {

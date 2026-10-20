@@ -42,12 +42,16 @@ import {
   Card,
   HandEvaluation
 } from '../../poker/pokerEngine';
+import { normalizePokerRoom } from '../../poker/pokerRoomUtil';
 
 interface PokerModalProps {
   uid: string;
   user: User | null;
   onClose: () => void;
   onShowResult?: (title: string, message: string, isWin: boolean) => void;
+  /** Layout-test only: render a fixed table instead of listening to Firebase */
+  previewRoom?: PokerRoom;
+  previewHole?: string[];
 }
 
 // Demo 2 Hand Compendium Reference Cards
@@ -64,20 +68,14 @@ const HAND_COMPENDIUM_TIERS = [
   { rank: 10, nameVi: 'Mậu thầu', nameEn: 'HIGH CARD', cards: ['Kh', 'Js', '8d', '6s', '3c'], cat: 'HIGH_CARD' },
 ];
 
-export default function PokerModal({ uid, user, onClose, onShowResult }: PokerModalProps) {
-  // Screen Orientation State
-  const [isPortrait, setIsPortrait] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.innerHeight > window.innerWidth && window.innerWidth < 768;
-  });
-
+export default function PokerModal({ uid, user, onClose, onShowResult, previewRoom, previewHole }: PokerModalProps) {
   // Sound Muted state
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
 
   // Active Room ID & Local Room State
-  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
-  const [room, setRoom] = useState<PokerRoom | null>(null);
-  const [myHoleCards, setMyHoleCards] = useState<string[]>([]);
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(previewRoom ? previewRoom.id : null);
+  const [room, setRoom] = useState<PokerRoom | null>(previewRoom ? normalizePokerRoom(previewRoom) : null);
+  const [myHoleCards, setMyHoleCards] = useState<string[]>(previewHole || []);
   const [loadingAction, setLoadingAction] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
 
@@ -97,13 +95,18 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
   // Countdown seconds remaining for current turn
   const [secondsRemaining, setSecondsRemaining] = useState<number>(20);
 
+  // One shared AudioContext (browsers cap how many can exist at once)
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  useEffect(() => () => { audioCtxRef.current?.close().catch(() => {}); audioCtxRef.current = null; }, []);
+
   // Web Audio Synth for crisp poker sounds
   const playSound = (type: 'deal' | 'chip' | 'check' | 'fold' | 'win') => {
     if (!soundEnabled || typeof window === 'undefined') return;
     try {
       const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
       if (!AudioCtx) return;
-      const ctx = new AudioCtx();
+      const ctx: AudioContext = audioCtxRef.current || (audioCtxRef.current = new AudioCtx());
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
       osc.connect(gain);
@@ -155,42 +158,15 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
     } catch (e) {}
   };
 
-  // Orientation Listener
-  useEffect(() => {
-    const handleResize = () => {
-      const portrait = window.innerHeight > window.innerWidth && window.innerWidth < 768;
-      setIsPortrait(portrait);
-    };
-    window.addEventListener('resize', handleResize);
-    window.addEventListener('orientationchange', handleResize);
-    return () => {
-      window.removeEventListener('resize', handleResize);
-      window.removeEventListener('orientationchange', handleResize);
-    };
-  }, []);
-
-  // Request fullscreen & landscape lock attempt
-  const handleLockLandscape = async () => {
-    try {
-      if (document.documentElement.requestFullscreen) {
-        await document.documentElement.requestFullscreen();
-      }
-      if ((screen.orientation as any)?.lock) {
-        await (screen.orientation as any).lock('landscape');
-      }
-    } catch (e) {
-      console.log('Orientation lock not supported, relying on visual rotation overlay');
-    }
-  };
-
   // Listen to Lobby Rooms Realtime
   useEffect(() => {
+    if (previewRoom) return;
     const roomsRef = ref(db, 'poker_rooms');
     const unsub = onValue(roomsRef, (snap) => {
       if (snap.exists()) {
         const val = snap.val();
         const list: PokerRoom[] = Object.values(val);
-        setLobbyRooms(list.filter(r => r && r.id));
+        setLobbyRooms(list.filter(r => r && r.id).map(r => normalizePokerRoom(r)));
       } else {
         setLobbyRooms([]);
       }
@@ -200,12 +176,12 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
 
   // Listen to Active Room State
   useEffect(() => {
-    if (!currentRoomId) return;
+    if (!currentRoomId || previewRoom) return;
 
     const roomRef = ref(db, `poker_rooms/${currentRoomId}`);
     const unsubRoom = onValue(roomRef, (snap) => {
       if (snap.exists()) {
-        const rData = snap.val() as PokerRoom;
+        const rData = normalizePokerRoom(snap.val() as PokerRoom);
         setRoom(rData);
 
         // Sound cues on round changes
@@ -439,6 +415,17 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
     }
   };
 
+  const confirmLeaveTable = () => {
+    const midHand = !!room && room.round !== 'WAITING' && room.round !== 'SHOWDOWN' && !!mySeat && !mySeat.folded;
+    if (midHand && !window.confirm('Ván đang diễn ra. Rời bàn bây giờ sẽ bỏ bài và mất số chip đã cược trong ván này. Vẫn rời bàn?')) return;
+    handleLeaveTable();
+  };
+
+  const handleStartHand = async () => {
+    if (!currentRoomId) return;
+    await sendAction('start', { roomId: currentRoomId, uid });
+  };
+
   const handleBettingAction = async (action: 'FOLD' | 'CHECK' | 'CALL' | 'RAISE' | 'ALL_IN', amount?: number) => {
     if (!currentRoomId) return;
     playSound(action === 'FOLD' ? 'fold' : action === 'CHECK' ? 'check' : 'chip');
@@ -464,7 +451,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
   const renderCard = (cardStr: string, isFaceDown = false, isTiltLeft = false, isTiltRight = false) => {
     if (isFaceDown) {
       return (
-        <div className={`w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-md sm:rounded-lg bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 border border-purple-500/50 shadow-md relative overflow-hidden flex items-center justify-center ${
+        <div className={`w-8 min-[400px]:w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-md sm:rounded-lg bg-gradient-to-br from-indigo-950 via-purple-950 to-slate-950 border border-purple-500/50 shadow-md relative overflow-hidden flex items-center justify-center ${
           isTiltLeft ? '-rotate-6' : isTiltRight ? 'rotate-6' : ''
         }`}>
           {/* Card Back Cyber Lines */}
@@ -480,7 +467,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
     const rankLabel = card.rank === 14 ? 'A' : card.rank === 13 ? 'K' : card.rank === 12 ? 'Q' : card.rank === 11 ? 'J' : card.rank;
 
     return (
-      <div className={`w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] bg-white rounded-md sm:rounded-lg border border-slate-300 shadow-xl flex flex-col justify-between p-0.5 sm:p-1 relative select-none font-bold ${
+      <div className={`w-8 min-[400px]:w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] bg-white rounded-md sm:rounded-lg border border-slate-300 shadow-xl flex flex-col justify-between p-0.5 sm:p-1 relative select-none font-bold ${
         isTiltLeft ? '-rotate-6 hover:rotate-0 transition-transform' : isTiltRight ? 'rotate-6 hover:rotate-0 transition-transform' : ''
       }`}>
         <div className={`text-[10px] sm:text-xs leading-none flex items-center gap-0.5 ${isRed ? 'text-rose-600' : 'text-slate-900'}`}>
@@ -499,29 +486,9 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#05070d] flex items-center justify-center p-0 font-sans select-none overflow-hidden">
+    <div className="game-overlay bg-black/90 backdrop-blur-md font-sans select-none">
+      <div className="game-shell game-shell--wide bg-[#05070d] md:border-2 md:border-cyan-500/40 shadow-[0_0_60px_rgba(0,240,255,0.2)]">
       
-      {/* 1. PORTRAIT WARNING OVERLAY: Force landscape mode */}
-      {isPortrait && (
-        <div className="absolute inset-0 z-[100] bg-black/95 backdrop-blur-xl flex flex-col items-center justify-center p-6 text-center text-white space-y-4">
-          <div className="w-16 h-16 rounded-2xl bg-cyan-500/20 border-2 border-cyan-400 flex items-center justify-center animate-bounce shadow-[0_0_25px_rgba(0,240,255,0.6)]">
-            <RotateCcw className="w-8 h-8 text-cyan-400" />
-          </div>
-          <h3 className="text-xl font-black uppercase text-cyan-300 tracking-wider">
-            XOAY NGANG MÀN HÌNH ĐỂ CHƠI POKER
-          </h3>
-          <p className="text-xs text-slate-300 max-w-xs leading-relaxed">
-            Vui lòng xoay ngang thiết bị của bạn để bàn cược hiển thị chuẩn tỉ lệ và trải nghiệm tốt nhất!
-          </p>
-          <button
-            onClick={handleLockLandscape}
-            className="px-6 py-2.5 bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-black text-xs uppercase rounded-xl shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 cursor-pointer"
-          >
-            Thử khóa xoay ngang / Toàn màn hình
-          </button>
-        </div>
-      )}
-
       {/* 2. DEMO 2: BẢNG XẾP HẠNG BÀI POKER MODAL OVERLAY */}
       {showHandRankModal && (
         <div
@@ -613,19 +580,20 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
       )}
 
       {/* 3. MAIN POKER CONTAINER: FULL-SCREEN LANDSCAPE FRAME */}
-      <div className="w-full h-[100dvh] flex flex-col justify-between p-2 sm:p-3 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0d1627] via-[#070b14] to-[#04060b]">
+      <div className="w-full flex-1 min-h-0 flex flex-col gap-2 p-2 sm:p-3 relative overflow-hidden bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-[#0d1627] via-[#070b14] to-[#04060b]">
         
         {/* Subtle Cyber Grid Background */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.015)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.015)_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none opacity-40" />
 
         {/* ===================== TOP HEADER BAR ===================== */}
-        <div className="relative z-20 flex items-center justify-between gap-2 shrink-0 h-10 sm:h-12 border-b border-cyan-500/20 px-1 sm:px-2">
+        <div className="relative z-20 flex items-center justify-between gap-2 shrink-0 min-h-[56px] border-b border-cyan-500/20 px-1 sm:px-2 pb-1">
           
           {/* Left: Exit button & Table Name / Blind */}
           <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <button
-              onClick={currentRoomId ? handleLeaveTable : onClose}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 border border-white/20 hover:border-cyan-400 text-white flex items-center justify-center cursor-pointer transition active:scale-95"
+              onClick={currentRoomId ? confirmLeaveTable : onClose}
+              className="game-close"
+              aria-label="Thoát bàn chơi"
               title="Thoát bàn chơi"
             >
               <ChevronLeft className="w-5 h-5" />
@@ -633,21 +601,21 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <span className="text-yellow-400 text-xs sm:text-sm font-black uppercase tracking-wider font-mono flex items-center gap-1">
-                  ♠ POKER TEXAS HOLD'EM
+                <span className="text-yellow-400 text-xs sm:text-sm font-black uppercase tracking-wider font-mono flex items-center gap-1 whitespace-nowrap">
+                  ♠ POKER<span className="hidden min-[480px]:inline"> TEXAS HOLD'EM</span>
                 </span>
               </div>
               <div className="text-[9px] sm:text-[10px] text-slate-400 font-mono truncate">
-                {room ? `BÀN #${room.id} · BLIND ${room.smallBlind}/${room.bigBlind} · 5 GHẾ` : 'SẢNH CHỜ POKER S-SYSTEM'}
+                {room ? `BÀN #${room.id} · BLIND ${room.smallBlind}/${room.bigBlind}` : 'SẢNH CHỜ POKER S-SYSTEM'}
               </div>
             </div>
           </div>
 
           {/* Center: Round Pill Badge (PREFLOP, FLOP, TURN, RIVER, SHOWDOWN) */}
           {room && (
-            <div className="px-3 sm:px-4 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)] flex items-center gap-1.5 animate-pulse">
+            <div className="hidden sm:flex px-3 sm:px-4 py-1 rounded-full bg-cyan-950/80 border border-cyan-400/60 shadow-[0_0_15px_rgba(0,240,255,0.3)] flex items-center gap-1.5 animate-pulse">
               <span className="text-[10px] sm:text-xs font-mono font-black text-cyan-300 uppercase tracking-widest">
-                VÒNG: {room.round}
+                {room.round}
               </span>
             </div>
           )}
@@ -655,7 +623,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
           {/* Right: PP Balance & Utility Buttons */}
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* PP Balance Pill */}
-            <div className="px-2.5 sm:px-3 py-1 bg-black/80 border border-amber-500/40 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
+            <div className="px-2 sm:px-3 py-1 bg-black/80 border border-amber-500/40 rounded-full flex items-center gap-1.5 shadow-[0_0_10px_rgba(245,158,11,0.2)]">
               <span className="text-amber-400 text-xs sm:text-sm">🪙</span>
               <span className="text-xs sm:text-sm font-mono font-black text-[#ffd700] tracking-wide">
                 {(user?.pp || 0).toLocaleString()} <span className="text-[10px] text-yellow-500">PP</span>
@@ -665,7 +633,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
             {/* Hand Compendium Book button */}
             <button
               onClick={() => setShowHandRankModal(true)}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 border border-white/20 hover:border-yellow-400 text-yellow-400 flex items-center justify-center cursor-pointer transition active:scale-95"
+              className="game-icon-btn text-yellow-400" aria-label="Bảng xếp hạng bài"
               title="Bảng xếp hạng bài"
             >
               <BookOpen className="w-4 h-4" />
@@ -674,7 +642,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
             {/* Sound toggle button */}
             <button
               onClick={() => setSoundEnabled(!soundEnabled)}
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-900 border border-white/20 hover:border-cyan-400 text-cyan-300 flex items-center justify-center cursor-pointer transition active:scale-95"
+              className="game-icon-btn text-cyan-300" aria-label="Âm thanh"
               title={soundEnabled ? 'Tắt âm thanh' : 'Bật âm thanh'}
             >
               {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-slate-500" />}
@@ -834,16 +802,16 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
           </div>
         ) : (
           /* ===================== ACTIVE POKER TABLE VIEW (DEMO 1) ===================== */
-          <div className="flex-1 flex gap-2 relative overflow-hidden p-1 z-10">
+          <div className="flex-1 min-h-0 flex flex-col min-[700px]:flex-row gap-2 relative overflow-hidden p-1 z-10">
             
             {/* 3A. OVAL POKER TABLE AREA (LEFT & CENTER) */}
-            <div className="flex-1 relative flex items-center justify-center overflow-hidden">
+            <div className="flex-1 min-h-0 min-w-0 relative flex items-center justify-center overflow-hidden">
               
               {/* OVAL FELT CONTAINER */}
-              <div className="w-[96%] h-[88%] rounded-[180px] bg-gradient-to-b from-[#0e5c36] via-[#094125] to-[#042414] border-[6px] border-[#02130a] shadow-[0_0_80px_rgba(0,240,255,0.25)] relative flex items-center justify-center">
+              <div className="w-[98%] h-[96%] min-[700px]:w-[96%] min-[700px]:h-[88%] rounded-[56px] min-[700px]:rounded-[180px] bg-gradient-to-b from-[#0e5c36] via-[#094125] to-[#042414] border-[6px] border-[#02130a] shadow-[0_0_80px_rgba(0,240,255,0.25)] relative flex items-center justify-center">
                 
                 {/* Glowing Cyan/Neon Inner Ring matching Demo 1 */}
-                <div className="absolute inset-1.5 rounded-[174px] border-2 border-cyan-400/80 shadow-[0_0_20px_rgba(34,211,238,0.6)] pointer-events-none" />
+                <div className="absolute inset-1.5 rounded-[50px] min-[700px]:rounded-[174px] border-2 border-cyan-400/80 shadow-[0_0_20px_rgba(34,211,238,0.6)] pointer-events-none" />
 
                 {/* Watermark in center */}
                 <div className="absolute text-[32px] sm:text-[42px] font-mono font-black text-white/[0.04] uppercase tracking-[12px] select-none pointer-events-none">
@@ -851,7 +819,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                 </div>
 
                 {/* CENTER AREA: POT BADGE + 5 COMMUNITY CARDS */}
-                <div className="flex flex-col items-center gap-2 sm:gap-3 z-10">
+                <div className="flex flex-col items-center gap-2 sm:gap-3 z-10 max-[699px]:mt-10">
                   {/* POT BADGE (Demo 1: Golden Pill POT 1.850 PP) */}
                   <div className="px-3.5 sm:px-5 py-1 rounded-full bg-black/80 border-2 border-amber-400/90 shadow-[0_0_25px_rgba(250,204,21,0.6)] flex items-center gap-2 animate-pulse">
                     <span className="text-yellow-400 text-xs sm:text-sm">🪙</span>
@@ -869,7 +837,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                         return (
                           <div
                             key={idx}
-                            className="w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-md sm:rounded-lg border border-dashed border-emerald-500/30 bg-black/20 flex items-center justify-center text-emerald-500/20 text-xs"
+                            className="w-8 min-[400px]:w-9 sm:w-11 md:w-13 aspect-[2.5/3.5] rounded-md sm:rounded-lg border border-dashed border-emerald-500/30 bg-black/20 flex items-center justify-center text-emerald-500/20 text-xs"
                           >
                             ♠
                           </div>
@@ -891,6 +859,38 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                   </div>
                 </div>
 
+                {/* WAITING (multiplayer lobby) / SHOWDOWN WINNERS BANNER */}
+                {room.round === 'WAITING' && (
+                  <div className="absolute inset-x-0 top-[22%] z-30 flex flex-col items-center gap-2 px-4 text-center">
+                    <span className="px-3 py-1 rounded-full bg-black/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono font-bold">
+                      Đang chờ người chơi · {room.seats.filter(Boolean).length}/5 ghế
+                    </span>
+                    {room.creator === uid ? (
+                      <button
+                        onClick={handleStartHand}
+                        disabled={loadingAction || room.seats.filter(st => st && st.chips > 0).length < 2}
+                        className="tap-wide px-6 min-h-[48px] rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 text-black font-black text-sm uppercase tracking-wider disabled:opacity-40 shadow-[0_0_20px_rgba(52,211,153,0.5)]"
+                      >
+                        ▶ BẮT ĐẦU VÁN
+                      </button>
+                    ) : (
+                      <span className="text-[11px] text-slate-300">Chờ chủ bàn ({room.creatorName}) bắt đầu ván…</span>
+                    )}
+                  </div>
+                )}
+                {room.round === 'SHOWDOWN' && room.winners && room.winners.length > 0 && (
+                  <div className="absolute inset-x-2 top-[24%] z-30 flex flex-col items-center gap-1 pointer-events-none">
+                    {room.winners.map(w => (
+                      <div key={w.uid} className="px-3 py-1.5 rounded-xl bg-black/90 border-2 border-yellow-400/80 shadow-[0_0_25px_rgba(250,204,21,0.5)] text-center max-w-full">
+                        <div className="text-[11px] sm:text-sm font-black text-yellow-300 truncate">
+                          🏆 {w.uid === uid ? 'BẠN' : w.name} +{w.amount.toLocaleString()} PP
+                        </div>
+                        <div className="text-[9px] sm:text-[10px] font-mono text-emerald-300 truncate">{w.handDesc}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 {/* 5 SEATS POSITIONED AROUND OVAL */}
                 {visualSeats.map(item => {
                   const { seat, visualPos, originalIndex } = item;
@@ -899,11 +899,11 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
 
                   // Positions for 5 seats (0: Bottom-Center, 1: Left-Middle, 2: Top-Left, 3: Top-Right, 4: Right-Middle)
                   const posClasses = [
-                    'bottom-1 left-1/2 -translate-x-1/2', // 0: Bottom-Center (Me)
-                    'left-2 top-1/2 -translate-y-1/2',    // 1: Left-Middle
-                    'top-2 left-[28%]',                   // 2: Top-Left
-                    'top-2 right-[28%]',                  // 3: Top-Right
-                    'right-2 top-1/2 -translate-y-1/2',   // 4: Right-Middle
+                    'bottom-1 left-1.5 min-[700px]:left-[10%]',                                                       // 0: Me (bottom-left, hole cards sit at bottom-centre)
+                    'left-1 top-[42%] -translate-y-1/2 min-[700px]:left-2 min-[700px]:top-1/2 min-[700px]:-translate-y-1/2', // 1: Left-Middle
+                    'left-3 top-1 min-[700px]:left-[24%] min-[700px]:top-2',                                         // 2: Top-Left
+                    'right-3 top-1 min-[700px]:right-[24%] min-[700px]:top-2',                                       // 3: Top-Right
+                    'right-1 top-[42%] -translate-y-1/2 min-[700px]:right-2 min-[700px]:top-1/2 min-[700px]:-translate-y-1/2', // 4: Right-Middle
                   ][visualPos];
 
                   if (!seat) {
@@ -992,17 +992,21 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
 
                       {/* Opponent's Cards (Face Down or Revealed on Showdown) */}
                       {!isMe && (
-                        <div className="flex items-center -space-x-2 mt-1">
+                        <div className={`items-center -space-x-3.5 sm:-space-x-2 mt-0.5 max-w-[48px] sm:max-w-none justify-center z-10 ${room.revealedCards && room.revealedCards[seat.uid] ? 'flex' : 'hidden min-[700px]:flex'}`}>
                           {room.revealedCards && room.revealedCards[seat.uid] ? (
                             room.revealedCards[seat.uid].map((cStr, cIdx) => (
-                              <div key={cIdx} className="scale-75 origin-top">
+                              <div key={cIdx} className="scale-[0.44] min-[400px]:scale-[0.5] sm:scale-75 origin-top shrink-0 -mx-2 sm:mx-0">
                                 {renderCard(cStr)}
                               </div>
                             ))
                           ) : (
                             <>
-                              {renderCard('XX', true, true, false)}
-                              {renderCard('XX', true, false, true)}
+                              <div className="scale-[0.6] sm:scale-90 origin-center -mx-1 sm:mx-0">
+                                {renderCard('XX', true, true, false)}
+                              </div>
+                              <div className="scale-[0.6] sm:scale-90 origin-center -mx-1 sm:mx-0">
+                                {renderCard('XX', true, false, true)}
+                              </div>
                             </>
                           )}
                         </div>
@@ -1020,7 +1024,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
 
                 {/* MY HOLE CARDS & HAND NAME BADGE (BOTTOM CENTER - PROMINENT) */}
                 {mySeat && myHoleCards.length === 2 && (
-                  <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-30 flex items-center gap-3">
+                  <div className="absolute bottom-2 right-2 min-[700px]:right-auto min-[700px]:left-1/2 min-[700px]:-translate-x-1/2 z-30 flex items-center gap-2 sm:gap-3">
                     {/* 2 Player Hole Cards with Yellow Glow */}
                     <div className="flex items-center -space-x-3 filter drop-shadow-[0_0_12px_rgba(250,204,21,0.7)]">
                       {renderCard(myHoleCards[0], false, true, false)}
@@ -1029,7 +1033,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
 
                     {/* Hand Name Label Box matching Demo 1 */}
                     {myHandEvaluation && (
-                      <div className="bg-black/90 border-2 border-yellow-500/70 p-2 sm:p-2.5 rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.3)] min-w-[120px] text-left">
+                      <div className="bg-black/90 border-2 border-yellow-500/70 p-2 sm:p-2.5 rounded-xl shadow-[0_0_20px_rgba(250,204,21,0.3)] min-w-[104px] sm:min-w-[120px] text-left">
                         <span className="block text-[8px] font-mono text-slate-400 uppercase tracking-widest">
                           BÀI CỦA BẠN
                         </span>
@@ -1048,7 +1052,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
             </div>
 
             {/* 3B. RIGHT CONTROL COLUMN (BET SLIDER, PRESETS & ACTION BUTTONS) */}
-            <div className="w-56 sm:w-64 shrink-0 flex flex-col justify-between bg-slate-950/90 border border-cyan-500/30 rounded-2xl p-2.5 sm:p-3 relative z-20 shadow-2xl font-mono">
+            <div className="w-full min-[700px]:w-64 shrink-0 flex flex-col gap-2 min-[700px]:justify-between bg-slate-950/90 border border-cyan-500/30 rounded-2xl p-2.5 sm:p-3 relative z-20 shadow-2xl font-mono">
               
               {/* TOP: TỐ ĐẾN & AMOUNT */}
               <div className="space-y-2">
@@ -1072,39 +1076,39 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                 />
 
                 {/* 4 PRESET BUTTONS (½ POT, ¾ POT, POT, ALL-IN) */}
-                <div className="grid grid-cols-2 gap-1.5">
+                <div className="grid grid-cols-4 min-[700px]:grid-cols-2 gap-1.5">
                   <button
                     onClick={() => bettingOptions && setCustomRaiseAmount(bettingOptions.halfPotRaiseTotal)}
                     disabled={!bettingOptions?.canRaise}
-                    className="py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 border border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer transition active:scale-95"
+                    className="py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 border border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer transition active:scale-95"
                   >
                     ½ POT
                   </button>
                   <button
                     onClick={() => bettingOptions && setCustomRaiseAmount(bettingOptions.threeQuarterPotRaiseTotal)}
                     disabled={!bettingOptions?.canRaise}
-                    className="py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 border border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer transition active:scale-95"
+                    className="py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 border border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer transition active:scale-95"
                   >
                     ¾ POT
                   </button>
                   <button
                     onClick={() => bettingOptions && setCustomRaiseAmount(bettingOptions.potRaiseTotal)}
                     disabled={!bettingOptions?.canRaise}
-                    className="py-1.5 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 border border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer transition active:scale-95"
+                    className="py-2 bg-slate-900 hover:bg-slate-800 disabled:opacity-30 border border-white/10 rounded-lg text-xs font-bold text-slate-300 cursor-pointer transition active:scale-95"
                   >
                     POT
                   </button>
                   <button
                     onClick={() => bettingOptions && setCustomRaiseAmount(bettingOptions.maxRaiseTotal)}
                     disabled={!bettingOptions?.canAllIn}
-                    className="py-1.5 bg-rose-950/60 hover:bg-rose-900/80 disabled:opacity-30 border border-rose-500/40 rounded-lg text-xs font-black text-rose-400 cursor-pointer transition active:scale-95"
+                    className="py-2 bg-rose-950/60 hover:bg-rose-900/80 disabled:opacity-30 border border-rose-500/40 rounded-lg text-xs font-black text-rose-400 cursor-pointer transition active:scale-95"
                   >
                     ALL-IN
                   </button>
                 </div>
 
                 {/* STATS: Tối thiểu tố & Pot odds */}
-                <div className="pt-1 border-t border-white/5 space-y-1 text-[10px]">
+                <div className="hidden min-[700px]:block pt-1 border-t border-white/5 space-y-1 text-[10px]">
                   <div className="flex justify-between text-slate-400">
                     <span>Tối thiểu tố</span>
                     <span className="text-cyan-300 font-bold">
@@ -1119,13 +1123,13 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
               </div>
 
               {/* BOTTOM: 3 BIG ACTION BUTTONS matching Demo 1 */}
-              <div className="space-y-1.5 pt-2">
+              <div className="grid grid-cols-3 min-[700px]:grid-cols-1 gap-1.5 pt-1 min-[700px]:pt-2">
                 
                 {/* 1. TỐ BUTTON (Yellow) */}
                 <button
                   onClick={() => handleBettingAction('RAISE', customRaiseAmount)}
                   disabled={!bettingOptions?.canRaise || loadingAction}
-                  className="w-full min-h-[42px] py-2 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.5)] active:scale-95 flex flex-col items-center justify-center leading-tight"
+                  className="w-full min-h-[52px] order-3 min-[700px]:order-none py-2 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.5)] active:scale-95 flex flex-col items-center justify-center leading-tight"
                 >
                   <span className="text-sm font-black">TỐ</span>
                   <span className="text-[9px] font-bold">{customRaiseAmount.toLocaleString()} PP</span>
@@ -1136,7 +1140,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                   <button
                     onClick={() => handleBettingAction('CHECK')}
                     disabled={loadingAction}
-                    className="w-full min-h-[42px] py-2 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight"
+                    className="w-full min-h-[52px] order-2 min-[700px]:order-none py-2 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight"
                   >
                     <span className="text-sm font-black">CHECK</span>
                     <span className="text-[9px] font-bold">MIỄN PHÍ</span>
@@ -1145,7 +1149,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                   <button
                     onClick={() => handleBettingAction('CALL')}
                     disabled={!bettingOptions?.canCall || loadingAction}
-                    className="w-full min-h-[42px] py-2 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight"
+                    className="w-full min-h-[52px] order-2 min-[700px]:order-none py-2 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight"
                   >
                     <span className="text-sm font-black">THEO</span>
                     <span className="text-[9px] font-bold">{bettingOptions?.callAmount.toLocaleString()} PP</span>
@@ -1156,7 +1160,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
                 <button
                   onClick={() => handleBettingAction('FOLD')}
                   disabled={!mySeat || mySeat.folded || room.round === 'WAITING' || room.round === 'SHOWDOWN' || loadingAction}
-                  className="w-full min-h-[40px] py-2 bg-rose-950/60 hover:bg-rose-900/80 disabled:opacity-25 border border-rose-500/60 text-rose-400 hover:text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer active:scale-95 flex flex-col items-center justify-center leading-tight"
+                  className="w-full min-h-[52px] order-1 min-[700px]:order-none py-2 bg-rose-950/60 hover:bg-rose-900/80 disabled:opacity-25 border border-rose-500/60 text-rose-400 hover:text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer active:scale-95 flex flex-col items-center justify-center leading-tight"
                 >
                   <span className="text-xs font-black">BỎ BÀI</span>
                   <span className="text-[8px] font-mono">FOLD</span>
@@ -1168,6 +1172,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult }: PokerMo
           </div>
         )}
 
+      </div>
       </div>
     </div>
   );

@@ -176,8 +176,8 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
   };
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden text-left font-mono">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-2xl bg-[#090d14] border-0 md:border-2 md:border-[#00f0ff]/40 rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md text-left font-mono">
+      <div className="game-shell bg-[#090d14] border-0 md:border-2 md:border-[#00f0ff]/40 flex flex-col shadow-2xl">
         
         {/* Sticky Header with User Info and Always Visible 44px Close Button */}
         <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#0d1420]/95 border-b border-[#00f0ff]/30 backdrop-blur-md">
@@ -205,7 +205,7 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
           <button
             onClick={onClose}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>

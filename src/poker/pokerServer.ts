@@ -18,10 +18,12 @@ import {
   evaluateHand,
   calculateSidePots,
   distributePots,
-  getBettingOptions
+  getBettingOptions,
+  isStreetSettled
 } from './pokerEngine.ts';
 import type { Card } from './pokerEngine.ts';
 import type { PokerRoom, PokerSeat, PokerRound, PokerWinner } from '../types.ts';
+import { normalizePokerRoom, serializePokerRoom } from './pokerRoomUtil.ts';
 
 // Idempotency cache (actionId -> timestamp)
 const processedActionIds = new Map<string, number>();
@@ -41,18 +43,104 @@ export function isActionProcessed(actionId?: string): boolean {
   return false;
 }
 
+
+export interface PokerDb {
+  get(path: string): Promise<{ exists: () => boolean; val: () => any }>;
+  set(path: string, val: any): Promise<void>;
+  update(updates: Record<string, any>): Promise<void>;
+  push(path: string, val: any): Promise<void>;
+}
+
+export function createPokerDb(clientDb: any, adminDb?: any): PokerDb {
+  if (adminDb) {
+    return {
+      async get(path: string) {
+        try {
+          return await adminDb.ref(path).get();
+        } catch (e) {
+          return await get(ref(clientDb, path));
+        }
+      },
+      async set(path: string, val: any) {
+        try {
+          await adminDb.ref(path).set(val);
+        } catch (e) {
+          await set(ref(clientDb, path), val);
+        }
+      },
+      async update(updates: Record<string, any>) {
+        try {
+          await adminDb.ref().update(updates);
+        } catch (e) {
+          await update(ref(clientDb), updates);
+        }
+      },
+      async push(path: string, val: any) {
+        try {
+          await adminDb.ref(path).push(val);
+        } catch (e) {
+          await push(ref(clientDb, path), val);
+        }
+      }
+    };
+  }
+
+  return {
+    async get(path: string) {
+      return await get(ref(clientDb, path));
+    },
+    async set(path: string, val: any) {
+      await set(ref(clientDb, path), val);
+    },
+    async update(updates: Record<string, any>) {
+      await update(ref(clientDb), updates);
+    },
+    async push(path: string, val: any) {
+      await push(ref(clientDb, path), val);
+    }
+  };
+}
+
+export async function dbGet(db: any, path: string) {
+  if (db && typeof db.get === "function") {
+    return await db.get(path);
+  }
+  return await dbGet(db, path);
+}
+
+export async function dbSet(db: any, path: string, val: any) {
+  if (db && typeof db.set === "function") {
+    return await db.set(path, val);
+  }
+  return await dbSet(db, path, val);
+}
+
+export async function dbUpdate(db: any, updates: Record<string, any>) {
+  if (db && typeof db.update === "function") {
+    return await db.update(updates);
+  }
+  return await dbUpdate(db, updates);
+}
+
+export async function dbPush(db: any, path: string, val: any) {
+  if (db && typeof db.push === "function") {
+    return await db.push(path, val);
+  }
+  return await push(ref(db, path), val);
+}
+
 /**
  * Verifies session token and account status
  */
 export async function verifyUserSession(
-  db: Database,
+  db: any,
   uid: string,
   sessionToken?: string
 ): Promise<{ ok: boolean; error?: string; user?: any }> {
   if (!uid) return { ok: false, error: 'Thiếu thông tin người dùng' };
 
   try {
-    const userSnap = await get(ref(db, `users/${uid}`));
+    const userSnap = await dbGet(db, `users/${uid}`);
     if (!userSnap.exists()) {
       return { ok: false, error: 'Tài khoản không tồn tại' };
     }
@@ -107,14 +195,13 @@ const AI_BOTS: Array<{ name: string; avatar: string; personality: 'TAG' | 'LAG' 
 
 // Helper to record transaction
 export async function recordPokerTransaction(
-  db: Database,
+  db: any,
   uid: string,
   amount: number,
   title: string
 ) {
   try {
-    const txRef = ref(db, `transactions/${uid}`);
-    await push(txRef, {
+    await dbPush(db, `transactions/${uid}`, {
       id: `tx_poker_${Date.now()}_${crypto.randomBytes(3).toString('hex')}`,
       type: amount >= 0 ? 'INCOME' : 'EXPENSE',
       title,
@@ -131,7 +218,7 @@ export async function recordPokerTransaction(
  * Advance Poker game turn or street
  */
 export async function advancePokerGame(
-  db: Database,
+  db: any,
   roomId: string,
   room: PokerRoom,
   executePPTransaction: Function
@@ -156,7 +243,7 @@ export async function advancePokerGame(
     room.logs = room.logs || [];
     room.logs.push(`🎉 ${winner.name} thắng ${winAmount.toLocaleString()} PP (Mọi người đều bỏ bài).`);
 
-    await set(ref(db, `poker_rooms/${roomId}`), room);
+    await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
     // Schedule next hand in 5 seconds
     setTimeout(() => {
@@ -166,31 +253,31 @@ export async function advancePokerGame(
   }
 
   // 2. Check if current street betting is settled
-  // Street is settled when:
-  // - All non-folded, non-allin players have acted and their currentBet === highestBet
-  const nonAllInActive = activeSeats.filter(s => !s.allIn);
-  const isSettled =
-    nonAllInActive.length <= 1 ||
-    nonAllInActive.every(s => s.currentBet === room.highestBet && s.lastAction !== undefined);
+  // A street is settled when nobody can still act on an unmatched bet and
+  // (if 2+ players can still bet) every one of them has acted since the last raise.
+  const canAct = activeSeats.filter(s => !s.allIn);
+  const isSettled = isStreetSettled(activeSeats, room.highestBet);
 
   if (isSettled) {
-    // Reset street bets
+    // Reset street bets and per-street action flags
     for (const seat of room.seats) {
-      if (seat) seat.currentBet = 0;
+      if (!seat) continue;
+      seat.currentBet = 0;
+      seat.hasActed = false;
+      if (!seat.folded && !seat.allIn) delete seat.lastAction;
     }
     room.highestBet = 0;
     room.lastRaiseDelta = room.bigBlind;
 
-    // Check if we can proceed to showdown directly (everyone all-in or only 1 can bet)
-    if (nonAllInActive.length <= 1 && room.round !== 'RIVER') {
-      // Auto deal remaining board cards up to 5
-      const deckSnap = await get(ref(db, `poker_private/${roomId}/deck`));
+    // Everyone all-in (or only one player can still bet): run out the board
+    if (canAct.length <= 1 && room.round !== 'RIVER') {
+      const deckSnap = await dbGet(db, `poker_private/${roomId}/deck`);
       let secretDeck: string[] = deckSnap.exists() ? deckSnap.val() : [];
 
       while (room.board.length < 5 && secretDeck.length > 0) {
         room.board.push(secretDeck.shift()!);
       }
-      await set(ref(db, `poker_private/${roomId}/deck`), secretDeck);
+      await dbSet(db, `poker_private/${roomId}/deck`, secretDeck);
       await finishShowdown(db, roomId, room, executePPTransaction);
       return;
     }
@@ -198,31 +285,31 @@ export async function advancePokerGame(
     // Advance street
     if (room.round === 'PREFLOP') {
       room.round = 'FLOP';
-      const deckSnap = await get(ref(db, `poker_private/${roomId}/deck`));
+      const deckSnap = await dbGet(db, `poker_private/${roomId}/deck`);
       let secretDeck: string[] = deckSnap.exists() ? deckSnap.val() : [];
       if (secretDeck.length >= 3) {
         room.board.push(secretDeck.shift()!, secretDeck.shift()!, secretDeck.shift()!);
-        await set(ref(db, `poker_private/${roomId}/deck`), secretDeck);
+        await dbSet(db, `poker_private/${roomId}/deck`, secretDeck);
       }
       room.logs = room.logs || [];
       room.logs.push(`🃏 Chia bài chung FLOP: ${room.board.join(' ')}`);
     } else if (room.round === 'FLOP') {
       room.round = 'TURN';
-      const deckSnap = await get(ref(db, `poker_private/${roomId}/deck`));
+      const deckSnap = await dbGet(db, `poker_private/${roomId}/deck`);
       let secretDeck: string[] = deckSnap.exists() ? deckSnap.val() : [];
       if (secretDeck.length >= 1) {
         room.board.push(secretDeck.shift()!);
-        await set(ref(db, `poker_private/${roomId}/deck`), secretDeck);
+        await dbSet(db, `poker_private/${roomId}/deck`, secretDeck);
       }
       room.logs = room.logs || [];
       room.logs.push(`🃏 Chia bài chung TURN: ${room.board[3]}`);
     } else if (room.round === 'TURN') {
       room.round = 'RIVER';
-      const deckSnap = await get(ref(db, `poker_private/${roomId}/deck`));
+      const deckSnap = await dbGet(db, `poker_private/${roomId}/deck`);
       let secretDeck: string[] = deckSnap.exists() ? deckSnap.val() : [];
       if (secretDeck.length >= 1) {
         room.board.push(secretDeck.shift()!);
-        await set(ref(db, `poker_private/${roomId}/deck`), secretDeck);
+        await dbSet(db, `poker_private/${roomId}/deck`, secretDeck);
       }
       room.logs = room.logs || [];
       room.logs.push(`🃏 Chia bài chung RIVER: ${room.board[4]}`);
@@ -252,7 +339,7 @@ export async function advancePokerGame(
     }
 
     room.actionExpiry = Date.now() + 20000;
-    await set(ref(db, `poker_rooms/${roomId}`), room);
+    await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
     checkIfNextTurnIsAI(db, roomId, room, executePPTransaction);
     return;
   }
@@ -269,7 +356,7 @@ export async function advancePokerGame(
   }
 
   room.actionExpiry = Date.now() + 20000;
-  await set(ref(db, `poker_rooms/${roomId}`), room);
+  await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
   checkIfNextTurnIsAI(db, roomId, room, executePPTransaction);
 }
 
@@ -277,7 +364,7 @@ export async function advancePokerGame(
  * Showdown evaluation, side pots distribution, and public hole cards reveal
  */
 async function finishShowdown(
-  db: Database,
+  db: any,
   roomId: string,
   room: PokerRoom,
   executePPTransaction: Function
@@ -286,7 +373,7 @@ async function finishShowdown(
   room.currentTurnSeat = null;
 
   // Retrieve private cards of all players in room
-  const privateSnap = await get(ref(db, `poker_private/${roomId}`));
+  const privateSnap = await dbGet(db, `poker_private/${roomId}`);
   const privateData = privateSnap.exists() ? privateSnap.val() : {};
 
   const revealed: Record<string, string[]> = {};
@@ -299,10 +386,9 @@ async function finishShowdown(
     if (!seat) continue;
     const holeStrArr = privateData[seat.uid];
     if (Array.isArray(holeStrArr) && holeStrArr.length === 2) {
-      // Reveal hole cards on showdown
-      revealed[seat.uid] = holeStrArr;
-
       if (!seat.folded) {
+        // Only hands that reach showdown are revealed (folded hands stay hidden)
+        revealed[seat.uid] = holeStrArr;
         const holeCards = holeStrArr.map(parseCard);
         const full7 = [...boardCards, ...holeCards];
         handEvals[seat.uid] = evaluateHand(full7);
@@ -347,7 +433,7 @@ async function finishShowdown(
     room.logs.push(`🏆 ${w.name} thắng ${w.amount.toLocaleString()} PP (${w.handDesc})`);
   }
 
-  await set(ref(db, `poker_rooms/${roomId}`), room);
+  await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
   // Schedule next hand in 5 seconds
   setTimeout(() => {
@@ -359,19 +445,27 @@ async function finishShowdown(
  * Check if the table has >= 2 players with chips, and deal a new hand
  */
 export async function startNewHandIfReady(
-  db: Database,
+  db: any,
   roomId: string,
   executePPTransaction: Function
 ): Promise<void> {
-  const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+  const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
   if (!roomSnap.exists()) return;
-  const room = roomSnap.val() as PokerRoom;
+  const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
-  // Stand up anyone with 0 chips
+  // Close the table when no real player is left (otherwise bots would play forever)
+  const hasHuman = room.seats.some(s => s && !s.isAI && !s.left && s.chips > 0);
+  if (!hasHuman) {
+    await dbSet(db, `poker_rooms/${roomId}`, null);
+    await dbSet(db, `poker_private/${roomId}`, null);
+    return;
+  }
+
+  // Stand up anyone with 0 chips (and players who left mid-hand)
   for (let i = 0; i < 5; i++) {
     const s = room.seats[i];
-    if (s && s.chips <= 0) {
-      if (!s.isAI) {
+    if (s && (s.chips <= 0 || s.left)) {
+      if (!s.isAI && !s.left) {
         room.logs = room.logs || [];
         room.logs.push(`⚠️ ${s.name} hết chip và phải rời bàn.`);
       }
@@ -389,7 +483,7 @@ export async function startNewHandIfReady(
     room.board = [];
     room.revealedCards = {};
     room.winners = [];
-    await set(ref(db, `poker_rooms/${roomId}`), room);
+    await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
     return;
   }
 
@@ -401,7 +495,7 @@ export async function startNewHandIfReady(
  * Deal new hand: rotate dealer, post blinds, shuffle & deal hole cards
  */
 export async function dealNewHand(
-  db: Database,
+  db: any,
   roomId: string,
   room: PokerRoom,
   executePPTransaction: Function
@@ -431,7 +525,9 @@ export async function dealNewHand(
       s.totalHandBet = 0;
       s.folded = false;
       s.allIn = false;
-      s.lastAction = undefined;
+      delete s.lastAction;
+      s.hasActed = false;
+      delete s.left;
     }
   }
 
@@ -502,10 +598,32 @@ export async function dealNewHand(
   room.logs = room.logs || [];
   room.logs.push(`🎲 Ván #${room.handCount} bắt đầu. Nút Dealer ở [${room.seats[room.dealerSeat]?.name}].`);
 
-  await update(ref(db), {
-    [`poker_rooms/${roomId}`]: room,
+  await dbUpdate(db, {
+    [`poker_rooms/${roomId}`]: serializePokerRoom(room),
     ...privateUpdates
   });
+
+  // Blinds may have put short stacks all-in: make sure the turn lands on someone who can act,
+  // or run the hand out straight away when nobody can.
+  const contenders = room.seats.filter(s => s && !s.folded) as PokerSeat[];
+  const actors = contenders.filter(s => !s.allIn);
+  const unmatched = actors.some(s => s.currentBet < room.highestBet);
+  if (actors.length === 0 || (actors.length === 1 && !unmatched)) {
+    await advancePokerGame(db, roomId, room, executePPTransaction);
+    return;
+  }
+  const turnSeat = room.seats[room.currentTurnSeat ?? -1];
+  if (!turnSeat || turnSeat.allIn || turnSeat.folded) {
+    for (let i = 0; i < 5; i++) {
+      const idx = ((room.currentTurnSeat ?? room.dealerSeat) + i) % 5;
+      const cand = room.seats[idx];
+      if (cand && !cand.folded && !cand.allIn) {
+        room.currentTurnSeat = idx;
+        await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
+        break;
+      }
+    }
+  }
 
   checkIfNextTurnIsAI(db, roomId, room, executePPTransaction);
 }
@@ -513,15 +631,15 @@ export async function dealNewHand(
 import { calculateAIDecision, recordPlayerAction } from './pokerAI.ts';
 
 async function executeAITurn(
-  db: Database,
+  db: any,
   roomId: string,
   room: PokerRoom,
   aiSeat: PokerSeat,
   executePPTransaction: Function
 ): Promise<void> {
-  const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+  const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
   if (!roomSnap.exists()) return;
-  const currentRoom = roomSnap.val() as PokerRoom;
+  const currentRoom = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
   if (
     currentRoom.currentTurnSeat === null ||
@@ -533,7 +651,7 @@ async function executeAITurn(
   if (!currentSeat || currentSeat.uid !== aiSeat.uid || !currentSeat.isAI) return;
 
   // Fetch private hole cards
-  const privSnap = await get(ref(db, `poker_private/${roomId}/${aiSeat.uid}`));
+  const privSnap = await dbGet(db, `poker_private/${roomId}/${aiSeat.uid}`);
   if (!privSnap.exists()) return;
   const holeStrs = privSnap.val() as string[];
   const holeCards = holeStrs.map(parseCard);
@@ -556,10 +674,12 @@ async function executeAITurn(
   if (decision.action === 'FOLD') {
     currentSeat.folded = true;
     currentSeat.lastAction = 'BỎ BÀI';
+    currentSeat.hasActed = true;
     currentRoom.logs = currentRoom.logs || [];
     currentRoom.logs.push(`💨 [${currentSeat.name}] đã bỏ bài (Fold).`);
   } else if (decision.action === 'CHECK') {
     currentSeat.lastAction = 'CHECK';
+    currentSeat.hasActed = true;
     currentRoom.logs = currentRoom.logs || [];
     currentRoom.logs.push(`👌 [${currentSeat.name}] Check.`);
   } else if (decision.action === 'CALL') {
@@ -570,6 +690,7 @@ async function executeAITurn(
     currentRoom.pot += callDiff;
     if (currentSeat.chips === 0) currentSeat.allIn = true;
     currentSeat.lastAction = currentSeat.allIn ? 'ALL-IN' : `THEO ${callDiff.toLocaleString()}`;
+    currentSeat.hasActed = true;
     currentRoom.logs = currentRoom.logs || [];
     currentRoom.logs.push(`🪙 [${currentSeat.name}] Theo ${callDiff.toLocaleString()} PP.`);
   } else if (decision.action === 'RAISE' || decision.action === 'ALL_IN') {
@@ -592,6 +713,7 @@ async function executeAITurn(
 
     if (currentSeat.chips === 0) currentSeat.allIn = true;
     currentSeat.lastAction = currentSeat.allIn ? `ALL-IN ${targetBet.toLocaleString()}` : `TỐ ${targetBet.toLocaleString()}`;
+    currentSeat.hasActed = true;
     currentRoom.logs = currentRoom.logs || [];
     currentRoom.logs.push(`🔥 [${currentSeat.name}] ${currentSeat.allIn ? 'ALL-IN' : 'Tố lên'} ${targetBet.toLocaleString()} PP.`);
   }
@@ -601,7 +723,7 @@ async function executeAITurn(
 }
 
 export let onAITurnTrigger: (
-  db: Database,
+  db: any,
   roomId: string,
   room: PokerRoom,
   aiSeat: PokerSeat,
@@ -613,7 +735,7 @@ export function setAITurnTrigger(fn: typeof onAITurnTrigger) {
 }
 
 function checkIfNextTurnIsAI(
-  db: Database,
+  db: any,
   roomId: string,
   room: PokerRoom,
   executePPTransaction: Function
@@ -632,10 +754,12 @@ function checkIfNextTurnIsAI(
 // ----------------- EXPRESS ROUTER -----------------
 
 export function setupPokerRouter(
-  db: Database,
-  executePPTransaction: (uid: string, delta: number, minBalance?: number) => Promise<{ success: boolean; oldPP: number; newPP: number; error?: string }>
+  clientDb: any,
+  executePPTransaction: (uid: string, delta: number, minBalance?: number) => Promise<{ success: boolean; oldPP: number; newPP: number; error?: string }>,
+  adminDb?: any
 ): express.Router {
   const router = express.Router();
+  const db = createPokerDb(clientDb, adminDb);
 
   /**
    * POST /api/poker/create
@@ -734,7 +858,7 @@ export function setupPokerRouter(
       logs: [`Phòng poker ${roomId} đã được tạo thành công.`]
     };
 
-    await set(ref(db, `poker_rooms/${roomId}`), room);
+    await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
     // If AI mode, start immediately
     if (mode === 'AI') {
@@ -762,11 +886,11 @@ export function setupPokerRouter(
       return res.status(401).json({ success: false, error: auth.error });
     }
 
-    const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
     if (!roomSnap.exists()) {
       return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
     }
-    const room = roomSnap.val() as PokerRoom;
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
     // Check if player is already seated
     const alreadySeated = room.seats.find(s => s?.uid === uid);
@@ -820,7 +944,7 @@ export function setupPokerRouter(
     room.logs = room.logs || [];
     room.logs.push(`👋 [${newSeat.name}] đã ngồi vào ghế số ${targetSeat + 1}.`);
 
-    await set(ref(db, `poker_rooms/${roomId}`), room);
+    await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
     res.json({ success: true, room, seatIndex: targetSeat, newPP: tx.newPP });
   });
@@ -841,11 +965,11 @@ export function setupPokerRouter(
       return res.status(401).json({ success: false, error: auth.error });
     }
 
-    const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
     if (!roomSnap.exists()) {
       return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
     }
-    const room = roomSnap.val() as PokerRoom;
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
     const seatIdx = room.seats.findIndex(s => s?.uid === uid);
     if (seatIdx === -1) {
@@ -865,29 +989,33 @@ export function setupPokerRouter(
       }
     }
 
-    // Mark folded if in an active hand
-    if (room.round !== 'WAITING' && room.round !== 'SHOWDOWN') {
-      seat.folded = true;
-    }
-
-    // Vacate seat
-    room.seats[seatIdx] = null;
+    const midHand = room.round !== 'WAITING' && room.round !== 'SHOWDOWN';
     room.logs = room.logs || [];
     room.logs.push(`🚪 [${seat.name}] đã rời bàn (${refundChips.toLocaleString()} chip hoàn vào PP).`);
 
-    // If it was this player's turn, advance game
-    if (room.currentTurnSeat === seatIdx) {
+    if (midHand && (seat.totalHandBet || 0) > 0) {
+      // Keep a folded "ghost" seat so the chips they already put in stay in the pot / side-pot maths.
+      seat.folded = true;
+      seat.left = true;
+      seat.chips = 0;
+      seat.allIn = false;
+      seat.lastAction = 'ĐÃ RỜI BÀN';
+    } else {
+      room.seats[seatIdx] = null;
+    }
+
+    const humansLeft = room.seats.filter(s => s && !s.isAI && !s.left);
+    if (humansLeft.length === 0) {
+      await dbSet(db, `poker_rooms/${roomId}`, null);
+      await dbSet(db, `poker_private/${roomId}`, null);
+      return res.json({ success: true, refunded: refundChips, newPP });
+    }
+
+    const stillInHand = room.seats.filter(s => s && !s.folded);
+    if (midHand && (room.currentTurnSeat === seatIdx || stillInHand.length <= 1)) {
       await advancePokerGame(db, roomId, room, executePPTransaction);
     } else {
-      // Check if table has enough players left
-      const remainingHumans = room.seats.filter(s => s !== null && !s.isAI);
-      if (remainingHumans.length === 0) {
-        // Clean up room if no humans left
-        await set(ref(db, `poker_rooms/${roomId}`), null);
-        await set(ref(db, `poker_private/${roomId}`), null);
-        return res.json({ success: true, refunded: refundChips, newPP });
-      }
-      await set(ref(db, `poker_rooms/${roomId}`), room);
+      await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
     }
 
     res.json({ success: true, refunded: refundChips, newPP });
@@ -909,11 +1037,11 @@ export function setupPokerRouter(
       return res.status(401).json({ success: false, error: auth.error });
     }
 
-    const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
     if (!roomSnap.exists()) {
       return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
     }
-    const room = roomSnap.val() as PokerRoom;
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
     if (room.creator !== uid) {
       return res.status(403).json({ success: false, error: 'Chỉ chủ phòng mới có quyền bắt đầu ván' });
@@ -944,11 +1072,11 @@ export function setupPokerRouter(
       return res.status(401).json({ success: false, error: auth.error });
     }
 
-    const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
     if (!roomSnap.exists()) {
       return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
     }
-    const room = roomSnap.val() as PokerRoom;
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
     if (room.round === 'WAITING' || room.round === 'SHOWDOWN') {
       return res.status(400).json({ success: false, error: 'Bàn chơi chưa bắt đầu lượt cược' });
@@ -974,6 +1102,7 @@ export function setupPokerRouter(
     if (action === 'FOLD') {
       seat.folded = true;
       seat.lastAction = 'BỎ BÀI';
+      seat.hasActed = true;
       room.logs = room.logs || [];
       room.logs.push(`💨 [${seat.name}] đã bỏ bài (Fold).`);
     } else if (action === 'CHECK') {
@@ -981,6 +1110,7 @@ export function setupPokerRouter(
         return res.status(400).json({ success: false, error: 'Không thể Check khi có người cược cao hơn' });
       }
       seat.lastAction = 'CHECK';
+      seat.hasActed = true;
       room.logs = room.logs || [];
       room.logs.push(`👌 [${seat.name}] Check.`);
     } else if (action === 'CALL') {
@@ -994,6 +1124,7 @@ export function setupPokerRouter(
       room.pot += callDiff;
       if (seat.chips === 0) seat.allIn = true;
       seat.lastAction = seat.allIn ? 'ALL-IN' : `THEO ${callDiff.toLocaleString()}`;
+      seat.hasActed = true;
       room.logs = room.logs || [];
       room.logs.push(`🪙 [${seat.name}] Theo ${callDiff.toLocaleString()} PP.`);
     } else if (action === 'RAISE' || action === 'ALL_IN') {
@@ -1025,6 +1156,7 @@ export function setupPokerRouter(
 
       if (seat.chips === 0) seat.allIn = true;
       seat.lastAction = seat.allIn ? `ALL-IN ${targetBet.toLocaleString()}` : `TỐ ${targetBet.toLocaleString()}`;
+      seat.hasActed = true;
       room.logs = room.logs || [];
       room.logs.push(`🔥 [${seat.name}] ${seat.allIn ? 'ALL-IN' : 'Tố lên'} ${targetBet.toLocaleString()} PP.`);
     } else {
@@ -1041,11 +1173,11 @@ export function setupPokerRouter(
    */
   router.post('/check_timeout', async (req, res) => {
     const { roomId } = req.body;
-    const roomSnap = await get(ref(db, `poker_rooms/${roomId}`));
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
     if (!roomSnap.exists()) {
       return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
     }
-    const room = roomSnap.val() as PokerRoom;
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
     if (room.round === 'WAITING' || room.round === 'SHOWDOWN' || room.currentTurnSeat === null) {
       return res.json({ success: true, message: 'Không có lượt đang chờ' });
@@ -1075,11 +1207,13 @@ export function setupPokerRouter(
 
     if (options.canCheck) {
       seat.lastAction = 'CHECK (Hết giờ)';
+      seat.hasActed = true;
       room.logs = room.logs || [];
       room.logs.push(`⏰ [${seat.name}] hết giờ, tự động Check.`);
     } else {
       seat.folded = true;
       seat.lastAction = 'BỎ BÀI (Hết giờ)';
+      seat.hasActed = true;
       room.logs = room.logs || [];
       room.logs.push(`⏰ [${seat.name}] hết giờ, tự động Bỏ bài.`);
     }
@@ -1092,7 +1226,10 @@ export function setupPokerRouter(
         await recordPokerTransaction(db, seat.uid, refund, `Tự động hoàn trả chip do vắng mặt 3 lượt (Bàn #${roomId})`);
       }
       room.logs.push(`⚠️ [${seat.name}] bị đẩy khỏi bàn do vắng mặt 3 lượt liên tiếp.`);
-      room.seats[room.currentTurnSeat] = null;
+      // keep a folded ghost seat so their committed chips remain in the pot
+      seat.folded = true;
+      seat.left = true;
+      seat.chips = 0;
     }
 
     await advancePokerGame(db, roomId, room, executePPTransaction);

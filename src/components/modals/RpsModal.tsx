@@ -16,12 +16,14 @@ interface RpsModalProps {
   roomId: string;
   onClose: () => void;
   onShowResult: (title: string, message: string, isWin: boolean) => void;
+  previewRoom?: RpsRoom;
 }
 
-export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: RpsModalProps) {
-  const [room, setRoom] = useState<RpsRoom | null>(null);
+export default function RpsModal({ uid, user, roomId, onClose, onShowResult, previewRoom }: RpsModalProps) {
+  const [room, setRoom] = useState<RpsRoom | null>(previewRoom || null);
 
   useEffect(() => {
+    if (previewRoom) return;
     const roomRef = ref(db, `rps_rooms/${roomId}`);
     const unsubscribe = onValue(roomRef, (snap) => {
       if (snap.exists()) {
@@ -273,8 +275,8 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
   const opponentSelected = opponentChoice !== '';
 
   return (
-    <div className="fixed inset-0 z-[4500] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-3xl bg-[#0d0d1a] border-0 md:border-2 md:border-[#00ff80]/60 rounded-none md:rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md font-mono">
+      <div className="game-shell bg-[#0d0d1a] border-0 md:border-2 md:border-[#00ff80]/60 shadow-2xl flex flex-col justify-between">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#111124]/95 border-b border-[#00ff80]/30 backdrop-blur-md">
@@ -293,7 +295,7 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
           <button 
             onClick={handleLeaveRoom}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -372,22 +374,22 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
 
           {/* Action selection row */}
           {room.status === 'PLAYING' && !hasMadeSelection && (
-            <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-4 z-30 font-mono text-[10px] sm:text-sm">
+            <div className="absolute bottom-3 sm:bottom-5 left-1/2 -translate-x-1/2 flex gap-2 sm:gap-4 z-30 font-mono text-xs sm:text-sm">
               <button
                 onClick={() => handleMakeChoice('KEO')}
-                className="py-1.5 sm:py-2.5 px-3 sm:px-5 bg-zinc-950/40 hover:bg-[#00ff80]/10 border border-[#00ff80] text-white hover:text-[#00ff80] font-black rounded-lg cursor-pointer transition"
+                className="tap-auto min-h-[44px] min-w-[75px] sm:min-w-[90px] py-2 px-3 sm:px-5 bg-zinc-950/80 hover:bg-[#00ff80]/15 border-2 border-[#00ff80] text-white hover:text-[#00ff80] font-black rounded-xl cursor-pointer transition flex items-center justify-center shadow-lg"
               >
                 ✌️ KÉO
               </button>
               <button
                 onClick={() => handleMakeChoice('BUA')}
-                className="py-1.5 sm:py-2.5 px-3 sm:px-5 bg-zinc-950/40 hover:bg-[#00ff80]/10 border border-[#00ff80] text-white hover:text-[#00ff80] font-black rounded-lg cursor-pointer transition"
+                className="tap-auto min-h-[44px] min-w-[75px] sm:min-w-[90px] py-2 px-3 sm:px-5 bg-zinc-950/80 hover:bg-[#00ff80]/15 border-2 border-[#00ff80] text-white hover:text-[#00ff80] font-black rounded-xl cursor-pointer transition flex items-center justify-center shadow-lg"
               >
                 ✊ BÚA
               </button>
               <button
                 onClick={() => handleMakeChoice('BAO')}
-                className="py-1.5 sm:py-2.5 px-3 sm:px-5 bg-zinc-950/40 hover:bg-[#00ff80]/10 border border-[#00ff80] text-white hover:text-[#00ff80] font-black rounded-lg cursor-pointer transition"
+                className="tap-auto min-h-[44px] min-w-[75px] sm:min-w-[90px] py-2 px-3 sm:px-5 bg-zinc-950/80 hover:bg-[#00ff80]/15 border-2 border-[#00ff80] text-white hover:text-[#00ff80] font-black rounded-xl cursor-pointer transition flex items-center justify-center shadow-lg"
               >
                 ✋ BAO
               </button>
@@ -403,16 +405,16 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
 
           {/* End Rematch row */}
           {room.status === 'ENDED' && (
-            <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-3 sm:gap-4 z-30 font-mono text-[9px] sm:text-xs">
+            <div className="absolute bottom-2 sm:bottom-4 left-1/2 -translate-x-1/2 flex gap-3 sm:gap-4 z-30 font-mono text-[10px] sm:text-xs">
               <button
                 onClick={handleRematch}
-                className="py-2 px-4 sm:py-2.5 sm:px-6 bg-yellow-950/30 border border-[#ffd700] text-[#ffd700] text-glow-gold hover:bg-[#ffd700]/10 font-bold rounded-lg uppercase tracking-wider cursor-pointer"
+                className="min-h-[44px] py-2 px-4 sm:py-2.5 sm:px-6 bg-yellow-950/60 border-2 border-[#ffd700] text-[#ffd700] text-glow-gold hover:bg-[#ffd700]/15 font-bold rounded-xl uppercase tracking-wider cursor-pointer flex items-center justify-center shadow-lg"
               >
                 {room.p1Rematch && isP1 ? 'ĐÃ ĐỒNG Ý' : room.p2Rematch && isP2 ? 'ĐÃ ĐỒNG Ý' : '[ TÁI ĐẤU ]'}
               </button>
               <button
                 onClick={handleLeaveRoom}
-                className="py-2 px-4 sm:py-2.5 sm:px-6 bg-red-950/30 border border-[#ff003c] text-[#ff003c] hover:bg-[#ff003c] hover:text-white font-bold rounded-lg uppercase tracking-wider cursor-pointer"
+                className="min-h-[44px] py-2 px-4 sm:py-2.5 sm:px-6 bg-red-950/60 border-2 border-[#ff003c] text-[#ff003c] hover:bg-[#ff003c] hover:text-white font-bold rounded-xl uppercase tracking-wider cursor-pointer flex items-center justify-center shadow-lg"
               >
                 [ RỜI SÒNG ]
               </button>
@@ -423,7 +425,7 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
           {room.status === 'WAITING' && room.creator === uid && room.p2 && (
             <button
               onClick={handleStartGame}
-              className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 py-2 sm:py-3 px-6 sm:px-8 bg-emerald-950/30 border border-[#00ff80] text-[#00ff80] hover:bg-[#00ff80] hover:text-black font-extrabold rounded-xl text-xs sm:text-base uppercase tracking-widest transition-all cursor-pointer text-glow-green"
+              className="absolute bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 min-h-[44px] py-2.5 sm:py-3 px-6 sm:px-8 bg-emerald-950/60 border-2 border-[#00ff80] text-[#00ff80] hover:bg-[#00ff80] hover:text-black font-extrabold rounded-xl text-xs sm:text-base uppercase tracking-widest transition-all cursor-pointer text-glow-green flex items-center justify-center shadow-xl"
             >
               [ KHAI CHIẾN ]
             </button>
@@ -433,7 +435,7 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
 
         <button
           onClick={handleLeaveRoom}
-          className="w-full py-2.5 border border-dashed border-[#ff003c]/50 text-red-500 hover:bg-red-500/10 font-bold font-mono text-xs tracking-wider rounded-lg uppercase cursor-pointer"
+          className="w-full min-h-[44px] py-2.5 border border-dashed border-[#ff003c]/50 text-red-500 hover:bg-red-500/10 font-bold font-mono text-xs tracking-wider rounded-xl uppercase cursor-pointer flex items-center justify-center"
         >
           <X className="w-3.5 h-3.5 inline mr-1" /> RỜI BÀN ĐẤU
         </button>

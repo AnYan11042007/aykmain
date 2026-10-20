@@ -307,13 +307,13 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
 
   return (
     <div 
-      className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden"
+      className="game-overlay bg-black/90 backdrop-blur-md"
       onMouseMove={handleDragMove} 
       onMouseUp={handleDragEnd} 
       onTouchMove={handleDragMove} 
       onTouchEnd={handleDragEnd}
     >
-      <div className={`relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] ${isPipMode ? 'max-w-[420px]' : 'max-w-full md:max-w-4xl'} bg-gradient-to-b from-[#1a1c1e] via-[#0f1115] to-[#07080a] border-0 md:border-2 md:border-[#d4af37]/60 rounded-none md:rounded-2xl shadow-[0_0_50px_rgba(212,175,55,0.25)] flex flex-col justify-between overflow-hidden transition-all duration-300 pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]`}>
+      <div className={`game-shell relative ${isPipMode ? 'game-shell--pip' : ''} bg-gradient-to-b from-[#1a1c1e] via-[#0f1115] to-[#07080a] border-0 md:border-2 md:border-[#d4af37]/60 shadow-[0_0_50px_rgba(212,175,55,0.25)] flex flex-col justify-between transition-all duration-300`}>
         
         {/* ================= HEADER BAR ================= */}
         <div className="sticky top-0 z-40 shrink-0 bg-gradient-to-r from-black via-slate-900 to-black px-3 py-2.5 border-b border-amber-500/30 flex items-center justify-between text-xs font-mono select-none">
@@ -343,7 +343,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
             <button 
               onClick={onClose} 
               aria-label="Đóng"
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 cursor-pointer transition"
+              className="game-close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -557,7 +557,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
                     <button
                       key={num}
                       onClick={() => handlePlaceBet(key)}
-                      className={`flex-1 min-w-[42px] p-1 rounded border text-center font-mono cursor-pointer transition relative ${
+                      className={`tap-auto flex-1 min-w-[42px] min-h-[46px] p-1 rounded border text-center font-mono cursor-pointer transition relative ${
                         isPlaced
                           ? 'border-yellow-400 bg-amber-500/30 text-yellow-300 font-black shadow-[0_0_10px_rgba(250,204,21,0.5)]'
                           : 'border-amber-500/30 bg-black/40 text-slate-300 hover:border-amber-400 hover:bg-amber-950/30'
@@ -579,7 +579,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
 
             {/* Row 2: CƯỢC ĐÔI */}
             <div className="border-t border-amber-500/30 pt-2 mt-2">
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 <div className="bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono font-black text-[9px] px-2 py-2 rounded shrink-0 uppercase text-center">
                   Cược Đôi
                 </div>
@@ -593,7 +593,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
                     <button
                       key={num}
                       onClick={() => handlePlaceBet(key)}
-                      className={`flex-1 min-w-[55px] p-1 rounded border text-center font-mono cursor-pointer transition relative ${
+                      className={`tap-auto flex-1 min-w-[55px] min-h-[42px] p-1 rounded border text-center font-mono cursor-pointer transition relative ${
                         isPlaced
                           ? 'border-yellow-400 bg-amber-500/30 text-yellow-300 font-black'
                           : 'border-amber-500/30 bg-black/40 text-slate-300 hover:border-amber-400'
@@ -607,9 +607,9 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
               </div>
             </div>
 
-            {/* Row 3: CƯỢC BA (BÃ<u>O</u>) */}
+            {/* Row 3: CƯỢC BA (BÃO) */}
             <div className="border-t border-amber-500/30 pt-2 mt-2">
-              <div className="flex items-center gap-1 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 <div className="bg-amber-950/80 border border-amber-500/50 text-amber-300 font-mono font-black text-[9px] px-2 py-2 rounded shrink-0 uppercase text-center">
                   Cược Ba
                 </div>
@@ -628,7 +628,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
                     <button
                       key={idx}
                       onClick={() => handlePlaceBet(item.key)}
-                      className={`flex-1 min-w-[70px] p-1 rounded border text-center font-mono cursor-pointer transition relative ${
+                      className={`tap-auto flex-1 min-w-[70px] min-h-[42px] p-1 rounded border text-center font-mono cursor-pointer transition relative ${
                         isPlaced
                           ? 'border-yellow-400 bg-amber-500/30 text-yellow-300 font-black'
                           : 'border-amber-500/30 bg-black/40 text-slate-300 hover:border-amber-400'
@@ -659,7 +659,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
                     key={chip.value}
                     type="button"
                     onClick={() => setSelectedChip(chip.value)}
-                    className={`w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 bg-gradient-to-b ${chip.bg} shadow-lg flex items-center justify-center font-mono font-black text-[10px] cursor-pointer transition transform hover:scale-110 shrink-0 ${
+                    className={`tap-auto w-10 h-10 sm:w-11 sm:h-11 rounded-full border-2 bg-gradient-to-b ${chip.bg} shadow-lg flex items-center justify-center font-mono font-black text-[10px] cursor-pointer transition transform hover:scale-110 shrink-0 ${
                       isSelected
                         ? 'ring-4 ring-yellow-300 scale-110 shadow-[0_0_15px_rgba(250,204,21,0.8)] z-10'
                         : 'opacity-85 hover:opacity-100'
@@ -678,7 +678,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
               <button
                 onClick={handleStartGame}
                 disabled={isPlaying || totalBetAmount <= 0}
-                className="flex-1 sm:flex-initial px-4 py-2.5 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500 hover:from-yellow-400 hover:to-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.4)] transition cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
+                className="flex-1 sm:flex-initial min-h-[44px] px-4 py-2.5 bg-gradient-to-r from-yellow-500 via-amber-400 to-yellow-500 hover:from-yellow-400 hover:to-amber-300 text-black font-black text-xs uppercase tracking-wider rounded-xl shadow-[0_0_20px_rgba(234,179,8,0.4)] transition cursor-pointer active:scale-95 disabled:opacity-50 flex items-center justify-center gap-1.5"
               >
                 <CheckCircle2 className="w-4 h-4" />
                 Xác Nhận Cược ({totalBetAmount > 0 ? (totalBetAmount/1000).toLocaleString() + 'k' : '0'})
@@ -688,7 +688,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
               <button
                 onClick={handleCancelBets}
                 disabled={isPlaying || totalBetAmount <= 0}
-                className="px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl border border-slate-600/60 transition cursor-pointer disabled:opacity-50"
+                className="min-h-[44px] px-3 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase rounded-xl border border-slate-600/60 transition cursor-pointer disabled:opacity-50 flex items-center justify-center"
               >
                 Hủy Cược
               </button>
@@ -697,7 +697,7 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
               <button
                 onClick={handleRebet}
                 disabled={isPlaying}
-                className="px-3 py-2.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 font-bold text-xs uppercase rounded-xl border border-amber-500/40 transition cursor-pointer flex items-center gap-1 disabled:opacity-50"
+                className="min-h-[44px] px-3 py-2.5 bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 font-bold text-xs uppercase rounded-xl border border-amber-500/40 transition cursor-pointer flex items-center justify-center gap-1 disabled:opacity-50"
               >
                 <RotateCcw className="w-3.5 h-3.5" />
                 Cược Lại

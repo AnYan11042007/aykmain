@@ -218,8 +218,8 @@ export default function ExclusiveIdeasModal({ onClose }: ExclusiveIdeasModalProp
   };
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/85 backdrop-blur-xl flex items-center justify-center p-0 sm:p-4 font-mono select-none animate-fadeIn">
-      <div className="relative w-full max-w-5xl h-[100dvh] sm:h-[90vh] bg-[#080c14] border-0 sm:border sm:border-cyan-500/40 rounded-none sm:rounded-3xl p-3 sm:p-6 md:p-8 flex flex-col shadow-[0_0_80px_rgba(0,240,255,0.25)] overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/85 backdrop-blur-xl font-mono select-none animate-fadeIn">
+      <div className="game-shell relative bg-[#080c14] border-0 sm:border sm:border-cyan-500/40 p-3 sm:p-6 md:p-8 flex flex-col shadow-[0_0_80px_rgba(0,240,255,0.25)]">
         
         {/* Background Ambient Glow */}
         <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -240,7 +240,7 @@ export default function ExclusiveIdeasModal({ onClose }: ExclusiveIdeasModalProp
           <button
             onClick={onClose}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center bg-white/5 border border-white/10 hover:bg-white/15 active:scale-95 text-slate-300 hover:text-white rounded-xl transition cursor-pointer shrink-0"
+            className="game-close"
           >
             <X className="w-6 h-6" />
           </button>

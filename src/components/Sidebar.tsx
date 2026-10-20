@@ -213,9 +213,10 @@ export default function Sidebar({
             {setIsMobileOpen && (
               <button 
                 onClick={() => setIsMobileOpen(false)}
-                className="md:hidden p-1 bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-lg cursor-pointer flex items-center justify-center shrink-0"
+                aria-label="Đóng Menu"
+                className="md:hidden w-11 h-11 min-w-[44px] min-h-[44px] bg-white/5 border border-white/10 hover:bg-white/10 text-white rounded-xl cursor-pointer flex items-center justify-center shrink-0 active:scale-95"
               >
-                <X className="w-4 h-4" />
+                <X className="w-5 h-5" />
               </button>
             )}
           </div>
@@ -274,7 +275,7 @@ export default function Sidebar({
           <nav className="space-y-1 font-mono">
             <button
               onClick={() => handleTabClick('news')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-[#00f0ff]/20 ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-[#00f0ff]/20 ${
                 activeTab === 'news'
                   ? 'bg-[#00f0ff]/15 text-white border-l-4 border-[#00f0ff] pl-3.5'
                   : 'text-cyan-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -285,7 +286,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('hunting')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border border-red-500/30 shadow-[0_0_10px_rgba(255,0,60,0.15)] ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border border-red-500/30 shadow-[0_0_10px_rgba(255,0,60,0.15)] ${
                 activeTab === 'hunting'
                   ? 'bg-red-950/40 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-red-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -296,7 +297,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('academic')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'academic'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -307,7 +308,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('missions')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-[#00f0ff]/20 ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-[#00f0ff]/20 ${
                 activeTab === 'missions'
                   ? 'bg-[#00f0ff]/15 text-white border-l-4 border-[#00f0ff] pl-3.5'
                   : 'text-cyan-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -318,7 +319,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('luckywheel')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-[#ffd700]/10 ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer border border-[#ffd700]/10 ${
                 activeTab === 'luckywheel'
                   ? 'bg-[#ffd700]/15 text-white border-l-4 border-[#ffd700] pl-3.5'
                   : 'text-amber-400 hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -329,7 +330,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('chat')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'chat'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -340,7 +341,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('marketplace')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'marketplace'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -351,7 +352,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('bank')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'bank'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -362,7 +363,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('gold')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'gold'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -373,7 +374,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('games')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border border-purple-500/30 bg-purple-950/20 text-purple-300 hover:text-white hover:bg-purple-900/40 ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-extrabold uppercase tracking-wider transition-all cursor-pointer border border-purple-500/30 bg-purple-950/20 text-purple-300 hover:text-white hover:bg-purple-900/40 ${
                 activeTab === 'games'
                   ? 'bg-purple-900/50 text-white border-l-4 border-purple-500 pl-3.5 shadow-[0_0_15px_rgba(168,85,247,0.3)]'
                   : 'border-l-4 border-transparent'
@@ -384,7 +385,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('casino')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'casino'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -395,7 +396,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('tx_history')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'tx_history'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -406,7 +407,7 @@ export default function Sidebar({
 
             <button
               onClick={() => handleTabClick('rankings')}
-              className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
+              className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer ${
                 activeTab === 'rankings'
                   ? 'bg-[#ff003c]/15 text-white border-l-4 border-[#ff003c] pl-3.5'
                   : 'text-[#8b949e] hover:text-white hover:bg-white/5 border-l-4 border-transparent'
@@ -418,7 +419,7 @@ export default function Sidebar({
             {userRole === 'TEACHER' && (
               <button
                 onClick={() => handleTabClick('admin')}
-                className={`w-full text-left p-2.5 rounded-lg flex items-center gap-2.5 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer border border-[#00f0ff]/30 ${
+                className={`w-full text-left p-2.5 min-h-[44px] rounded-lg flex items-center gap-2.5 text-[11px] font-black uppercase tracking-wider transition-all cursor-pointer border border-[#00f0ff]/30 ${
                   activeTab === 'admin'
                     ? 'bg-[#00f0ff]/15 text-white border-l-4 border-l-[#00f0ff] pl-3.5'
                     : 'text-[#00f0ff] hover:text-white hover:bg-[#00f0ff]/5 border-l-4 border-transparent'
@@ -480,7 +481,7 @@ export default function Sidebar({
           {!showLogoutConfirm ? (
             <button
               onClick={() => setShowLogoutConfirm(true)}
-              className="w-full py-2.5 px-3 bg-red-950/10 border border-red-900/30 text-red-400 hover:bg-[#ff003c] hover:text-white hover:border-[#ff003c] rounded-lg flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest uppercase cursor-pointer transition-all hover:shadow-[0_0_10px_rgba(255,0,60,0.3)]"
+              className="w-full min-h-[44px] py-2.5 px-3 bg-red-950/10 border border-red-900/30 text-red-400 hover:bg-[#ff003c] hover:text-white hover:border-[#ff003c] rounded-lg flex items-center justify-center gap-2 text-[11px] font-bold tracking-widest uppercase cursor-pointer transition-all hover:shadow-[0_0_10px_rgba(255,0,60,0.3)]"
             >
               <LogOut className="w-3.5 h-3.5" /> [ ĐĂNG XUẤT ]
             </button>
@@ -490,13 +491,13 @@ export default function Sidebar({
               <div className="flex gap-1.5">
                 <button
                   onClick={onLogout}
-                  className="flex-1 py-1.5 bg-red-600 hover:bg-red-500 text-white font-black text-[10px] rounded uppercase cursor-pointer transition shadow"
+                  className="flex-1 min-h-[44px] py-1.5 bg-red-600 hover:bg-red-500 text-white font-black text-[10px] rounded uppercase cursor-pointer transition shadow flex items-center justify-center"
                 >
                   XÁC NHẬN
                 </button>
                 <button
                   onClick={() => setShowLogoutConfirm(false)}
-                  className="flex-1 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] rounded uppercase cursor-pointer transition"
+                  className="flex-1 min-h-[44px] py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-[10px] rounded uppercase cursor-pointer transition flex items-center justify-center"
                 >
                   HỦY
                 </button>

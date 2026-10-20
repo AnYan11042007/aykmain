@@ -44,6 +44,7 @@ import BlackjackModal from './components/modals/BlackjackModal';
 import TienLenModal from './components/modals/TienLenModal';
 import RouletteModal from './components/modals/RouletteModal';
 import WorldCardBattleModal from './components/modals/WorldCardBattleModal';
+import PokerModal from './components/modals/PokerModal';
 
 // Winnings Confetti trigger import
 import confetti from 'canvas-confetti';
@@ -604,6 +605,16 @@ export default function App() {
       {/* World Card Battle 1v1 & Spectate */}
       {activeGameKey === 'world_card_battle' && (
         <WorldCardBattleModal 
+          uid={uid} 
+          user={user} 
+          onClose={() => setActiveGameKey('')} 
+          onShowResult={handleShowGameResult}
+        />
+      )}
+
+      {/* Texas Hold'em Poker Texas 5-Seats */}
+      {activeGameKey === 'poker' && (
+        <PokerModal 
           uid={uid} 
           user={user} 
           onClose={() => setActiveGameKey('')} 

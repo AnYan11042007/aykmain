@@ -19,7 +19,7 @@ interface GamesPortalProps {
 
 export default function GamesPortal({ uid, user, onOpenGame }: GamesPortalProps) {
   return (
-    <div className="space-y-6 pb-12 font-sans">
+    <div className="space-y-6 pb-12 font-sans overflow-x-hidden max-w-full">
       {/* PREMIUM CYBER GAMING WEB BANNER */}
       <div className="relative overflow-hidden rounded-2xl border border-purple-500/30 bg-gradient-to-r from-slate-950 via-purple-950/40 to-slate-950 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6 shadow-[0_0_35px_rgba(168,85,247,0.15)]">
         
@@ -183,6 +183,70 @@ export default function GamesPortal({ uid, user, onOpenGame }: GamesPortalProps)
             >
               <Play className="w-5 h-5 fill-current text-yellow-300" />
               <span>VÀO ĐẤU TRƯỜNG THẺ BÀI THẾ GIỚI 1VS1 NGAY</span>
+            </button>
+          </div>
+        </div>
+
+        {/* FEATURED: TEXAS HOLD'EM POKER (5 SEATS) */}
+        <div className="relative overflow-hidden rounded-2xl border-2 border-emerald-500/60 bg-gradient-to-r from-emerald-950/90 via-slate-900 to-teal-950 p-6 sm:p-8 shadow-[0_0_45px_rgba(16,185,129,0.35)] space-y-6">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-emerald-500/15 rounded-full blur-3xl pointer-events-none animate-pulse" />
+          
+          <div className="flex flex-col md:flex-row items-center justify-between gap-5 relative z-10 border-b border-emerald-500/20 pb-6">
+            <div className="space-y-2.5 text-center md:text-left">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400/50 text-xs text-emerald-300 font-mono font-black uppercase tracking-wider">
+                ♠️♣️♥️♦️ BÀN ĐẤU QUỐC TẾ: TEXAS HOLD'EM 5 GHẾ
+              </div>
+              <h3 className="text-2xl sm:text-4xl font-black text-white uppercase tracking-wider flex items-center justify-center md:justify-start gap-3">
+                <span>🎲 POKER TEXAS HOLD'EM</span>
+                <span className="text-xs bg-amber-500 text-black font-mono font-black px-3 py-1 rounded-full animate-pulse shadow-[0_0_12px_rgba(245,158,11,0.6)]">HOT 5 SEATS</span>
+              </h3>
+              <p className="text-xs sm:text-sm text-emerald-100/90 max-w-2xl leading-relaxed font-sans">
+                Đấu trí kịch tính với Dealer xoay, Small/Big Blind, Preflop, Flop, Turn, River và Showdown xếp hạng 10 cấp bộ bài. Chơi 1vs4 Bot AI siêu khó Monte Carlo 2.000 rollouts hoặc lập phòng nhiều người thật 2-5 chỗ!
+              </p>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3 shrink-0 relative z-10 w-full md:w-auto">
+              <button
+                onClick={() => onOpenGame('poker')}
+                className="w-full sm:w-auto min-h-[50px] px-8 py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:from-emerald-500 hover:to-teal-500 text-white font-mono font-black text-xs sm:text-sm uppercase tracking-widest rounded-2xl transition-all cursor-pointer shadow-[0_0_30px_rgba(16,185,129,0.7)] hover:scale-105 active:scale-95 flex items-center justify-center gap-2.5"
+              >
+                <Layers className="w-5 h-5 text-yellow-300 animate-bounce" />
+                <span>VÀO SẢNH POKER TEXAS</span>
+              </button>
+            </div>
+          </div>
+
+          {/* QUICK FEATURES PILLS */}
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 relative z-10">
+            <div className="glass-box p-3 border border-emerald-500/30 bg-black/50 rounded-xl text-center">
+              <span className="block text-lg">🤖</span>
+              <strong className="block text-white text-xs font-mono font-bold mt-1">AI SIÊU KHÓ</strong>
+              <span className="text-[10px] text-emerald-400 font-mono">Monte Carlo 2.000+</span>
+            </div>
+            <div className="glass-box p-3 border border-emerald-500/30 bg-black/50 rounded-xl text-center">
+              <span className="block text-lg">👥</span>
+              <strong className="block text-white text-xs font-mono font-bold mt-1">NHIỀU NGƯỜI THẬT</strong>
+              <span className="text-[10px] text-cyan-400 font-mono">2-5 Người Realtime</span>
+            </div>
+            <div className="glass-box p-3 border border-emerald-500/30 bg-black/50 rounded-xl text-center">
+              <span className="block text-lg">⚖️</span>
+              <strong className="block text-white text-xs font-mono font-bold mt-1">SIDE POT & ALL-IN</strong>
+              <span className="text-[10px] text-yellow-400 font-mono">Chuẩn Luật Vegas</span>
+            </div>
+            <div className="glass-box p-3 border border-emerald-500/30 bg-black/50 rounded-xl text-center">
+              <span className="block text-lg">📱</span>
+              <strong className="block text-white text-xs font-mono font-bold mt-1">XOAY NGANG / DỌC</strong>
+              <span className="text-[10px] text-purple-400 font-mono">Full Mobile Responsive</span>
+            </div>
+          </div>
+
+          <div className="pt-2 text-center">
+            <button
+              onClick={() => onOpenGame('poker')}
+              className="w-full min-h-[50px] py-4 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 hover:brightness-125 text-white font-mono text-xs sm:text-sm font-black uppercase tracking-widest rounded-2xl transition-all cursor-pointer shadow-[0_0_25px_rgba(16,185,129,0.5)] flex items-center justify-center gap-2.5 active:scale-98"
+            >
+              <Play className="w-5 h-5 fill-current text-yellow-300" />
+              <span>BẮT ĐẦU CHƠI TEXAS HOLD'EM POKER NGAY</span>
             </button>
           </div>
         </div>

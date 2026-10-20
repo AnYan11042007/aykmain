@@ -16,17 +16,19 @@ interface BlackjackModalProps {
   roomId: string;
   onClose: () => void;
   onShowResult: (title: string, message: string, isWin: boolean) => void;
+  previewRoom?: BlackjackRoom;
 }
 
 const SUITS = ['♠', '♣', '♦', '♥'];
 const RANKS = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2'];
 
-export default function BlackjackModal({ uid, user, roomId, onClose, onShowResult }: BlackjackModalProps) {
-  const [room, setRoom] = useState<BlackjackRoom | null>(null);
+export default function BlackjackModal({ uid, user, roomId, onClose, onShowResult, previewRoom }: BlackjackModalProps) {
+  const [room, setRoom] = useState<BlackjackRoom | null>(previewRoom || null);
   const [isProcessingAction, setIsProcessingAction] = useState(false);
   const isDealerAIDealing = useRef(false);
 
   useEffect(() => {
+    if (previewRoom) return;
     const roomRef = ref(db, `blackjack_rooms/${roomId}`);
     const unsubscribe = onValue(roomRef, (snap) => {
       if (snap.exists()) {
@@ -478,8 +480,8 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
   const isMyTurn = room.status === 'PLAYING' && room.activePlayers && room.activePlayers[room.turnIdx || 0] === uid;
 
   return (
-    <div className="fixed inset-0 z-[4500] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#030a18] border-0 md:border-2 md:border-[#ff8c00] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md font-mono">
+      <div className="game-shell bg-[#030a18] border-0 md:border-2 md:border-[#ff8c00] flex flex-col shadow-2xl">
         
         {/* Sticky Header with Title and Always Visible 44px Close Button */}
         <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#081226]/95 border-b border-[#ff8c00]/40 backdrop-blur-md">
@@ -497,7 +499,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
           <button 
             onClick={handleLeaveRoom}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -605,7 +607,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
                   <div className={`p-1.5 sm:p-3 bg-black/85 rounded-lg sm:rounded-xl border border-white/5 flex flex-col items-center w-[90px] sm:w-[120px] transition-all relative ${
                     isTurn ? 'border-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.3)] animate-pulse scale-105' : ''
                   }`}>
-                    <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-full border border-white/20 overflow-y-auto max-h-[90vh] mb-0.5 sm:mb-1.5 shadow">
+                    <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-full border border-white/20 overflow-hidden mb-0.5 sm:mb-1.5 shadow">
                       {pData.avatar && pData.avatar.trim() ? <img src={pData.avatar.trim()} alt="" className="w-full h-full object-cover" /> : '🤔'}
                     </div>
                     <b className="text-white text-[8px] sm:text-[11px] truncate max-w-[75px] sm:max-w-[100px]" title={pData.name}>{pData.name}</b>
@@ -627,14 +629,14 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
               <button
                 onClick={handleHit}
                 disabled={isProcessingAction}
-                className="py-1.5 sm:py-3 px-4 sm:px-8 bg-emerald-950/40 border sm:border-2 border-dashed border-[#00ff80] text-[#00ff80] text-glow-green hover:bg-[#00ff80]/15 font-black uppercase rounded-lg sm:rounded-xl tracking-wider cursor-pointer"
+                className="min-h-[44px] py-2 sm:py-3 px-5 sm:px-8 bg-emerald-950/60 border sm:border-2 border-[#00ff80] text-[#00ff80] text-glow-green hover:bg-[#00ff80]/15 font-black uppercase rounded-xl tracking-wider cursor-pointer flex items-center justify-center shadow-lg"
               >
                 [ 👆 RÚT BÀI ]
               </button>
               <button
                 onClick={handleStand}
                 disabled={isProcessingAction}
-                className="py-1.5 sm:py-3 px-4 sm:px-8 bg-red-950/40 border border-[#ff003c] text-[#ff003c] text-glow-red hover:bg-[#ff003c]/15 font-black uppercase rounded-lg sm:rounded-xl tracking-wider cursor-pointer"
+                className="min-h-[44px] py-2 sm:py-3 px-5 sm:px-8 bg-red-950/60 border sm:border-2 border-[#ff003c] text-[#ff003c] text-glow-red hover:bg-[#ff003c]/15 font-black uppercase rounded-xl tracking-wider cursor-pointer flex items-center justify-center shadow-lg"
               >
                 [ ✋ DẰN BÀI ]
               </button>
@@ -645,7 +647,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
           {room.status === 'WAITING' && room.creator === uid && (
             <button
               onClick={handleStartGame}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 py-2.5 sm:py-3.5 px-6 sm:px-8 bg-yellow-950/30 border border-[#ff8c00] text-[#ff8c00] hover:bg-[#ff8c00] hover:text-black text-xs sm:text-base font-black rounded-lg sm:rounded-xl uppercase tracking-widest transition-all cursor-pointer text-glow-gold"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-h-[44px] py-3 px-6 sm:px-8 bg-yellow-950/60 border-2 border-[#ff8c00] text-[#ff8c00] hover:bg-[#ff8c00] hover:text-black text-xs sm:text-base font-black rounded-xl uppercase tracking-widest transition-all cursor-pointer text-glow-gold flex items-center justify-center shadow-xl"
             >
               [ BẮT ĐẦU VÁN BÀI ]
             </button>
@@ -655,7 +657,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
 
         <button
           onClick={handleLeaveRoom}
-          className="w-full py-2.5 border border-dashed border-[#ff003c]/50 text-red-500 hover:bg-red-500/10 font-bold font-mono text-xs tracking-wider rounded-lg uppercase cursor-pointer"
+          className="w-full min-h-[44px] py-2.5 border border-dashed border-[#ff003c]/50 text-red-500 hover:bg-red-500/10 font-bold font-mono text-xs tracking-wider rounded-xl uppercase cursor-pointer flex items-center justify-center"
         >
           <Layers className="w-3.5 h-3.5 inline mr-1" /> RỜI SÒNG ĐẤU BÀI
         </button>

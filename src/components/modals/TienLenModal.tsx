@@ -16,16 +16,18 @@ interface TienLenModalProps {
   roomId: string;
   onClose: () => void;
   onShowResult: (title: string, message: string, isWin: boolean) => void;
+  previewRoom?: TienLenRoom;
 }
 
 const SUITS = ['♠', '♣', '♦', '♥'];
 const RANKS = ['3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A', '2'];
 
-export default function TienLenModal({ uid, user, roomId, onClose, onShowResult }: TienLenModalProps) {
-  const [room, setRoom] = useState<TienLenRoom | null>(null);
+export default function TienLenModal({ uid, user, roomId, onClose, onShowResult, previewRoom }: TienLenModalProps) {
+  const [room, setRoom] = useState<TienLenRoom | null>(previewRoom || null);
   const [selectedCards, setSelectedCards] = useState<number[]>([]);
 
   useEffect(() => {
+    if (previewRoom) return;
     const roomRef = ref(db, `tienlen_rooms/${roomId}`);
     const unsubscribe = onValue(roomRef, (snap) => {
       if (snap.exists()) {
@@ -488,8 +490,8 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
   const myPassed = room.passedPlayers && room.passedPlayers.includes(uid);
 
   return (
-    <div className="fixed inset-0 z-[4500] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#08180a] border-0 md:border-2 md:border-[#32cd32] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md font-mono">
+      <div className="game-shell bg-[#08180a] border-0 md:border-2 md:border-[#32cd32] flex flex-col shadow-2xl">
         
         {/* Sticky Header with Title and Always Visible 44px Close Button */}
         <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#0d2610]/95 border-b border-[#32cd32]/40 backdrop-blur-md">
@@ -507,7 +509,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
           <button 
             onClick={handleLeaveRoom}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>
@@ -574,7 +576,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
                     isTurn ? 'border-yellow-400 shadow-[0_0_10px_rgba(255,215,0,0.5)] animate-pulse' : ''
                   }`}
                 >
-                  <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-y-auto max-h-[90vh] bg-black/30 border border-white/10 mb-0.5 sm:mb-1">
+                  <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-hidden bg-black/30 border border-white/10 mb-0.5 sm:mb-1">
                     {pData.avatar && pData.avatar.trim() ? <img src={pData.avatar.trim()} alt="" className="w-full h-full object-cover" /> : '🤔'}
                   </div>
                   <span className="text-white text-[8px] sm:text-[10px] truncate max-w-[70px] sm:max-w-[95px] font-bold">{pData.name}</span>
@@ -613,16 +615,16 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
 
             {/* Turn action triggers overlay */}
             {isMyTurn && room.status === 'PLAYING' && (
-              <div className="flex gap-4 font-mono text-xs mt-3.5 select-none">
+              <div className="flex gap-3 sm:gap-4 font-mono text-xs mt-3.5 select-none">
                 <button
                   onClick={handlePlayCards}
-                  className="py-2 px-6 bg-emerald-950/20 border-2 border-dashed border-[#00ff80] text-[#00ff80] text-glow-green hover:bg-[#00ff80]/10 font-black uppercase rounded-lg cursor-pointer"
+                  className="min-h-[44px] py-2.5 px-6 sm:px-8 bg-emerald-950/60 border-2 border-[#00ff80] text-[#00ff80] text-glow-green hover:bg-[#00ff80]/15 font-black uppercase rounded-xl cursor-pointer flex items-center justify-center shadow-lg"
                 >
                   [ 🎯 ĐÁNH BÀI ]
                 </button>
                 <button
                   onClick={handlePass}
-                  className="py-2 px-6 bg-red-950/20 border border-[#ff003c] text-[#ff003c] text-glow-red hover:bg-[#ff003c]/10 font-black uppercase rounded-lg cursor-pointer"
+                  className="min-h-[44px] py-2.5 px-6 sm:px-8 bg-red-950/60 border-2 border-[#ff003c] text-[#ff003c] text-glow-red hover:bg-[#ff003c]/15 font-black uppercase rounded-xl cursor-pointer flex items-center justify-center shadow-lg"
                 >
                   [ ✋ BỎ LƯỢT ]
                 </button>
@@ -640,7 +642,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
           {room.status === 'WAITING' && room.creator === uid && (
             <button
               onClick={handleStartGame}
-              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 py-3.5 px-8 bg-yellow-950/20 border border-[#ffd700] text-[#ffd700] hover:bg-[#ffd700] hover:text-black font-black uppercase rounded-xl tracking-widest text-base transition-all cursor-pointer text-glow-gold z-40"
+              className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 min-h-[44px] py-3.5 px-8 bg-yellow-950/60 border-2 border-[#ffd700] text-[#ffd700] hover:bg-[#ffd700] hover:text-black font-black uppercase rounded-xl tracking-widest text-sm sm:text-base transition-all cursor-pointer text-glow-gold z-40 flex items-center justify-center shadow-xl"
             >
               [ CHIA BÀI TIẾN LÊN ]
             </button>
@@ -650,7 +652,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
 
         <button
           onClick={handleLeaveRoom}
-          className="w-full py-2.5 border border-dashed border-[#ff003c]/50 text-red-500 hover:bg-red-500/10 font-bold font-mono text-xs tracking-wider rounded-lg uppercase cursor-pointer"
+          className="w-full min-h-[44px] py-2.5 border border-dashed border-[#ff003c]/50 text-red-500 hover:bg-red-500/10 font-bold font-mono text-xs tracking-wider rounded-xl uppercase cursor-pointer flex items-center justify-center"
         >
           <X className="w-3.5 h-3.5 inline mr-1" /> RỜI PHÒNG TIẾN LÊN
         </button>

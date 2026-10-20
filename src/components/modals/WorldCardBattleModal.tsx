@@ -4288,10 +4288,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4 lg:p-6 bg-black/90 backdrop-blur-md overflow-hidden">
+    <div className="game-overlay bg-black/90 backdrop-blur-md">
       
       {/* BALANCED LAPTOP & MOBILE RESPONSIVE CONTAINER */}
-      <div className={`glass-box w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full lg:max-w-6xl p-3 sm:p-5 border-0 md:border md:border-[#00f0ff]/40 bg-[#050608]/95 overflow-y-auto overflow-x-hidden flex flex-col justify-between space-y-3 relative mx-auto rounded-none md:rounded-2xl shadow-[0_0_50px_rgba(0,240,255,0.25)] select-none pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] ${
+      <div className={`game-shell game-shell--wide glass-box p-3 sm:p-5 border-0 md:border md:border-[#00f0ff]/40 bg-[#050608]/95 overflow-y-auto overflow-x-hidden flex flex-col justify-between space-y-3 relative shadow-[0_0_50px_rgba(0,240,255,0.25)] select-none ${
         isScreenShaking ? 'animate-shake' : ''
       }`}>
         
@@ -4679,7 +4679,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
             <button
               onClick={handleCloseModal}
               aria-label="Đóng"
-              className="min-w-[44px] min-h-[44px] flex items-center justify-center p-2 bg-red-500/20 hover:bg-red-500 text-red-400 hover:text-white rounded-xl transition cursor-pointer active:scale-95 shrink-0"
+              className="game-close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -5317,7 +5317,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                               onClick={() => !isUsed && handleSelectCard(idx)}
                               role="button"
                               tabIndex={isUsed ? -1 : 0}
-                              className={`w-full p-1 sm:p-1.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col items-center justify-between h-28 sm:h-32 select-none card-3d-hover ${
+                              className={`tap-auto w-full p-1 sm:p-1.5 rounded-xl border transition-all cursor-pointer relative overflow-hidden flex flex-col items-center justify-between h-28 sm:h-32 select-none card-3d-hover ${
                                 isUsed
                                   ? 'opacity-35 grayscale border-slate-900 bg-black/95 pointer-events-none'
                                   : isSelected
@@ -5458,7 +5458,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                 <div className="flex border-b border-cyan-500/30 gap-1 pb-1.5 overflow-x-auto">
                   <button
                     onClick={() => setBattleTab('log')}
-                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                    className={`tap-auto px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
                       battleTab === 'log' ? 'bg-cyan-500 text-black shadow-[0_0_10px_rgba(0,240,255,0.5)]' : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -5466,7 +5466,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   </button>
                   <button
                     onClick={() => setBattleTab('combo')}
-                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                    className={`tap-auto px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
                       battleTab === 'combo' ? 'bg-yellow-400 text-black shadow-[0_0_10px_rgba(250,204,21,0.5)]' : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -5474,7 +5474,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   </button>
                   <button
                     onClick={() => setBattleTab('buff')}
-                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                    className={`tap-auto px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
                       battleTab === 'buff' ? 'bg-purple-500 text-white shadow-[0_0_10px_rgba(168,85,247,0.5)]' : 'text-slate-400 hover:text-white'
                     }`}
                   >
@@ -5482,7 +5482,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   </button>
                   <button
                     onClick={() => setBattleTab('chat')}
-                    className={`px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
+                    className={`tap-auto px-3 py-1.5 rounded-lg font-mono font-bold text-xs transition cursor-pointer shrink-0 ${
                       battleTab === 'chat' ? 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]' : 'text-slate-400 hover:text-white'
                     }`}
                   >

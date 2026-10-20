@@ -253,3 +253,44 @@ describe('Texas Hold\'em Poker Pure Engine Tests', () => {
   });
 
 });
+
+describe('Street settlement & room normalisation', async () => {
+  const { isStreetSettled } = await import('../src/poker/pokerEngine.ts');
+  const { normalizePokerRoom, serializePokerRoom } = await import('../src/poker/pokerRoomUtil.ts');
+  const seat = (o = {}) => ({ folded: false, allIn: false, currentBet: 0, hasActed: false, ...o });
+
+  it('does not end a fresh street after a single check', () => {
+    assert.equal(isStreetSettled([seat({ hasActed: true }), seat(), seat()], 0), false);
+  });
+  it('ends the street once everyone has checked', () => {
+    assert.equal(isStreetSettled([seat({ hasActed: true }), seat({ hasActed: true })], 0), true);
+  });
+  it('gives the big blind an option when everyone limps', () => {
+    const s = [seat({ currentBet: 100, hasActed: true }), seat({ currentBet: 100, hasActed: true }), seat({ currentBet: 100, hasActed: false })];
+    assert.equal(isStreetSettled(s, 100), false);
+  });
+  it('lets the last non-all-in player respond to an all-in raise', () => {
+    const s = [seat({ currentBet: 100, hasActed: true }), seat({ currentBet: 500, allIn: true, hasActed: true })];
+    assert.equal(isStreetSettled(s, 500), false);
+  });
+  it('settles when the only other player is all-in and the bet is matched', () => {
+    const s = [seat({ currentBet: 500, hasActed: true }), seat({ currentBet: 500, allIn: true, hasActed: true })];
+    assert.equal(isStreetSettled(s, 500), true);
+  });
+  it('requires a re-act after a raise', () => {
+    const s = [seat({ currentBet: 300, hasActed: true }), seat({ currentBet: 100, hasActed: true })];
+    assert.equal(isStreetSettled(s, 300), false);
+  });
+
+  it('rebuilds arrays that Firebase drops', () => {
+    const r = normalizePokerRoom({ id: 'x', seats: { 0: { uid: 'a' }, 2: { uid: 'b' } } });
+    assert.equal(r.seats.length, 5);
+    assert.equal(r.seats[1], null);
+    assert.deepEqual(r.board, []);
+    assert.deepEqual(r.logs, []);
+  });
+  it('strips undefined values before writing', () => {
+    const out = serializePokerRoom({ id: 'x', seats: [{ uid: 'a', lastAction: undefined }, null], board: [], logs: [] });
+    assert.equal('lastAction' in out.seats[0], false);
+  });
+});

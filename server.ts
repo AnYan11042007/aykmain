@@ -10,6 +10,8 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, get, set, push, update, runTransaction } from 'firebase/database';
+import { initializeApp as initAdminApp, getApps as getAdminApps, cert } from 'firebase-admin/app';
+import { getDatabase as getAdminDatabase } from 'firebase-admin/database';
 import { setupPokerRouter } from './src/poker/pokerServer.ts';
 
 dotenv.config();
@@ -29,6 +31,30 @@ const firebaseConfig = {
 
 const fApp = initializeApp(firebaseConfig);
 const db = getDatabase(fApp);
+
+// ----------------- FIREBASE ADMIN INITIALIZATION -----------------
+let adminDb: ReturnType<typeof getAdminDatabase> | null = null;
+try {
+  if (getAdminApps().length === 0) {
+    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+      const sa = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string' && process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{')
+        ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
+        : process.env.FIREBASE_SERVICE_ACCOUNT;
+      initAdminApp({
+        credential: cert(sa),
+        databaseURL: firebaseConfig.databaseURL
+      });
+    } else {
+      initAdminApp({
+        databaseURL: firebaseConfig.databaseURL
+      });
+    }
+  }
+  adminDb = getAdminDatabase();
+  console.log('[Firebase Admin] Initialized Firebase Admin SDK successfully');
+} catch (err: any) {
+  console.warn('[Firebase Admin] Note: Running without service account credentials, server will fall back to client SDK:', err?.message || err);
+}
 
 // ----------------- GEMINI CLIENT -----------------
 let ai: GoogleGenAI | null = null;
@@ -115,10 +141,33 @@ Hỗ trợ sinh viên về thông tin lớp học, học bổng PP, thi đua h�
  * Execute atomic transaction on user's PP
  */
 async function executePPTransaction(uid: string, delta: number, minBalance = 0): Promise<{ success: boolean; oldPP: number; newPP: number; error?: string }> {
-  const ppRef = ref(db, `users/${uid}/pp`);
   let previousValue = 0;
   let finalValue = 0;
 
+  if (adminDb) {
+    try {
+      const ppRef = adminDb.ref(`users/${uid}/pp`);
+      const txResult = await ppRef.transaction((currentPP: any) => {
+        const balance = currentPP === null ? 0 : Number(currentPP);
+        previousValue = balance;
+        if (delta < 0 && balance + delta < minBalance) {
+          return undefined; // Abort
+        }
+        finalValue = balance + delta;
+        return finalValue;
+      });
+
+      if (!txResult.committed) {
+        return { success: false, oldPP: previousValue, newPP: previousValue, error: 'Số dư PP không đủ hoặc xung đột giao dịch' };
+      }
+
+      return { success: true, oldPP: previousValue, newPP: finalValue };
+    } catch (err: any) {
+      console.warn(`[Admin PP Transaction for ${uid} fell back to client]:`, err?.message || err);
+    }
+  }
+
+  const ppRef = ref(db, `users/${uid}/pp`);
   try {
     const txResult = await runTransaction(ppRef, (currentPP) => {
       const balance = currentPP === null ? 0 : Number(currentPP);
@@ -549,7 +598,7 @@ app.post('/api/auth/migrate-legacy', async (req, res) => {
 });
 
 // ----------------- POKER TEXAS HOLD'EM ROUTES -----------------
-app.use('/api/poker', setupPokerRouter(db, executePPTransaction));
+app.use('/api/poker', setupPokerRouter(db, executePPTransaction, adminDb));
 
 // ----------------- VITE DEV / STATIC HANDLER -----------------
 const setupVite = async () => {

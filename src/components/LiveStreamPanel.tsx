@@ -1614,7 +1614,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 overflow-x-hidden max-w-full">
       
       {/* Standardized aspect-ratio-locked grid of uniformly sized stream thumbnails */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-3">
@@ -3556,13 +3556,13 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 <div className="grid grid-cols-2 gap-1 w-1/3">
                   <button 
                     onClick={() => setBetAmount('1000')}
-                    className="bg-black/40 border border-white/5 hover:bg-white/5 text-[9px] font-bold rounded cursor-pointer"
+                    className="tap-auto min-h-[40px] bg-black/40 border border-white/10 hover:bg-white/10 text-[10px] font-bold rounded-lg cursor-pointer flex items-center justify-center transition"
                   >
                     1K
                   </button>
                   <button 
                     onClick={() => setBetAmount('5000')}
-                    className="bg-black/40 border border-white/5 hover:bg-white/5 text-[9px] font-bold rounded cursor-pointer"
+                    className="tap-auto min-h-[40px] bg-black/40 border border-white/10 hover:bg-white/10 text-[10px] font-bold rounded-lg cursor-pointer flex items-center justify-center transition"
                   >
                     5K
                   </button>
@@ -3572,7 +3572,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                 {activeTab === 'crash' && crashPhase === 'FLIGHT' && currentBetPlaced && currentBetPlaced.game === 'crash' && currentBetPlaced.cycleId === crashCycleId && !currentBetPlaced.evaluated ? (
                   <button
                     onClick={handleCrashCashout}
-                    className="py-3.5 px-6 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-mono font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.7)] animate-pulse hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 border-2 border-emerald-300"
+                    className="min-h-[44px] py-3 px-6 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 hover:from-emerald-400 hover:to-teal-300 text-slate-950 font-mono font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_0_25px_rgba(16,185,129,0.7)] animate-pulse hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-2 w-full sm:w-auto shrink-0 border-2 border-emerald-300"
                   >
                     <span>🪂 NHẢY DÙ & CHỐT LÃI</span>
                     <span className="bg-black/30 text-emerald-200 px-2 py-0.5 rounded text-[10px] font-mono">
@@ -3591,7 +3591,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                       fcPhase !== 'BETTING' || (currentBetPlaced !== null && currentBetPlaced.cycleId === fcCycleId)
                     }
                     onClick={handlePlaceBet}
-                    className="py-3 px-6 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs uppercase tracking-widest rounded-xl disabled:bg-slate-800 disabled:text-white/30 disabled:border-transparent disabled:cursor-not-allowed hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-1 w-full sm:w-auto shrink-0"
+                    className="min-h-[44px] py-3 px-6 bg-red-600 hover:bg-red-500 text-white font-mono font-black text-xs uppercase tracking-widest rounded-xl disabled:bg-slate-800 disabled:text-white/30 disabled:border-transparent disabled:cursor-not-allowed hover:scale-105 active:scale-95 cursor-pointer flex items-center justify-center gap-1.5 w-full sm:w-auto shrink-0"
                   >
                     <Coins className="w-4 h-4" /> [ XÁC NHẬN CƯỢC LIVE ]
                   </button>

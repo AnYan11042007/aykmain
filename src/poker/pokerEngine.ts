@@ -621,3 +621,23 @@ export function getBettingOptions(params: {
     potRaiseTotal: clampPreset(fullPotRaise)
   };
 }
+
+// ----------------- STREET SETTLEMENT -----------------
+
+export interface StreetSeatState {
+  folded: boolean;
+  allIn: boolean;
+  currentBet: number;
+  hasActed?: boolean;
+}
+
+/**
+ * A betting street is over when nobody who can still bet faces an unmatched bet and,
+ * if two or more players can still bet, each of them has acted since the last raise.
+ */
+export function isStreetSettled(seats: StreetSeatState[], highestBet: number): boolean {
+  const canAct = seats.filter(s => !s.folded && !s.allIn);
+  if (canAct.length === 0) return true;
+  if (canAct.some(s => s.currentBet < highestBet)) return false;
+  return canAct.length === 1 || canAct.every(s => s.hasActed);
+}

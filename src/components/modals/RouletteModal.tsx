@@ -312,8 +312,8 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
   const isAdmin = (user?.role as any) === 'ADMIN' || (user?.role as any) === 'TEACHER';
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden select-none">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#0b0c10] border-0 md:border-2 md:border-[#ffd700]/30 rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-[0_0_50px_rgba(255,215,0,0.15)] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md select-none">
+      <div className="game-shell bg-[#0b0c10] border-0 md:border-2 md:border-[#ffd700]/30 flex flex-col shadow-[0_0_50px_rgba(255,215,0,0.15)]">
         
         {/* Sticky Header with Title, Balance, and 44px Close Button */}
         <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#13141a]/95 border-b border-[#ffd700]/30 backdrop-blur-md">
@@ -332,7 +332,7 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
             onClick={onClose} 
             disabled={isSpinning}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-white/70 hover:text-white transition cursor-pointer shrink-0 disabled:opacity-30"
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>

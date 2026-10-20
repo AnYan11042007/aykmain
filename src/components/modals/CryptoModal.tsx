@@ -248,8 +248,8 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
   }, []);
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-2xl bg-[#080705] border-0 md:border-2 md:border-[#ffd700] rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-2xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] font-mono">
+    <div className="game-overlay bg-black/90 backdrop-blur-md">
+      <div className="game-shell bg-[#080705] border-0 md:border-2 md:border-[#ffd700] flex flex-col shadow-2xl font-mono">
         {/* Sticky Header */}
         <div className="sticky top-0 z-30 shrink-0 flex items-center justify-between px-4 py-3 bg-[#141208]/95 border-b border-[#ffd700]/40 backdrop-blur-md">
           <div className="flex items-center gap-2 min-w-0">
@@ -267,7 +267,7 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
             onClick={isTrading ? undefined : onClose} 
             disabled={isTrading}
             aria-label="Đóng"
-            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0 ${isTrading ? 'opacity-20 cursor-not-allowed' : ''}`}
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>

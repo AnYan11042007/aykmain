@@ -879,8 +879,8 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
   }, [viewMode, playerSeat, selectedTierIndex, showRules, currentRoom, user?.pp]);
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-0 md:p-4 font-mono select-none overflow-hidden">
-      <div className="relative w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-6xl bg-[#050811] border-0 md:border md:border-cyan-500/40 rounded-none md:rounded-3xl flex flex-col shadow-[0_0_100px_rgba(0,240,255,0.3)] overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/95 backdrop-blur-2xl font-mono select-none">
+      <div className="game-shell game-shell--wide relative bg-[#050811] border-0 md:border md:border-cyan-500/40 flex flex-col shadow-[0_0_100px_rgba(0,240,255,0.3)]">
         
         {/* Top Glow Bar */}
         <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-cyan-500 via-pink-500 to-yellow-400 z-50" />
@@ -921,7 +921,7 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
                 onClose();
               }}
               aria-label="Đóng"
-              className="min-w-[44px] min-h-[44px] rounded-xl bg-slate-900 border border-white/20 text-slate-400 hover:text-white hover:bg-red-500/20 hover:border-red-500/50 flex items-center justify-center transition-all cursor-pointer active:scale-95"
+              className="game-close"
             >
               <X className="w-5 h-5" />
             </button>
@@ -1299,7 +1299,7 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
                         <button
                           key={gun.tier}
                           onClick={() => setSelectedTierIndex(idx)}
-                          className={`w-full p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
+                          className={`tap-auto w-full p-2.5 rounded-2xl border text-left flex items-center justify-between transition-all cursor-pointer ${
                             selectedTierIndex === idx
                               ? 'bg-slate-900 border-cyan-400 shadow-[0_0_15px_rgba(0,240,255,0.25)]'
                               : 'bg-slate-950 border-white/10 opacity-70 hover:opacity-100'
@@ -1357,7 +1357,7 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
 
                 <button
                   onClick={() => setViewMode('WAITING_ROOM')}
-                  className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-400 hover:text-white font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+                  className="w-full min-h-[44px] py-2.5 bg-slate-900 hover:bg-slate-800 border border-white/10 text-slate-400 hover:text-white font-bold text-xs uppercase rounded-xl transition-all cursor-pointer flex items-center justify-center"
                 >
                   VỀ PHÒNG CHỜ
                 </button>

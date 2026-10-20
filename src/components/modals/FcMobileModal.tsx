@@ -91,35 +91,8 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
   useEffect(() => {
     // Put ball in center of the pitch initially
     setBallPos({ left: 50, top: 50 });
-  
-  
-  // Keyboard Shortcuts for Power Users
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
-      
-      if (e.code === 'Space') {
-        e.preventDefault();
-        if (!isMatchActive && betChoice !== '') {
-          handleStartMatch(betChoice as 'BLUE' | 'RED');
-        }
-      } else if (e.code === 'KeyR') {
-        e.preventDefault();
-        if (!isMatchActive) {
-          setBetAmount('');
-          setBetChoice('');
-        }
-      } else if (e.code === 'Escape') {
-        e.preventDefault();
-        onClose();
-      }
-    };
-    
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isMatchActive, betChoice, handleStartMatch, onClose, setBetAmount, setBetChoice]);
 
-  return () => {
+    return () => {
       if (matchIntervalRef.current) clearInterval(matchIntervalRef.current);
     };
   }, []);
@@ -434,9 +407,35 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
     }
   };
 
+  // Keyboard Shortcuts for Power Users
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+      
+      if (e.code === 'Space') {
+        e.preventDefault();
+        if (!isMatchActive && betChoice !== '') {
+          handleStartMatch(betChoice as 'BLUE' | 'RED');
+        }
+      } else if (e.code === 'KeyR') {
+        e.preventDefault();
+        if (!isMatchActive) {
+          setBetAmount('');
+          setBetChoice('');
+        }
+      } else if (e.code === 'Escape') {
+        e.preventDefault();
+        onClose();
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isMatchActive, betChoice, handleStartMatch, onClose, setBetAmount, setBetChoice]);
+
   return (
-    <div className="fixed inset-0 z-[6000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-4xl bg-[#031109] border-0 md:border-2 md:border-white/20 rounded-none md:rounded-2xl flex flex-col overflow-hidden shadow-3xl pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md">
+      <div className="game-shell bg-[#031109] border-0 md:border-2 md:border-white/20 flex flex-col shadow-3xl">
         
         {/* Glow visual accents */}
         <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-cyan-500 via-emerald-500 to-red-500 z-50" />
@@ -459,9 +458,7 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
             onClick={isMatchActive ? undefined : onClose}
             disabled={isMatchActive}
             aria-label="Đóng"
-            className={`min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0 ${
-              isMatchActive ? 'opacity-20 cursor-not-allowed' : ''
-            }`}
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>

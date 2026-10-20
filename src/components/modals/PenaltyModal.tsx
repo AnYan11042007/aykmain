@@ -303,8 +303,8 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
   };
 
   return (
-    <div className="fixed inset-0 z-[5000] bg-black/90 backdrop-blur-md flex items-center justify-center p-0 md:p-4 overflow-hidden font-mono">
-      <div className="w-full h-[100dvh] md:h-auto md:max-h-[92vh] max-w-full md:max-w-3xl bg-[#09170e] border-0 md:border-2 md:border-[#00ff80]/60 rounded-none md:rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)]">
+    <div className="game-overlay bg-black/90 backdrop-blur-md font-mono">
+      <div className="game-shell bg-[#09170e] border-0 md:border-2 md:border-[#00ff80]/60 shadow-2xl flex flex-col justify-between">
         
         {/* Sticky Header */}
         <div className="sticky top-0 z-40 shrink-0 flex items-center justify-between px-4 py-3 bg-[#0d2215]/95 border-b border-[#00ff80]/30 backdrop-blur-md">
@@ -322,7 +322,7 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
           <button 
             onClick={onClose}
             aria-label="Đóng"
-            className="min-w-[44px] min-h-[44px] flex items-center justify-center rounded-xl bg-white/5 hover:bg-white/10 active:scale-95 text-[#8b949e] hover:text-white transition cursor-pointer shrink-0"
+            className="game-close"
           >
             <X className="w-5 h-5" />
           </button>
