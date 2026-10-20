@@ -2265,7 +2265,7 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
                 <div className="p-4 bg-black/60 border border-white/10 rounded-2xl w-full max-w-xs space-y-3">
                   <div className="flex items-center gap-3">
                     <img
-                      src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                      src={(user?.avatar && user.avatar.trim()) ? user.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                       alt="User"
                       className="w-10 h-10 rounded-full object-cover border border-amber-400/50"
                     />

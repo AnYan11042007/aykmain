@@ -23,7 +23,7 @@ const sizeMap = {
 };
 
 export const AvatarFrameContainer: React.FC<AvatarFrameContainerProps> = ({
-  avatarUrl = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+  avatarUrl,
   frameUrl,
   size = 'md',
   className = '',
@@ -36,16 +36,20 @@ export const AvatarFrameContainer: React.FC<AvatarFrameContainerProps> = ({
   const [isHolding, setIsHolding] = useState(false);
   const dims = sizeMap[size] || sizeMap.md;
 
+  const defaultAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80';
+  const effectiveAvatar = (avatarUrl && typeof avatarUrl === 'string' && avatarUrl.trim() !== '') ? avatarUrl.trim() : defaultAvatar;
+
   const handleTouchStart = () => setIsHolding(true);
   const handleTouchEnd = () => setIsHolding(false);
 
   const renderFrameOverlay = () => {
-    if (!frameUrl) return null;
+    if (!frameUrl || typeof frameUrl !== 'string' || frameUrl.trim() === '') return null;
+    const cleanFrameUrl = frameUrl.trim();
 
-    if (frameUrl.startsWith('http')) {
+    if (cleanFrameUrl.startsWith('http')) {
       return (
         <img
-          src={frameUrl}
+          src={cleanFrameUrl}
           alt="Frame"
           className={`absolute ${dims.frameInset} ${dims.frameSize} object-contain pointer-events-none z-20 transition-all duration-300 filter drop-shadow-[0_0_8px_rgba(255,215,0,0.7)] group-hover:drop-shadow-[0_0_15px_rgba(255,215,0,0.9)]`}
           referrerPolicy="no-referrer"
@@ -53,19 +57,19 @@ export const AvatarFrameContainer: React.FC<AvatarFrameContainerProps> = ({
       );
     }
 
-    if (frameUrl === 'gold-ring') {
+    if (cleanFrameUrl === 'gold-ring') {
       return (
         <div className={`absolute ${dims.frameInset} rounded-full border-2 border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)] pointer-events-none z-20 animate-pulse`} />
       );
     }
 
-    if (frameUrl === 'neon-ring') {
+    if (cleanFrameUrl === 'neon-ring') {
       return (
         <div className={`absolute ${dims.frameInset} rounded-full border-2 border-pink-500 shadow-[0_0_12px_rgba(236,72,153,0.9)] pointer-events-none z-20`} />
       );
     }
 
-    if (frameUrl === 'cyber-ring') {
+    if (cleanFrameUrl === 'cyber-ring') {
       return (
         <div className={`absolute ${dims.frameInset} rounded-full border-2 border-cyan-400 shadow-[0_0_12px_rgba(34,211,238,0.9)] pointer-events-none z-20`} />
       );
@@ -89,12 +93,12 @@ export const AvatarFrameContainer: React.FC<AvatarFrameContainerProps> = ({
       {/* Avatar Image container */}
       <div className={`${dims.avatar} rounded-full overflow-hidden bg-black/60 border border-white/20 flex items-center justify-center relative z-10 shadow-md ${avatarClassName}`}>
         <img
-          src={avatarUrl}
+          src={effectiveAvatar}
           alt={altName}
           className="w-full h-full object-cover"
           referrerPolicy="no-referrer"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80';
+            (e.target as HTMLImageElement).src = defaultAvatar;
           }}
         />
       </div>

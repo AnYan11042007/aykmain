@@ -166,7 +166,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
         list.push({
           uid: uId,
           name: u.fullName || u.displayName || u.username || 'Sinh Viên AYK',
-          avatar: u.avatarUrl || u.photoURL || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
+          avatar: (u.avatar && u.avatar.trim()) || (u.avatarUrl && u.avatarUrl.trim()) || (u.photoURL && u.photoURL.trim()) || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
           completedCount,
           totalMissions,
           earnedPP,
@@ -551,7 +551,7 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                   {/* Avatar & Name */}
                   <div className="flex items-center gap-2 my-1">
                     <img
-                      src={achiever.avatar}
+                      src={(achiever.avatar && achiever.avatar.trim()) ? achiever.avatar : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                       alt={achiever.name}
                       className={`w-9 h-9 rounded-full object-cover border-2 shrink-0 ${
                         isTop1 ? 'border-yellow-400 shadow-[0_0_10px_rgba(250,204,21,0.8)]' : 'border-cyan-400/60'

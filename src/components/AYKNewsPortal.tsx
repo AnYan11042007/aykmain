@@ -606,7 +606,7 @@ export default function AYKNewsPortal({ uid, user, onShowResult }: AYKNewsPortal
                 {/* Add Comment Form */}
                 <form onSubmit={handleAddComment} className="flex gap-2">
                   <img
-                    src={user?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                    src={(user?.avatar && user.avatar.trim()) ? user.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                     alt=""
                     className="w-8 h-8 rounded-full border border-cyan-400 object-cover shrink-0"
                   />
@@ -645,7 +645,7 @@ export default function AYKNewsPortal({ uid, user, onShowResult }: AYKNewsPortal
                           className="p-3 bg-black/60 rounded-xl border border-white/10 flex items-start gap-3 transition hover:border-cyan-500/30"
                         >
                           <img
-                            src={cmt.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                            src={(cmt.authorAvatar && cmt.authorAvatar.trim()) ? cmt.authorAvatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                             alt=""
                             className="w-7 h-7 rounded-full border border-slate-700 object-cover shrink-0 mt-0.5"
                           />

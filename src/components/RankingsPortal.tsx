@@ -396,8 +396,8 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
                   </div>
 
                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-black/60 border-2 border-slate-200 mt-2 shadow-[0_0_15px_rgba(203,213,225,0.4)] relative">
-                    {top2.avatar ? (
-                      <img src={top2.avatar} alt={top2.name} className="w-full h-full object-cover" />
+                    {top2.avatar && top2.avatar.trim() ? (
+                      <img src={top2.avatar.trim()} alt={top2.name} className="w-full h-full object-cover" />
                     ) : (
                       <UserIcon className="w-8 h-8 text-slate-300 m-auto mt-3" />
                     )}
@@ -432,8 +432,8 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
                   </div>
 
                   <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full overflow-hidden bg-black/80 border-4 border-yellow-400 mt-2 shadow-[0_0_25px_rgba(250,204,21,0.8)] relative">
-                    {top1.avatar ? (
-                      <img src={top1.avatar} alt={top1.name} className="w-full h-full object-cover" />
+                    {top1.avatar && top1.avatar.trim() ? (
+                      <img src={top1.avatar.trim()} alt={top1.name} className="w-full h-full object-cover" />
                     ) : (
                       <UserIcon className="w-10 h-10 text-yellow-300 m-auto mt-3" />
                     )}
@@ -470,8 +470,8 @@ export default function RankingsPortal({ uid, user }: RankingsPortalProps) {
                   </div>
 
                   <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden bg-black/60 border-2 border-amber-500 mt-2 shadow-[0_0_15px_rgba(217,119,6,0.4)] relative">
-                    {top3.avatar ? (
-                      <img src={top3.avatar} alt={top3.name} className="w-full h-full object-cover" />
+                    {top3.avatar && top3.avatar.trim() ? (
+                      <img src={top3.avatar.trim()} alt={top3.name} className="w-full h-full object-cover" />
                     ) : (
                       <UserIcon className="w-8 h-8 text-amber-400 m-auto mt-3" />
                     )}

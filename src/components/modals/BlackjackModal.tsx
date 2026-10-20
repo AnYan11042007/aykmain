@@ -606,7 +606,7 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
                     isTurn ? 'border-yellow-400 shadow-[0_0_15px_rgba(255,215,0,0.3)] animate-pulse scale-105' : ''
                   }`}>
                     <div className="w-6 h-6 sm:w-10 sm:h-10 rounded-full border border-white/20 overflow-y-auto max-h-[90vh] mb-0.5 sm:mb-1.5 shadow">
-                      {pData.avatar ? <img src={pData.avatar} alt="" className="w-full h-full object-cover" /> : '🤔'}
+                      {pData.avatar && pData.avatar.trim() ? <img src={pData.avatar.trim()} alt="" className="w-full h-full object-cover" /> : '🤔'}
                     </div>
                     <b className="text-white text-[8px] sm:text-[11px] truncate max-w-[75px] sm:max-w-[100px]" title={pData.name}>{pData.name}</b>
                     <span className="text-[8px] sm:text-[10px] text-[#ffd700] font-black mt-0.5">{room.bet.toLocaleString()} PP</span>

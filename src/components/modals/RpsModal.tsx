@@ -319,7 +319,7 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
             {/* Player 1 Card */}
             <div className="flex flex-col items-center gap-1.5 sm:gap-2.5">
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-2 border-emerald-400 overflow-hidden bg-black/40 shadow-lg">
-                {room.p1Avatar ? <img src={room.p1Avatar} alt="" className="w-full h-full object-cover" /> : '🤔'}
+                {room.p1Avatar && room.p1Avatar.trim() ? <img src={room.p1Avatar.trim()} alt="" className="w-full h-full object-cover" /> : '🤔'}
               </div>
               <strong className="text-emerald-400 text-[10px] sm:text-xs truncate max-w-[85px] sm:max-w-[110px]">{room.p1Name}</strong>
               
@@ -342,7 +342,7 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult }: R
             <div className="flex flex-col items-center gap-1.5 sm:gap-2.5">
               <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full border-2 border-[#ff003c] overflow-hidden bg-black/40 shadow-lg">
                 {room.p2 ? (
-                  room.p2Avatar ? <img src={room.p2Avatar} alt="" className="w-full h-full object-cover" /> : '🤔'
+                  room.p2Avatar && room.p2Avatar.trim() ? <img src={room.p2Avatar.trim()} alt="" className="w-full h-full object-cover" /> : '🤔'
                 ) : '❓'}
               </div>
               <strong className={room.p2 ? 'text-[#ff003c] text-[10px] sm:text-xs truncate max-w-[85px] sm:max-w-[110px]' : 'text-white/40 text-[10px] sm:text-xs'}>

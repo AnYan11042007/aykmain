@@ -223,3 +223,56 @@ export interface RpsRoom {
   p2Rematch?: boolean;
   finalMsg?: string;
 }
+
+// Texas Hold'em Poker types (Max 5 seats)
+export type PokerRound = 'WAITING' | 'PREFLOP' | 'FLOP' | 'TURN' | 'RIVER' | 'SHOWDOWN';
+
+export interface PokerSeat {
+  seatIndex: number;
+  uid: string;
+  name: string;
+  avatar: string;
+  chips: number;
+  currentBet: number;
+  totalHandBet: number;
+  folded: boolean;
+  allIn: boolean;
+  isAI: boolean;
+  personality?: 'TAG' | 'LAG' | 'NIT' | 'TRICKY';
+  consecutiveTimeouts?: number;
+  lastAction?: string;
+}
+
+export interface PokerWinner {
+  uid: string;
+  name: string;
+  amount: number;
+  handDesc: string;
+}
+
+export interface PokerRoom {
+  id: string;
+  name: string;
+  mode: 'AI' | 'MULTIPLAYER';
+  creator: string;
+  creatorName: string;
+  bigBlind: number;
+  smallBlind: number;
+  minBuyIn: number;
+  maxBuyIn: number;
+  status: 'WAITING' | 'PLAYING';
+  round: PokerRound;
+  seats: (PokerSeat | null)[];
+  dealerSeat: number;
+  currentTurnSeat: number | null;
+  pot: number;
+  highestBet: number;
+  lastRaiseDelta: number;
+  board: string[];
+  actionExpiry: number;
+  revealedCards?: Record<string, string[]>;
+  winners?: PokerWinner[];
+  logs?: string[];
+  handCount?: number;
+}
+

@@ -413,8 +413,8 @@ export default function AdminUserManage({ adminUid, onShowResult }: AdminUserMan
                                 : 'border border-white/10'
                         }`}>
                           <div className="w-full h-full rounded-full overflow-hidden bg-black/40 flex items-center justify-center">
-                            {s.avatar ? (
-                              <img src={s.avatar.startsWith('http') ? s.avatar : `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150`} alt="" className="w-full h-full object-cover" />
+                            {s.avatar && s.avatar.trim() !== '' ? (
+                              <img src={s.avatar.trim().startsWith('http') ? s.avatar.trim() : `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150`} alt="" className="w-full h-full object-cover" />
                             ) : (
                               <span className="text-xs">👤</span>
                             )}

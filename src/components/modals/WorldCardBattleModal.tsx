@@ -4802,7 +4802,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           <img
-                            src={room.p1?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                            src={(room.p1?.avatar && room.p1.avatar.trim()) ? room.p1.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                             alt=""
                             className="w-7 h-7 rounded-full border border-cyan-400 object-cover shrink-0"
                           />
@@ -4880,7 +4880,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                     >
                       <div className="flex items-center gap-2 min-w-0">
                         <img
-                          src={item.opponentAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                          src={(item.opponentAvatar && item.opponentAvatar.trim()) ? item.opponentAvatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                           alt=""
                           className="w-6 h-6 rounded-full border border-white/20 object-cover shrink-0"
                         />
@@ -4956,7 +4956,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   : 'bg-slate-900/80 border-cyan-500/30 text-cyan-200'
               }`}>
                 <div className="flex items-center gap-1.5">
-                  <img src={roomData?.p1?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-5 h-5 rounded-full object-cover border border-cyan-400" />
+                  <img src={(roomData?.p1?.avatar && roomData.p1.avatar.trim()) ? roomData.p1.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-5 h-5 rounded-full object-cover border border-cyan-400" />
                   <span className="font-bold text-xs truncate max-w-[100px] text-white">
                     {roomData?.p1?.name || 'Player 1'}
                   </span>
@@ -4976,7 +4976,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                   : 'bg-slate-900/80 border-rose-500/30 text-rose-200'
               }`}>
                 <div className="flex items-center gap-1.5">
-                  <img src={roomData?.p2?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-5 h-5 rounded-full object-cover border border-rose-400" />
+                  <img src={(roomData?.p2?.avatar && roomData.p2.avatar.trim()) ? roomData.p2.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-5 h-5 rounded-full object-cover border border-rose-400" />
                   <span className="font-bold text-xs truncate max-w-[100px] text-white">
                     {roomData?.p2?.name || 'Player 2'}
                   </span>
@@ -5109,7 +5109,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                 {/* Left: Opponent Avatar, Name, HP, Energy, Turn, Ping */}
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   <img
-                    src={oppPlayerObj?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
+                    src={(oppPlayerObj?.avatar && oppPlayerObj.avatar.trim()) ? oppPlayerObj.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'}
                     alt=""
                     className="w-9 h-9 rounded-full border-2 border-rose-400 object-cover shrink-0 shadow-[0_0_10px_rgba(244,63,94,0.6)]"
                   />
@@ -5193,9 +5193,9 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                             {/* Card Image */}
                             <div className="aspect-[3/4] h-12 sm:h-14 w-full rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center my-0.5 relative z-10 border border-rose-500/30">
                               <img
-                                src={oppCard?.avatarUrl}
-                                alt={oppCard?.name}
-                                onError={(e) => { (e.target as HTMLImageElement).src = getCardImageSvg(oppCard?.id); }}
+                                src={oppCard?.avatarUrl || getCardImageSvg(oppCard?.id || 'c1')}
+                                alt={oppCard?.name || 'Card'}
+                                onError={(e) => { (e.target as HTMLImageElement).src = getCardImageSvg(oppCard?.id || 'c1'); }}
                                 className="w-full h-full object-contain"
                               />
                               {isOppUsed && (
@@ -5263,7 +5263,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                 <div className="space-y-1 font-mono">
                   <div className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
-                      <img src={myPlayerObj?.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-6 h-6 rounded-full border border-cyan-400 object-cover" />
+                      <img src={(myPlayerObj?.avatar && myPlayerObj.avatar.trim()) ? myPlayerObj.avatar.trim() : 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80'} alt="" className="w-6 h-6 rounded-full border border-cyan-400 object-cover" />
                       <span className="font-bold text-white uppercase">{myPlayerObj?.name || 'Bạn'} (BẠN)</span>
                     </div>
                     <div className="flex items-center gap-3">
@@ -5340,7 +5340,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
                               {/* Card Image */}
                               <div className="aspect-[3/4] h-14 sm:h-16 w-full rounded-lg overflow-hidden bg-slate-900 flex items-center justify-center relative my-0.5 z-10 border border-cyan-500/30">
                                 <img
-                                  src={card.avatarUrl}
+                                  src={card.avatarUrl || getCardImageSvg(card.id)}
                                   alt={card.name}
                                   onError={(e) => { (e.target as HTMLImageElement).src = getCardImageSvg(card.id); }}
                                   className="w-full h-full object-contain"
@@ -5728,7 +5728,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
                   <div className="aspect-[3/4] h-32 w-full rounded-lg overflow-hidden bg-black/60 border border-white/5 flex items-center justify-center relative">
                     <img
-                      src={card.avatarUrl}
+                      src={card.avatarUrl || getCardImageSvg(card.id)}
                       alt={card.name}
                       onError={(e) => {
                         (e.target as HTMLImageElement).src = getCardImageSvg(card.id);
@@ -5808,7 +5808,7 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
               {inspectedCard.rarity === 'SS' && <div className="ss-shimmer-overlay" />}
 
               <img
-                src={inspectedCard.avatarUrl}
+                src={inspectedCard.avatarUrl || getCardImageSvg(inspectedCard.id)}
                 alt={inspectedCard.name}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = getCardImageSvg(inspectedCard.id);

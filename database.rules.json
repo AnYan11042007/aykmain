@@ -88,6 +88,26 @@
     "announcements": {
       ".read": "auth != null",
       ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')"
+    },
+
+    "poker_rooms": {
+      ".read": "auth != null",
+      "$roomId": {
+        ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+      }
+    },
+
+    "poker_private": {
+      "$roomId": {
+        "deck": {
+          ".read": false,
+          ".write": false
+        },
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || auth.token.admin === true || auth.token.role === 'ADMIN')",
+          ".write": false
+        }
+      }
     }
   }
 }

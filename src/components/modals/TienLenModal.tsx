@@ -575,7 +575,7 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult 
                   }`}
                 >
                   <div className="w-6 h-6 sm:w-9 sm:h-9 rounded-full overflow-y-auto max-h-[90vh] bg-black/30 border border-white/10 mb-0.5 sm:mb-1">
-                    {pData.avatar ? <img src={pData.avatar} alt="" className="w-full h-full object-cover" /> : '🤔'}
+                    {pData.avatar && pData.avatar.trim() ? <img src={pData.avatar.trim()} alt="" className="w-full h-full object-cover" /> : '🤔'}
                   </div>
                   <span className="text-white text-[8px] sm:text-[10px] truncate max-w-[70px] sm:max-w-[95px] font-bold">{pData.name}</span>
                   <span className="text-[7px] sm:text-[9px] text-[#8b949e] mt-0.5 sm:mt-1 uppercase font-black bg-white/5 border border-white/5 py-0.5 px-1 sm:px-1.5 rounded">

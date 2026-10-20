@@ -240,8 +240,8 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
                           ? 'border-[#00f0ff] shadow-[0_0_8px_rgba(0,240,255,0.4)]'
                           : 'border-white/10'
                   }`}>
-                    {m.senderAvatar ? (
-                      <img src={m.senderAvatar} alt="Avatar" className="w-full h-full object-cover" />
+                    {m.senderAvatar && m.senderAvatar.trim() ? (
+                      <img src={m.senderAvatar.trim()} alt="Avatar" className="w-full h-full object-cover" />
                     ) : (
                       <UserIcon className="w-4 h-4 text-slate-400" />
                     )}
@@ -277,7 +277,7 @@ export default function ChatPortal({ uid, user }: ChatPortalProps) {
               <div key={idx} className={`flex gap-3 max-w-[85%] ${m.role === 'user' ? 'ml-auto flex-row-reverse' : ''}`}>
                 <div className="w-9 h-9 rounded-full border border-white/10 shrink-0 overflow-hidden bg-black/40 flex items-center justify-center">
                   {m.role === 'user' ? (
-                    user?.avatar ? <img src={user.avatar} className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 text-slate-400" />
+                    user?.avatar && user.avatar.trim() ? <img src={user.avatar.trim()} className="w-full h-full object-cover" /> : <UserIcon className="w-4 h-4 text-slate-400" />
                   ) : (
                     <Sparkles className="w-5 h-5 text-[#00ff80] animate-pulse" />
                   )}

@@ -335,7 +335,7 @@ export default function ProfileModal({ uid, user, onClose, onShowResult }: Profi
               {selectedAvatar !== user?.avatar && (
                 <div className="mt-4 p-3 bg-cyan-950/40 border border-cyan-400/60 rounded-xl flex items-center justify-between gap-3 animate-pulse">
                   <div className="flex items-center gap-2">
-                    <img src={selectedAvatar} alt="" className="w-10 h-10 rounded-full border border-cyan-400 object-cover" />
+                    <img src={selectedAvatar || PRESET_AVATARS[0]} alt="" className="w-10 h-10 rounded-full border border-cyan-400 object-cover" />
                     <div>
                       <div className="text-xs font-bold text-white uppercase">Đã chọn mẫu avatar mới</div>
                       <div className="text-[10px] text-cyan-300">Yêu cầu xác nhận để thay đổi</div>

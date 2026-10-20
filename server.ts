@@ -10,6 +10,7 @@ import { GoogleGenAI } from '@google/genai';
 import dotenv from 'dotenv';
 import { initializeApp } from 'firebase/app';
 import { getDatabase, ref, get, set, push, update, runTransaction } from 'firebase/database';
+import { setupPokerRouter } from './src/poker/pokerServer.ts';
 
 dotenv.config();
 
@@ -546,6 +547,9 @@ app.post('/api/auth/migrate-legacy', async (req, res) => {
   // Keep pass in RTDB to guarantee uninterrupted login access
   res.json({ success: true, message: 'Đã đồng bộ trạng thái bảo mật' });
 });
+
+// ----------------- POKER TEXAS HOLD'EM ROUTES -----------------
+app.use('/api/poker', setupPokerRouter(db, executePPTransaction));
 
 // ----------------- VITE DEV / STATIC HANDLER -----------------
 const setupVite = async () => {
