@@ -475,6 +475,10 @@ function normalizePokerRoom(raw) {
   room.board = toArray(room.board);
   room.logs = toArray(room.logs);
   room.winners = toArray(room.winners);
+  room.history = toArray(room.history);
+  room.emotes = room.emotes || {};
+  room.difficulty = room.difficulty || "NORMAL";
+  room.turnTimeLimit = typeof room.turnTimeLimit === "number" ? room.turnTimeLimit : 20;
   room.revealedCards = room.revealedCards || {};
   room.pot = room.pot || 0;
   room.highestBet = room.highestBet || 0;
@@ -638,6 +642,7 @@ function analyzeDrawPotential(holeCards, boardCards) {
 }
 function calculateAIDecision(params) {
   const { seat, holeCards, room } = params;
+  const difficulty = params.difficulty || room.difficulty || "NORMAL";
   const boardCards = room.board.map(parseCard);
   const personality = seat.personality || "TAG";
   const activeOpponents = room.seats.filter(
@@ -657,8 +662,19 @@ function calculateAIDecision(params) {
   const spr = room.pot > 0 ? seat.chips / room.pot : 10;
   if (room.round === "PREFLOP") {
     const preScore = evaluatePreflopScore(holeCards[0], holeCards[1]);
-    const isBlind = seat.seatIndex === room.dealerSeat || seat.seatIndex === (room.dealerSeat + 1) % 5;
     const isLatePosition = seat.seatIndex === room.dealerSeat || seat.seatIndex === (room.dealerSeat + 4) % 5;
+    if (difficulty === "EASY") {
+      if (toCall === 0) {
+        return { action: "CHECK", reason: "Easy bot free check" };
+      }
+      if (preScore >= 0.85 && options.canRaise && Math.random() < 0.3) {
+        return { action: "RAISE", amount: options.minRaiseTotal, reason: "Easy bot min-raise premium" };
+      }
+      if (preScore >= 0.22 || toCall <= room.bigBlind * 2) {
+        return { action: "CALL", reason: "Easy bot loose preflop call" };
+      }
+      return { action: "FOLD", reason: "Easy bot folds unplayable trash" };
+    }
     let threshold = 0.45;
     if (personality === "NIT") threshold = 0.6;
     else if (personality === "LAG") threshold = 0.35;
@@ -699,13 +715,32 @@ function calculateAIDecision(params) {
     }
     return { action: "FOLD", reason: "Fold weak preflop hand" };
   }
-  const { equity } = estimateEquityMonteCarlo(holeCards, boardCards, activeOpponents, 2e3);
+  const simCount = difficulty === "EASY" ? 150 : difficulty === "NORMAL" ? 1e3 : 2e3;
+  const { equity } = estimateEquityMonteCarlo(holeCards, boardCards, activeOpponents, simCount);
   const draws = analyzeDrawPotential(holeCards, boardCards);
   const totalEquity = Math.min(0.98, equity + draws.drawOuts * 0.02);
+  if (difficulty === "EASY") {
+    if (options.canCheck) {
+      if (totalEquity >= 0.85 && options.canRaise && Math.random() < 0.4) {
+        return { action: "RAISE", amount: options.minRaiseTotal, reason: "Easy bot passive min-bet monster" };
+      }
+      return { action: "CHECK", reason: "Easy bot passive check" };
+    }
+    if (totalEquity >= potOdds - 0.15 || draws.drawOuts >= 4) {
+      return { action: "CALL", reason: "Easy bot sticky call with marginal equity" };
+    }
+    if (toCall > room.bigBlind * 2 && totalEquity < 0.2) {
+      return { action: "FOLD", reason: "Easy bot folds complete air" };
+    }
+    return { action: "CALL", reason: "Easy bot calls small bet" };
+  }
   let aggressionFactor = 1;
   if (personality === "LAG") aggressionFactor = 1.25;
   else if (personality === "NIT") aggressionFactor = 0.8;
   else if (personality === "TRICKY") aggressionFactor = 1.15;
+  if (difficulty === "HARD") {
+    aggressionFactor *= 1.1;
+  }
   const adjustedEquity = Math.min(0.99, totalEquity * aggressionFactor);
   if (options.canCheck) {
     if (adjustedEquity >= 0.8 && options.canRaise) {
@@ -960,6 +995,19 @@ async function advancePokerGame(db2, roomId, room, executePPTransaction2) {
       amount: winAmount,
       handDesc: "T\u1EA5t c\u1EA3 \u0111\u1ED1i th\u1EE7 \u0111\xE3 b\u1ECF b\xE0i"
     }];
+    room.history = room.history || [];
+    room.history.push({
+      id: `hist_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      handNumber: room.handCount || 1,
+      winnerUid: winner.uid,
+      winnerName: winner.name,
+      pot: winAmount,
+      winningHandDesc: "T\u1EA5t c\u1EA3 \u0111\u1ED1i th\u1EE7 \u0111\xE3 b\u1ECF b\xE0i",
+      timestamp: Date.now()
+    });
+    if (room.history.length > 10) {
+      room.history = room.history.slice(-10);
+    }
     room.logs = room.logs || [];
     room.logs.push(`\u{1F389} ${winner.name} th\u1EAFng ${winAmount.toLocaleString()} PP (M\u1ECDi ng\u01B0\u1EDDi \u0111\u1EC1u b\u1ECF b\xE0i).`);
     await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
@@ -1038,7 +1086,7 @@ async function advancePokerGame(db2, roomId, room, executePPTransaction2) {
       await finishShowdown(db2, roomId, room, executePPTransaction2);
       return;
     }
-    room.actionExpiry = Date.now() + 2e4;
+    room.actionExpiry = Date.now() + (room.turnTimeLimit ? room.turnTimeLimit * 1e3 : 2e4);
     await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
     checkIfNextTurnIsAI(db2, roomId, room, executePPTransaction2);
     return;
@@ -1052,7 +1100,7 @@ async function advancePokerGame(db2, roomId, room, executePPTransaction2) {
       break;
     }
   }
-  room.actionExpiry = Date.now() + 2e4;
+  room.actionExpiry = Date.now() + (room.turnTimeLimit ? room.turnTimeLimit * 1e3 : 2e4);
   await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
   checkIfNextTurnIsAI(db2, roomId, room, executePPTransaction2);
 }
@@ -1099,6 +1147,22 @@ async function finishShowdown(db2, roomId, room, executePPTransaction2) {
     };
   });
   room.pot = 0;
+  room.history = room.history || [];
+  if (room.winners && room.winners.length > 0) {
+    const mainWinner = room.winners[0];
+    room.history.push({
+      id: `hist_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      handNumber: room.handCount || 1,
+      winnerUid: mainWinner.uid,
+      winnerName: mainWinner.name,
+      pot: sidePots.reduce((acc, p) => acc + p.amount, 0) || mainWinner.amount,
+      winningHandDesc: mainWinner.handDesc,
+      timestamp: Date.now()
+    });
+    if (room.history.length > 10) {
+      room.history = room.history.slice(-10);
+    }
+  }
   room.logs = room.logs || [];
   for (const w of room.winners) {
     room.logs.push(`\u{1F3C6} ${w.name} th\u1EAFng ${w.amount.toLocaleString()} PP (${w.handDesc})`);
@@ -1206,7 +1270,7 @@ async function dealNewHand(db2, roomId, room, executePPTransaction2) {
   room.highestBet = Math.max(sbAmount, bbAmount);
   room.lastRaiseDelta = room.bigBlind;
   room.currentTurnSeat = firstTurnIdx;
-  room.actionExpiry = Date.now() + 2e4;
+  room.actionExpiry = Date.now() + (room.turnTimeLimit ? room.turnTimeLimit * 1e3 : 2e4);
   const deck = getCryptoShuffledDeck();
   const privateUpdates = {};
   for (const s of room.seats) {
@@ -1258,7 +1322,8 @@ async function executeAITurn(db2, roomId, room, aiSeat, executePPTransaction2) {
   const decision = calculateAIDecision({
     seat: currentSeat,
     holeCards,
-    room: currentRoom
+    room: currentRoom,
+    difficulty: currentRoom.difficulty || "NORMAL"
   });
   const options = getBettingOptions({
     playerChips: currentSeat.chips,
@@ -1327,7 +1392,18 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
   const router = import_express.default.Router();
   const db2 = createPokerDb(clientDb, adminDb2);
   router.post("/create", async (req, res) => {
-    const { uid, sessionToken, name, avatar, mode = "AI", bigBlind = 100, buyIn, actionId } = req.body;
+    const {
+      uid,
+      sessionToken,
+      name,
+      avatar,
+      mode = "AI",
+      bigBlind = 100,
+      buyIn,
+      actionId,
+      difficulty = "NORMAL",
+      turnTimeLimit = 20
+    } = req.body;
     if (isActionProcessed(actionId)) {
       return res.status(400).json({ success: false, error: "Y\xEAu c\u1EA7u tr\xF9ng l\u1EB7p" });
     }
@@ -1384,6 +1460,8 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
         };
       }
     }
+    const validDifficulty = difficulty === "EASY" || difficulty === "HARD" ? difficulty : "NORMAL";
+    const validTurnTime = [15, 30, 45].includes(Number(turnTimeLimit)) ? Number(turnTimeLimit) : 20;
     const room = {
       id: roomId,
       name: `B\xC0N #${roomId}`,
@@ -1404,7 +1482,9 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
       lastRaiseDelta: bb,
       board: [],
       actionExpiry: 0,
-      logs: [`Ph\xF2ng poker ${roomId} \u0111\xE3 \u0111\u01B0\u1EE3c t\u1EA1o th\xE0nh c\xF4ng.`]
+      logs: [`Ph\xF2ng poker ${roomId} \u0111\xE3 \u0111\u01B0\u1EE3c t\u1EA1o th\xE0nh c\xF4ng.`],
+      difficulty: mode === "AI" ? validDifficulty : void 0,
+      turnTimeLimit: validTurnTime
     };
     await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
     if (mode === "AI") {
@@ -1693,6 +1773,33 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     }
     await advancePokerGame(db2, roomId, room, executePPTransaction2);
     res.json({ success: true });
+  });
+  router.post("/emote", async (req, res) => {
+    const { roomId, uid, sessionToken, emote } = req.body;
+    const auth = await verifyUserSession(db2, uid, sessionToken);
+    if (!auth.ok) {
+      return res.status(401).json({ success: false, error: auth.error });
+    }
+    const ALLOWED_EMOTES = ["\u{1F44D}", "\u{1F602}", "\u{1F631}", "\u{1F525}", "\u{1F60E}", "\u{1F62D}", "GG", "\u23F0"];
+    if (!ALLOWED_EMOTES.includes(emote)) {
+      return res.status(400).json({ success: false, error: "Bi\u1EC3u t\u01B0\u1EE3ng kh\xF4ng h\u1EE3p l\u1EC7" });
+    }
+    const roomSnap = await dbGet(db2, `poker_rooms/${roomId}`);
+    if (!roomSnap.exists()) {
+      return res.status(404).json({ success: false, error: "Ph\xF2ng kh\xF4ng t\u1ED3n t\u1EA1i" });
+    }
+    const room = normalizePokerRoom(roomSnap.val());
+    const seat = room.seats.find((s) => s?.uid === uid);
+    if (!seat) {
+      return res.status(403).json({ success: false, error: "B\u1EA1n kh\xF4ng ng\u1ED3i trong b\xE0n n\xE0y" });
+    }
+    const lastEmote = room.emotes?.[uid];
+    const now = Date.now();
+    if (lastEmote && now - lastEmote.timestamp < 3e3) {
+      return res.status(429).json({ success: false, error: "Vui l\xF2ng ch\u1EDD 3 gi\xE2y tr\u01B0\u1EDBc khi g\u1EEDi ti\u1EBFp" });
+    }
+    await dbSet(db2, `poker_rooms/${roomId}/emotes/${uid}`, { emote, timestamp: now });
+    res.json({ success: true, emote, timestamp: now });
   });
   return router;
 }
