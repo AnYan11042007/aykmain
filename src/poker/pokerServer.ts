@@ -257,6 +257,19 @@ export async function advancePokerGame(
       amount: winAmount,
       handDesc: 'Tất cả đối thủ đã bỏ bài'
     }];
+    room.history = room.history || [];
+    room.history.push({
+      id: `hist_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      handNumber: room.handCount || 1,
+      winnerUid: winner.uid,
+      winnerName: winner.name,
+      pot: winAmount,
+      winningHandDesc: 'Tất cả đối thủ đã bỏ bài',
+      timestamp: Date.now()
+    });
+    if (room.history.length > 10) {
+      room.history = room.history.slice(-10);
+    }
     room.logs = room.logs || [];
     room.logs.push(`🎉 ${winner.name} thắng ${winAmount.toLocaleString()} PP (Mọi người đều bỏ bài).`);
 
@@ -355,7 +368,7 @@ export async function advancePokerGame(
       return;
     }
 
-    room.actionExpiry = Date.now() + 20000;
+    room.actionExpiry = Date.now() + (room.turnTimeLimit ? room.turnTimeLimit * 1000 : 20000);
     await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
     checkIfNextTurnIsAI(db, roomId, room, executePPTransaction);
     return;
@@ -372,7 +385,7 @@ export async function advancePokerGame(
     }
   }
 
-  room.actionExpiry = Date.now() + 20000;
+  room.actionExpiry = Date.now() + (room.turnTimeLimit ? room.turnTimeLimit * 1000 : 20000);
   await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
   checkIfNextTurnIsAI(db, roomId, room, executePPTransaction);
 }
@@ -445,6 +458,23 @@ async function finishShowdown(
   });
 
   room.pot = 0;
+  room.history = room.history || [];
+  if (room.winners && room.winners.length > 0) {
+    const mainWinner = room.winners[0];
+    room.history.push({
+      id: `hist_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      handNumber: room.handCount || 1,
+      winnerUid: mainWinner.uid,
+      winnerName: mainWinner.name,
+      pot: sidePots.reduce((acc, p) => acc + p.amount, 0) || mainWinner.amount,
+      winningHandDesc: mainWinner.handDesc,
+      timestamp: Date.now()
+    });
+    if (room.history.length > 10) {
+      room.history = room.history.slice(-10);
+    }
+  }
+
   room.logs = room.logs || [];
   for (const w of room.winners) {
     room.logs.push(`🏆 ${w.name} thắng ${w.amount.toLocaleString()} PP (${w.handDesc})`);
@@ -594,7 +624,7 @@ export async function dealNewHand(
   room.highestBet = Math.max(sbAmount, bbAmount);
   room.lastRaiseDelta = room.bigBlind;
   room.currentTurnSeat = firstTurnIdx;
-  room.actionExpiry = Date.now() + 20000;
+  room.actionExpiry = Date.now() + (room.turnTimeLimit ? room.turnTimeLimit * 1000 : 20000);
 
   // Shuffle deck
   const deck = getCryptoShuffledDeck();
@@ -676,7 +706,8 @@ async function executeAITurn(
   const decision = calculateAIDecision({
     seat: currentSeat,
     holeCards,
-    room: currentRoom
+    room: currentRoom,
+    difficulty: currentRoom.difficulty || 'NORMAL'
   });
 
   const options = getBettingOptions({
@@ -783,7 +814,18 @@ export function setupPokerRouter(
    * Create table & Buy-in
    */
   router.post('/create', async (req, res) => {
-    const { uid, sessionToken, name, avatar, mode = 'AI', bigBlind = 100, buyIn, actionId } = req.body;
+    const {
+      uid,
+      sessionToken,
+      name,
+      avatar,
+      mode = 'AI',
+      bigBlind = 100,
+      buyIn,
+      actionId,
+      difficulty = 'NORMAL',
+      turnTimeLimit = 20
+    } = req.body;
 
     if (isActionProcessed(actionId)) {
       return res.status(400).json({ success: false, error: 'Yêu cầu trùng lặp' });
@@ -852,6 +894,9 @@ export function setupPokerRouter(
       }
     }
 
+    const validDifficulty = difficulty === 'EASY' || difficulty === 'HARD' ? difficulty : 'NORMAL';
+    const validTurnTime = [15, 30, 45].includes(Number(turnTimeLimit)) ? Number(turnTimeLimit) : 20;
+
     const room: PokerRoom = {
       id: roomId,
       name: `BÀN #${roomId}`,
@@ -872,7 +917,9 @@ export function setupPokerRouter(
       lastRaiseDelta: bb,
       board: [],
       actionExpiry: 0,
-      logs: [`Phòng poker ${roomId} đã được tạo thành công.`]
+      logs: [`Phòng poker ${roomId} đã được tạo thành công.`],
+      difficulty: mode === 'AI' ? validDifficulty : undefined,
+      turnTimeLimit: validTurnTime
     };
 
     await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
@@ -1251,6 +1298,44 @@ export function setupPokerRouter(
 
     await advancePokerGame(db, roomId, room, executePPTransaction);
     res.json({ success: true });
+  });
+
+  /**
+   * POST /api/poker/emote
+   * Send quick emote / reaction at table (rate limited: 1 per 3s per player)
+   */
+  router.post('/emote', async (req, res) => {
+    const { roomId, uid, sessionToken, emote } = req.body;
+    const auth = await verifyUserSession(db, uid, sessionToken);
+    if (!auth.ok) {
+      return res.status(401).json({ success: false, error: auth.error });
+    }
+
+    const ALLOWED_EMOTES = ['👍', '😂', '😱', '🔥', '😎', '😭', 'GG', '⏰'];
+    if (!ALLOWED_EMOTES.includes(emote)) {
+      return res.status(400).json({ success: false, error: 'Biểu tượng không hợp lệ' });
+    }
+
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
+    if (!roomSnap.exists()) {
+      return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
+    }
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
+
+    // Verify player is seated
+    const seat = room.seats.find(s => s?.uid === uid);
+    if (!seat) {
+      return res.status(403).json({ success: false, error: 'Bạn không ngồi trong bàn này' });
+    }
+
+    const lastEmote = room.emotes?.[uid];
+    const now = Date.now();
+    if (lastEmote && now - lastEmote.timestamp < 3000) {
+      return res.status(429).json({ success: false, error: 'Vui lòng chờ 3 giây trước khi gửi tiếp' });
+    }
+
+    await dbSet(db, `poker_rooms/${roomId}/emotes/${uid}`, { emote, timestamp: now });
+    res.json({ success: true, emote, timestamp: now });
   });
 
   return router;

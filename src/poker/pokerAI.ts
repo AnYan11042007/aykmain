@@ -260,8 +260,10 @@ export function calculateAIDecision(params: {
   seat: PokerSeat;
   holeCards: Card[];
   room: PokerRoom;
+  difficulty?: 'EASY' | 'NORMAL' | 'HARD';
 }): AIDecision {
   const { seat, holeCards, room } = params;
+  const difficulty = params.difficulty || room.difficulty || 'NORMAL';
   const boardCards = room.board.map(parseCard);
   const personality = seat.personality || 'TAG';
 
@@ -287,10 +289,25 @@ export function calculateAIDecision(params: {
   // 1. PREFLOP STRATEGY
   if (room.round === 'PREFLOP') {
     const preScore = evaluatePreflopScore(holeCards[0], holeCards[1]);
-    const isBlind = seat.seatIndex === room.dealerSeat || seat.seatIndex === (room.dealerSeat + 1) % 5;
     const isLatePosition = seat.seatIndex === room.dealerSeat || seat.seatIndex === (room.dealerSeat + 4) % 5;
 
-    // Threshold adjustments based on personality
+    // EASY bot: calls loose preflop, rarely folds to standard bets, never 3-bets / bluffs
+    if (difficulty === 'EASY') {
+      if (toCall === 0) {
+        return { action: 'CHECK', reason: 'Easy bot free check' };
+      }
+      // Only raises with AA/KK
+      if (preScore >= 0.85 && options.canRaise && Math.random() < 0.30) {
+        return { action: 'RAISE', amount: options.minRaiseTotal, reason: 'Easy bot min-raise premium' };
+      }
+      // Loose preflop call (calls with wide range of cards)
+      if (preScore >= 0.22 || toCall <= room.bigBlind * 2) {
+        return { action: 'CALL', reason: 'Easy bot loose preflop call' };
+      }
+      return { action: 'FOLD', reason: 'Easy bot folds unplayable trash' };
+    }
+
+    // NORMAL / HARD threshold adjustments based on personality
     let threshold = 0.45;
     if (personality === 'NIT') threshold = 0.60;
     else if (personality === 'LAG') threshold = 0.35;
@@ -344,16 +361,42 @@ export function calculateAIDecision(params: {
   }
 
   // 2. POSTFLOP STRATEGY (FLOP, TURN, RIVER)
-  // Run 2,000 Monte Carlo rollouts
-  const { equity } = estimateEquityMonteCarlo(holeCards, boardCards, activeOpponents, 2000);
+  // Number of Monte Carlo simulations:
+  // EASY: 150 (fast, loose estimation), NORMAL: 1000, HARD: 2000
+  const simCount = difficulty === 'EASY' ? 150 : difficulty === 'NORMAL' ? 1000 : 2000;
+  const { equity } = estimateEquityMonteCarlo(holeCards, boardCards, activeOpponents, simCount);
   const draws = analyzeDrawPotential(holeCards, boardCards);
   const totalEquity = Math.min(0.98, equity + (draws.drawOuts * 0.02));
 
-  // Personality skew
+  if (difficulty === 'EASY') {
+    // EASY bot postflop: passive, checks when possible, calls loose, never bluffs
+    if (options.canCheck) {
+      if (totalEquity >= 0.85 && options.canRaise && Math.random() < 0.40) {
+        return { action: 'RAISE', amount: options.minRaiseTotal, reason: 'Easy bot passive min-bet monster' };
+      }
+      return { action: 'CHECK', reason: 'Easy bot passive check' };
+    }
+
+    // Facing a bet: easy bot calls with weak pairs / gutshots or decent equity
+    if (totalEquity >= potOdds - 0.15 || draws.drawOuts >= 4) {
+      return { action: 'CALL', reason: 'Easy bot sticky call with marginal equity' };
+    }
+    // Only fold if completely missed and facing substantial bet
+    if (toCall > room.bigBlind * 2 && totalEquity < 0.20) {
+      return { action: 'FOLD', reason: 'Easy bot folds complete air' };
+    }
+    return { action: 'CALL', reason: 'Easy bot calls small bet' };
+  }
+
+  // NORMAL & HARD: Personality skew
   let aggressionFactor = 1.0;
   if (personality === 'LAG') aggressionFactor = 1.25;
   else if (personality === 'NIT') aggressionFactor = 0.80;
   else if (personality === 'TRICKY') aggressionFactor = 1.15;
+
+  if (difficulty === 'HARD') {
+    aggressionFactor *= 1.10;
+  }
 
   const adjustedEquity = Math.min(0.99, totalEquity * aggressionFactor);
 

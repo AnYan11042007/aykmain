@@ -30,6 +30,10 @@ export function normalizePokerRoom<T extends Partial<PokerRoom> | null | undefin
   room.board = toArray<string>(room.board);
   room.logs = toArray<string>(room.logs);
   room.winners = toArray(room.winners);
+  room.history = toArray(room.history);
+  room.emotes = room.emotes || {};
+  room.difficulty = room.difficulty || 'NORMAL';
+  room.turnTimeLimit = typeof room.turnTimeLimit === 'number' ? room.turnTimeLimit : 20;
   room.revealedCards = room.revealedCards || {};
   room.pot = room.pot || 0;
   room.highestBet = room.highestBet || 0;

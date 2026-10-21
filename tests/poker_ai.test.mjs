@@ -136,4 +136,84 @@ describe('Texas Hold\'em AI & Simulation Tests', () => {
     assert.ok(strongDecision.action === 'RAISE' || strongDecision.action === 'CALL', 'AA must raise or call preflop');
   });
 
+  it('should adjust bot decision making based on difficulty levels (EASY vs NORMAL vs HARD)', () => {
+    const mockRoom = {
+      id: 'PK_DIFF_TEST',
+      name: 'BÀN TEST ĐỘ KHÓ',
+      mode: 'AI',
+      creator: 'user_1',
+      creatorName: 'User',
+      bigBlind: 100,
+      smallBlind: 50,
+      minBuyIn: 2000,
+      maxBuyIn: 10000,
+      status: 'PLAYING',
+      round: 'PREFLOP',
+      seats: [
+        {
+          seatIndex: 0,
+          uid: 'user_1',
+          name: 'Player',
+          avatar: '',
+          chips: 5000,
+          currentBet: 100,
+          totalHandBet: 100,
+          folded: false,
+          allIn: false,
+          isAI: false
+        },
+        {
+          seatIndex: 1,
+          uid: 'ai_1',
+          name: 'Bot_Test',
+          avatar: '',
+          chips: 5000,
+          currentBet: 50,
+          totalHandBet: 50,
+          folded: false,
+          allIn: false,
+          isAI: true,
+          personality: 'TAG'
+        }
+      ],
+      dealerSeat: 0,
+      currentTurnSeat: 1,
+      pot: 150,
+      highestBet: 100,
+      lastRaiseDelta: 50,
+      board: [],
+      actionExpiry: Date.now() + 20000
+    };
+
+    // Marginal preflop hand: 9s 4d
+    const marginalHole = [parseCard('9s'), parseCard('4d')];
+
+    // EASY bot: loose and sticky, calls small bet with marginal cards
+    const easyDecision = calculateAIDecision({
+      seat: mockRoom.seats[1],
+      holeCards: marginalHole,
+      room: mockRoom,
+      difficulty: 'EASY'
+    });
+    assert.strictEqual(easyDecision.action, 'CALL', 'EASY bot should call small raise with marginal hand');
+
+    // NORMAL bot with TAG personality: folds marginal hand facing raise
+    const normalDecision = calculateAIDecision({
+      seat: mockRoom.seats[1],
+      holeCards: marginalHole,
+      room: mockRoom,
+      difficulty: 'NORMAL'
+    });
+    assert.strictEqual(normalDecision.action, 'FOLD', 'NORMAL TAG bot should fold marginal hand facing raise');
+
+    // HARD bot: also folds marginal hand facing raise
+    const hardDecision = calculateAIDecision({
+      seat: mockRoom.seats[1],
+      holeCards: marginalHole,
+      room: mockRoom,
+      difficulty: 'HARD'
+    });
+    assert.strictEqual(hardDecision.action, 'FOLD', 'HARD bot should fold marginal hand facing raise');
+  });
+
 });

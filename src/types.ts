@@ -254,6 +254,18 @@ export interface PokerWinner {
   handDesc: string;
 }
 
+export type PokerDifficulty = 'EASY' | 'NORMAL' | 'HARD';
+
+export interface PokerHistoryItem {
+  id: string;
+  handNumber: number;
+  winnerUid: string;
+  winnerName: string;
+  pot: number;
+  winningHandDesc: string;
+  timestamp: number;
+}
+
 export interface PokerRoom {
   id: string;
   name: string;
@@ -278,5 +290,9 @@ export interface PokerRoom {
   winners?: PokerWinner[];
   logs?: string[];
   handCount?: number;
+  difficulty?: PokerDifficulty;
+  turnTimeLimit?: number;
+  emotes?: Record<string, { emote: string; timestamp: number }>;
+  history?: PokerHistoryItem[];
 }
 
