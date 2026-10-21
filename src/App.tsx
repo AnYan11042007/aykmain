@@ -404,6 +404,7 @@ export default function App() {
         setIsMobileOpen={setIsMobileOpen}
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenIdeas={() => setIsExclusiveIdeasOpen(true)}
+        onOpenGame={(gKey) => setActiveGameKey(gKey)}
       />
 
       {/* Main viewport panels */}

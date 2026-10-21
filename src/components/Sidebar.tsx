@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { get, ref, onValue, update, remove } from 'firebase/database';
 import { db } from '../firebase';
-import { BookOpen, Landmark, Coins, Trophy, LogOut, Music, Music2, User as UserIcon, ShieldAlert, MessageSquare, ShoppingBag, Award, Shield, Sparkles, X, Target, Newspaper, Crosshair, History, Settings, Volume2, VolumeX, Link as LinkIcon, Play, Pause, Gamepad2, Swords } from 'lucide-react';
+import { BookOpen, Landmark, Coins, Trophy, LogOut, Music, Music2, User as UserIcon, ShieldAlert, MessageSquare, ShoppingBag, Award, Shield, Sparkles, X, Target, Newspaper, Crosshair, History, Settings, Volume2, VolumeX, Link as LinkIcon, Play, Pause, Gamepad2, Swords, Layers } from 'lucide-react';
 import { User } from '../types';
 import BackgroundMusic from './BackgroundMusic';
 import { AvatarFrameContainer } from './AvatarFrameContainer';
@@ -23,6 +23,7 @@ interface SidebarProps {
   setIsMobileOpen?: (open: boolean) => void;
   onOpenProfile?: () => void;
   onOpenIdeas?: () => void;
+  onOpenGame?: (gameKey: string) => void;
 }
 
 export default function Sidebar({
@@ -37,6 +38,7 @@ export default function Sidebar({
   setIsMobileOpen,
   onOpenProfile,
   onOpenIdeas,
+  onOpenGame,
 }: SidebarProps) {
   const [onlineCount, setOnlineCount] = useState(0);
   const [onlineNames, setOnlineNames] = useState<string[]>([]);

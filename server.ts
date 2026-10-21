@@ -35,8 +35,8 @@ const db = getDatabase(fApp);
 // ----------------- FIREBASE ADMIN INITIALIZATION -----------------
 let adminDb: ReturnType<typeof getAdminDatabase> | null = null;
 try {
-  if (getAdminApps().length === 0) {
-    if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+  if (process.env.FIREBASE_SERVICE_ACCOUNT) {
+    if (getAdminApps().length === 0) {
       const sa = typeof process.env.FIREBASE_SERVICE_ACCOUNT === 'string' && process.env.FIREBASE_SERVICE_ACCOUNT.trim().startsWith('{')
         ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT)
         : process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -44,16 +44,15 @@ try {
         credential: cert(sa),
         databaseURL: firebaseConfig.databaseURL
       });
-    } else {
-      initAdminApp({
-        databaseURL: firebaseConfig.databaseURL
-      });
     }
+    adminDb = getAdminDatabase();
+    console.log('[Firebase Admin] Initialized Firebase Admin SDK successfully');
+  } else {
+    console.log('[Firebase Admin] Running in client SDK mode (no service account credential)');
   }
-  adminDb = getAdminDatabase();
-  console.log('[Firebase Admin] Initialized Firebase Admin SDK successfully');
 } catch (err: any) {
-  console.warn('[Firebase Admin] Note: Running without service account credentials, server will fall back to client SDK:', err?.message || err);
+  console.warn('[Firebase Admin] Note: Service account initialization failed, falling back to client SDK:', err?.message || err);
+  adminDb = null;
 }
 
 // ----------------- GEMINI CLIENT -----------------
@@ -144,21 +143,39 @@ async function executePPTransaction(uid: string, delta: number, minBalance = 0):
   let previousValue = 0;
   let finalValue = 0;
 
+  // 1. Read existing balance from database first to warm cache and get baseline
+  let existingPP = 0;
+  try {
+    const snap = await get(ref(db, `users/${uid}/pp`));
+    if (snap.exists()) {
+      existingPP = Number(snap.val()) || 0;
+    } else {
+      const uSnap = await get(ref(db, `users/${uid}`));
+      if (uSnap.exists()) {
+        existingPP = Number(uSnap.val()?.pp) || 0;
+      } else {
+        existingPP = 100000; // New student starting default
+      }
+    }
+  } catch (e) {
+    existingPP = 100000;
+  }
+
   if (adminDb) {
     try {
       const ppRef = adminDb.ref(`users/${uid}/pp`);
       const txResult = await ppRef.transaction((currentPP: any) => {
-        const balance = currentPP === null ? 0 : Number(currentPP);
+        const balance = currentPP === null ? existingPP : Number(currentPP);
         previousValue = balance;
         if (delta < 0 && balance + delta < minBalance) {
-          return undefined; // Abort
+          return undefined; // Real abort on insufficient balance
         }
         finalValue = balance + delta;
         return finalValue;
       });
 
       if (!txResult.committed) {
-        return { success: false, oldPP: previousValue, newPP: previousValue, error: 'Số dư PP không đủ hoặc xung đột giao dịch' };
+        return { success: false, oldPP: previousValue, newPP: previousValue, error: 'Số dư PP không đủ để tham gia bàn' };
       }
 
       return { success: true, oldPP: previousValue, newPP: finalValue };
@@ -170,10 +187,10 @@ async function executePPTransaction(uid: string, delta: number, minBalance = 0):
   const ppRef = ref(db, `users/${uid}/pp`);
   try {
     const txResult = await runTransaction(ppRef, (currentPP) => {
-      const balance = currentPP === null ? 0 : Number(currentPP);
+      const balance = currentPP === null ? existingPP : Number(currentPP);
       previousValue = balance;
       if (delta < 0 && balance + delta < minBalance) {
-        // Abort: Insufficient balance
+        // Real abort on insufficient balance
         return undefined;
       }
       finalValue = balance + delta;
@@ -181,7 +198,7 @@ async function executePPTransaction(uid: string, delta: number, minBalance = 0):
     });
 
     if (!txResult.committed) {
-      return { success: false, oldPP: previousValue, newPP: previousValue, error: 'Số dư PP không đủ hoặc xung đột giao dịch' };
+      return { success: false, oldPP: previousValue, newPP: previousValue, error: 'Số dư PP không đủ để tham gia bàn' };
     }
 
     return { success: true, oldPP: previousValue, newPP: finalValue };

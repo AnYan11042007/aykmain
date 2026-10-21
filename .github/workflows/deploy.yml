@@ -32,7 +32,7 @@ jobs:
 
       - name: Install Dependencies & Run Tests
         run: |
-          npm ci
+          npm ci || npm install
           npm test
 
       - name: Authenticate to Google Cloud

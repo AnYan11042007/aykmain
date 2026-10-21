@@ -416,8 +416,6 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
   };
 
   const confirmLeaveTable = () => {
-    const midHand = !!room && room.round !== 'WAITING' && room.round !== 'SHOWDOWN' && !!mySeat && !mySeat.folded;
-    if (midHand && !window.confirm('Ván đang diễn ra. Rời bàn bây giờ sẽ bỏ bài và mất số chip đã cược trong ván này. Vẫn rời bàn?')) return;
     handleLeaveTable();
   };
 
