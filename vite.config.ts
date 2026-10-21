@@ -9,7 +9,16 @@ export default defineConfig(() => {
 
   return {
     base,
-    plugins: [react(), tailwindcss()],
+    plugins: [
+      react(),
+      tailwindcss(),
+      {
+        name: 'ayk-html-transform',
+        transformIndexHtml(html: string) {
+          return html.replace('data-ayk-env="dev-source"', 'data-ayk-env="production-bundle"');
+        },
+      },
+    ],
     resolve: {
       alias: {
         '@': path.resolve(__dirname, '.'),
