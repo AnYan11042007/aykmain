@@ -4,8 +4,8 @@ import path from 'path';
 import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
-  const repoName = process.env.GITHUB_REPOSITORY ? process.env.GITHUB_REPOSITORY.split('/')[1] : '';
-  const base = repoName ? `/${repoName}/` : './';
+  // Universal relative base ensures assets load correctly on any GitHub repo name, Pages, or custom domain
+  const base = process.env.VITE_BASE || './';
 
   return {
     base,
