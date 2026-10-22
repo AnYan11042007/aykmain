@@ -483,6 +483,7 @@ function normalizePokerRoom(raw) {
   room.pot = room.pot || 0;
   room.highestBet = room.highestBet || 0;
   room.currentTurnSeat = typeof room.currentTurnSeat === "number" ? room.currentTurnSeat : null;
+  room.practice = room.practice === true;
   return room;
 }
 function serializePokerRoom(room) {
@@ -816,7 +817,7 @@ function calculateAIDecision(params) {
 
 // src/poker/pokerServer.ts
 var processedActionIds = /* @__PURE__ */ new Map();
-setInterval(() => {
+var cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [id, time] of processedActionIds.entries()) {
     if (now - time > 6e4) {
@@ -824,6 +825,16 @@ setInterval(() => {
     }
   }
 }, 3e4);
+if (typeof cleanupInterval?.unref === "function") {
+  cleanupInterval.unref();
+}
+function safeSetTimeout(fn, ms) {
+  const timer = setTimeout(fn, ms);
+  if (timer && typeof timer.unref === "function") {
+    timer.unref();
+  }
+  return timer;
+}
 function isActionProcessed(actionId) {
   if (!actionId) return false;
   if (processedActionIds.has(actionId)) return true;
@@ -1009,9 +1020,10 @@ async function advancePokerGame(db2, roomId, room, executePPTransaction2) {
       room.history = room.history.slice(-10);
     }
     room.logs = room.logs || [];
-    room.logs.push(`\u{1F389} ${winner.name} th\u1EAFng ${winAmount.toLocaleString()} PP (M\u1ECDi ng\u01B0\u1EDDi \u0111\u1EC1u b\u1ECF b\xE0i).`);
+    const unit = room.practice ? "chip" : "PP";
+    room.logs.push(`\u{1F389} ${winner.name} th\u1EAFng ${winAmount.toLocaleString()} ${unit} (M\u1ECDi ng\u01B0\u1EDDi \u0111\u1EC1u b\u1ECF b\xE0i).`);
     await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
-    setTimeout(() => {
+    safeSetTimeout(() => {
       startNewHandIfReady(db2, roomId, executePPTransaction2).catch(console.error);
     }, 5e3);
     return;
@@ -1164,11 +1176,12 @@ async function finishShowdown(db2, roomId, room, executePPTransaction2) {
     }
   }
   room.logs = room.logs || [];
+  const unit = room.practice ? "chip" : "PP";
   for (const w of room.winners) {
-    room.logs.push(`\u{1F3C6} ${w.name} th\u1EAFng ${w.amount.toLocaleString()} PP (${w.handDesc})`);
+    room.logs.push(`\u{1F3C6} ${w.name} th\u1EAFng ${w.amount.toLocaleString()} ${unit} (${w.handDesc})`);
   }
   await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
-  setTimeout(() => {
+  safeSetTimeout(() => {
     startNewHandIfReady(db2, roomId, executePPTransaction2).catch(console.error);
   }, 5e3);
 }
@@ -1176,11 +1189,32 @@ async function startNewHandIfReady(db2, roomId, executePPTransaction2) {
   const roomSnap = await dbGet(db2, `poker_rooms/${roomId}`);
   if (!roomSnap.exists()) return;
   const room = normalizePokerRoom(roomSnap.val());
-  const hasHuman = room.seats.some((s) => s && !s.isAI && !s.left && s.chips > 0);
-  if (!hasHuman) {
+  const hasHumanSeated = room.seats.some((s) => s && !s.isAI && !s.left);
+  if (!hasHumanSeated) {
     await dbSet(db2, `poker_rooms/${roomId}`, null);
     await dbSet(db2, `poker_private/${roomId}`, null);
     return;
+  }
+  if (room.practice) {
+    const human = room.seats.find((s) => s && !s.isAI && !s.left);
+    if (human && human.chips <= 0) {
+      for (const s of room.seats) {
+        if (s && s.isAI && s.chips <= 0) {
+          s.chips = 5e3;
+        }
+      }
+      room.status = "WAITING";
+      room.round = "WAITING";
+      room.currentTurnSeat = null;
+      room.pot = 0;
+      room.board = [];
+      room.revealedCards = {};
+      room.winners = [];
+      room.logs = room.logs || [];
+      room.logs.push(`\u26A0\uFE0F [${human.name}] \u0111\xE3 h\u1EBFt chip luy\u1EC7n t\u1EADp. H\xE3y b\u1EA5m "N\u1EA1p L\u1EA1i Chip" \u0111\u1EC3 ti\u1EBFp t\u1EE5c.`);
+      await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
+      return;
+    }
   }
   for (let i = 0; i < 5; i++) {
     const s = room.seats[i];
@@ -1353,8 +1387,8 @@ async function executeAITurn(db2, roomId, room, aiSeat, executePPTransaction2) {
     if (currentSeat.chips === 0) currentSeat.allIn = true;
     currentSeat.lastAction = currentSeat.allIn ? "ALL-IN" : `THEO ${callDiff.toLocaleString()}`;
     currentSeat.hasActed = true;
-    currentRoom.logs = currentRoom.logs || [];
-    currentRoom.logs.push(`\u{1FA99} [${currentSeat.name}] Theo ${callDiff.toLocaleString()} PP.`);
+    const unit = currentRoom.practice ? "chip" : "PP";
+    currentRoom.logs.push(`\u{1FA99} [${currentSeat.name}] Theo ${callDiff.toLocaleString()} ${unit}.`);
   } else if (decision.action === "RAISE" || decision.action === "ALL_IN") {
     const isAllIn = decision.action === "ALL_IN";
     const targetBet = isAllIn ? options.maxRaiseTotal : Math.min(options.maxRaiseTotal, Math.max(options.minRaiseTotal, decision.amount || options.minRaiseTotal));
@@ -1372,7 +1406,8 @@ async function executeAITurn(db2, roomId, room, aiSeat, executePPTransaction2) {
     currentSeat.lastAction = currentSeat.allIn ? `ALL-IN ${targetBet.toLocaleString()}` : `T\u1ED0 ${targetBet.toLocaleString()}`;
     currentSeat.hasActed = true;
     currentRoom.logs = currentRoom.logs || [];
-    currentRoom.logs.push(`\u{1F525} [${currentSeat.name}] ${currentSeat.allIn ? "ALL-IN" : "T\u1ED1 l\xEAn"} ${targetBet.toLocaleString()} PP.`);
+    const unit = currentRoom.practice ? "chip" : "PP";
+    currentRoom.logs.push(`\u{1F525} [${currentSeat.name}] ${currentSeat.allIn ? "ALL-IN" : "T\u1ED1 l\xEAn"} ${targetBet.toLocaleString()} ${unit}.`);
   }
   recordPlayerAction(roomId, currentSeat.uid, decision.action, currentRoom.round);
   await advancePokerGame(db2, roomId, currentRoom, executePPTransaction2);
@@ -1383,7 +1418,7 @@ function checkIfNextTurnIsAI(db2, roomId, room, executePPTransaction2) {
   const currentSeat = room.seats[room.currentTurnSeat];
   if (currentSeat && currentSeat.isAI && !currentSeat.folded && !currentSeat.allIn) {
     const delay = import_crypto.default.randomInt(800, 2500);
-    setTimeout(() => {
+    safeSetTimeout(() => {
       onAITurnTrigger(db2, roomId, room, currentSeat, executePPTransaction2).catch(console.error);
     }, delay);
   }
@@ -1411,28 +1446,47 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     if (!auth.ok) {
       return res.status(401).json({ success: false, error: auth.error });
     }
-    const bb = Math.max(10, Math.floor(Number(bigBlind) || 100));
-    const minBuyIn = bb * 20;
-    const maxBuyIn = bb * 100;
-    const requestedBuyIn = Math.floor(Number(buyIn) || minBuyIn);
-    if (requestedBuyIn < minBuyIn || requestedBuyIn > maxBuyIn) {
-      return res.status(400).json({
-        success: false,
-        error: `M\u1EE9c Buy-in ph\u1EA3i t\u1EEB ${minBuyIn.toLocaleString()} \u0111\u1EBFn ${maxBuyIn.toLocaleString()} PP`
-      });
-    }
-    const tx = await executePPTransaction2(uid, -requestedBuyIn);
-    if (!tx.success) {
-      return res.status(400).json({ success: false, error: tx.error || "S\u1ED1 d\u01B0 PP kh\xF4ng \u0111\u1EE7 \u0111\u1EC3 Buy-in" });
+    const targetMode = mode === "MULTIPLAYER" ? "MULTIPLAYER" : "AI";
+    const validDifficulty = difficulty === "EASY" || difficulty === "HARD" ? difficulty : "NORMAL";
+    const isPractice = targetMode === "AI" && (validDifficulty === "EASY" || validDifficulty === "NORMAL");
+    let initialChips = 5e3;
+    let bb = 100;
+    let minBuyIn = 2e3;
+    let maxBuyIn = 1e4;
+    let userNewPP = typeof auth.user.pp === "number" ? auth.user.pp : 0;
+    if (!isPractice) {
+      bb = Math.max(10, Math.floor(Number(bigBlind) || 100));
+      minBuyIn = bb * 20;
+      maxBuyIn = bb * 100;
+      const requestedBuyIn = Math.floor(Number(buyIn) || minBuyIn);
+      if (requestedBuyIn < minBuyIn || requestedBuyIn > maxBuyIn) {
+        return res.status(400).json({
+          success: false,
+          error: `M\u1EE9c Buy-in ph\u1EA3i t\u1EEB ${minBuyIn.toLocaleString()} \u0111\u1EBFn ${maxBuyIn.toLocaleString()} PP`
+        });
+      }
+      const tx = await executePPTransaction2(uid, -requestedBuyIn);
+      if (!tx.success) {
+        return res.status(400).json({ success: false, error: tx.error || "S\u1ED1 d\u01B0 PP kh\xF4ng \u0111\u1EE7 \u0111\u1EC3 Buy-in" });
+      }
+      userNewPP = tx.newPP;
+      initialChips = requestedBuyIn;
+    } else {
+      initialChips = 5e3;
+      bb = 100;
+      minBuyIn = 2e3;
+      maxBuyIn = 1e4;
     }
     const roomId = `PK${Date.now().toString().slice(-4)}${import_crypto.default.randomInt(10, 99)}`;
-    await recordPokerTransaction(db2, uid, -requestedBuyIn, `Buy-in Poker Texas Hold'em (B\xE0n #${roomId})`);
+    if (!isPractice) {
+      await recordPokerTransaction(db2, uid, -initialChips, `Buy-in Poker Texas Hold'em (B\xE0n #${roomId})`);
+    }
     const creatorSeat = {
       seatIndex: 0,
       uid,
       name: name || auth.user.name || "Ng\u01B0\u1EDDi ch\u01A1i",
       avatar: avatar || auth.user.avatar || "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80",
-      chips: requestedBuyIn,
+      chips: initialChips,
       currentBet: 0,
       totalHandBet: 0,
       folded: false,
@@ -1441,7 +1495,7 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
       consecutiveTimeouts: 0
     };
     const seats = [creatorSeat, null, null, null, null];
-    if (mode === "AI") {
+    if (targetMode === "AI") {
       for (let i = 1; i <= 4; i++) {
         const botTemplate = AI_BOTS[i - 1];
         seats[i] = {
@@ -1449,7 +1503,7 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
           uid: `ai_bot_${i}_${roomId}`,
           name: botTemplate.name,
           avatar: botTemplate.avatar,
-          chips: requestedBuyIn,
+          chips: initialChips,
           currentBet: 0,
           totalHandBet: 0,
           folded: false,
@@ -1460,12 +1514,11 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
         };
       }
     }
-    const validDifficulty = difficulty === "EASY" || difficulty === "HARD" ? difficulty : "NORMAL";
     const validTurnTime = [15, 30, 45].includes(Number(turnTimeLimit)) ? Number(turnTimeLimit) : 20;
     const room = {
       id: roomId,
       name: `B\xC0N #${roomId}`,
-      mode: mode === "MULTIPLAYER" ? "MULTIPLAYER" : "AI",
+      mode: targetMode,
       creator: uid,
       creatorName: creatorSeat.name,
       bigBlind: bb,
@@ -1482,17 +1535,18 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
       lastRaiseDelta: bb,
       board: [],
       actionExpiry: 0,
-      logs: [`Ph\xF2ng poker ${roomId} \u0111\xE3 \u0111\u01B0\u1EE3c t\u1EA1o th\xE0nh c\xF4ng.`],
-      difficulty: mode === "AI" ? validDifficulty : void 0,
-      turnTimeLimit: validTurnTime
+      logs: [`Ph\xF2ng poker ${roomId} (${isPractice ? "Luy\u1EC7n t\u1EADp \xB7 5,000 chip \u1EA3o" : "C\u01B0\u1EE3c PP th\u1EADt"}) \u0111\xE3 \u0111\u01B0\u1EE3c t\u1EA1o th\xE0nh c\xF4ng.`],
+      difficulty: targetMode === "AI" ? validDifficulty : void 0,
+      turnTimeLimit: validTurnTime,
+      practice: isPractice
     };
     await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
-    if (mode === "AI") {
-      setTimeout(() => {
+    if (targetMode === "AI") {
+      safeSetTimeout(() => {
         dealNewHand(db2, roomId, room, executePPTransaction2).catch(console.error);
       }, 500);
     }
-    res.json({ success: true, roomId, room, newPP: tx.newPP });
+    res.json({ success: true, roomId, room, newPP: userNewPP });
   });
   router.post("/join", async (req, res) => {
     const { roomId, uid, sessionToken, name, avatar, seatIndex, buyIn, actionId } = req.body;
@@ -1528,11 +1582,15 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
         error: `M\u1EE9c Buy-in ph\u1EA3i t\u1EEB ${room.minBuyIn.toLocaleString()} \u0111\u1EBFn ${room.maxBuyIn.toLocaleString()} PP`
       });
     }
-    const tx = await executePPTransaction2(uid, -requestedBuyIn);
-    if (!tx.success) {
-      return res.status(400).json({ success: false, error: tx.error || "S\u1ED1 d\u01B0 PP kh\xF4ng \u0111\u1EE7 \u0111\u1EC3 Buy-in" });
+    let userNewPP = typeof auth.user.pp === "number" ? auth.user.pp : 0;
+    if (!room.practice) {
+      const tx = await executePPTransaction2(uid, -requestedBuyIn);
+      if (!tx.success) {
+        return res.status(400).json({ success: false, error: tx.error || "S\u1ED1 d\u01B0 PP kh\xF4ng \u0111\u1EE7 \u0111\u1EC3 Buy-in" });
+      }
+      userNewPP = tx.newPP;
+      await recordPokerTransaction(db2, uid, -requestedBuyIn, `Buy-in Poker Texas Hold'em (B\xE0n #${roomId})`);
     }
-    await recordPokerTransaction(db2, uid, -requestedBuyIn, `Buy-in Poker Texas Hold'em (B\xE0n #${roomId})`);
     const newSeat = {
       seatIndex: targetSeat,
       uid,
@@ -1550,7 +1608,7 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     room.logs = room.logs || [];
     room.logs.push(`\u{1F44B} [${newSeat.name}] \u0111\xE3 ng\u1ED3i v\xE0o gh\u1EBF s\u1ED1 ${targetSeat + 1}.`);
     await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
-    res.json({ success: true, room, seatIndex: targetSeat, newPP: tx.newPP });
+    res.json({ success: true, room, seatIndex: targetSeat, newPP: userNewPP });
   });
   router.post("/leave", async (req, res) => {
     const { roomId, uid, sessionToken, actionId } = req.body;
@@ -1572,8 +1630,8 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     }
     const seat = room.seats[seatIdx];
     const refundChips = seat.chips || 0;
-    let newPP = 0;
-    if (refundChips > 0) {
+    let newPP = typeof auth.user.pp === "number" ? auth.user.pp : 0;
+    if (!room.practice && refundChips > 0) {
       const tx = await executePPTransaction2(uid, refundChips);
       if (tx.success) {
         newPP = tx.newPP;
@@ -1582,7 +1640,8 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     }
     const midHand = room.round !== "WAITING" && room.round !== "SHOWDOWN";
     room.logs = room.logs || [];
-    room.logs.push(`\u{1F6AA} [${seat.name}] \u0111\xE3 r\u1EDDi b\xE0n (${refundChips.toLocaleString()} chip ho\xE0n v\xE0o PP).`);
+    const refundLogMsg = room.practice ? `${refundChips.toLocaleString()} chip luy\u1EC7n t\u1EADp b\u1ECB h\u1EE7y` : `${refundChips.toLocaleString()} chip ho\xE0n v\xE0o PP`;
+    room.logs.push(`\u{1F6AA} [${seat.name}] \u0111\xE3 r\u1EDDi b\xE0n (${refundLogMsg}).`);
     if (midHand && (seat.totalHandBet || 0) > 0) {
       seat.folded = true;
       seat.left = true;
@@ -1596,7 +1655,7 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     if (humansLeft.length === 0) {
       await dbSet(db2, `poker_rooms/${roomId}`, null);
       await dbSet(db2, `poker_private/${roomId}`, null);
-      return res.json({ success: true, refunded: refundChips, newPP });
+      return res.json({ success: true, refunded: room.practice ? 0 : refundChips, newPP });
     }
     const stillInHand = room.seats.filter((s) => s && !s.folded);
     if (midHand && (room.currentTurnSeat === seatIdx || stillInHand.length <= 1)) {
@@ -1604,7 +1663,7 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     } else {
       await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
     }
-    res.json({ success: true, refunded: refundChips, newPP });
+    res.json({ success: true, refunded: room.practice ? 0 : refundChips, newPP });
   });
   router.post("/start", async (req, res) => {
     const { roomId, uid, sessionToken, actionId } = req.body;
@@ -1687,14 +1746,15 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
       seat.lastAction = seat.allIn ? "ALL-IN" : `THEO ${callDiff.toLocaleString()}`;
       seat.hasActed = true;
       room.logs = room.logs || [];
-      room.logs.push(`\u{1FA99} [${seat.name}] Theo ${callDiff.toLocaleString()} PP.`);
+      const unit = room.practice ? "chip" : "PP";
+      room.logs.push(`\u{1FA99} [${seat.name}] Theo ${callDiff.toLocaleString()} ${unit}.`);
     } else if (action === "RAISE" || action === "ALL_IN") {
       const isAllInAction = action === "ALL_IN";
       const targetBet = isAllInAction ? options.maxRaiseTotal : Math.floor(Number(amount) || options.minRaiseTotal);
       if (targetBet < options.minRaiseTotal && targetBet !== options.maxRaiseTotal) {
         return res.status(400).json({
           success: false,
-          error: `M\u1EE9c t\u1ED1 t\u1ED1i thi\u1EC3u l\xE0 ${options.minRaiseTotal.toLocaleString()} PP`
+          error: `M\u1EE9c t\u1ED1 t\u1ED1i thi\u1EC3u l\xE0 ${options.minRaiseTotal.toLocaleString()} ${room.practice ? "chip" : "PP"}`
         });
       }
       if (targetBet > options.maxRaiseTotal) {
@@ -1714,7 +1774,8 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
       seat.lastAction = seat.allIn ? `ALL-IN ${targetBet.toLocaleString()}` : `T\u1ED0 ${targetBet.toLocaleString()}`;
       seat.hasActed = true;
       room.logs = room.logs || [];
-      room.logs.push(`\u{1F525} [${seat.name}] ${seat.allIn ? "ALL-IN" : "T\u1ED1 l\xEAn"} ${targetBet.toLocaleString()} PP.`);
+      const unit = room.practice ? "chip" : "PP";
+      room.logs.push(`\u{1F525} [${seat.name}] ${seat.allIn ? "ALL-IN" : "T\u1ED1 l\xEAn"} ${targetBet.toLocaleString()} ${unit}.`);
     } else {
       return res.status(400).json({ success: false, error: "H\xE0nh \u0111\u1ED9ng kh\xF4ng h\u1EE3p l\u1EC7" });
     }
@@ -1762,7 +1823,7 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     }
     if (seat.consecutiveTimeouts >= 3 && !seat.isAI) {
       const refund = seat.chips || 0;
-      if (refund > 0) {
+      if (!room.practice && refund > 0) {
         await executePPTransaction2(seat.uid, refund);
         await recordPokerTransaction(db2, seat.uid, refund, `T\u1EF1 \u0111\u1ED9ng ho\xE0n tr\u1EA3 chip do v\u1EAFng m\u1EB7t 3 l\u01B0\u1EE3t (B\xE0n #${roomId})`);
       }
@@ -1800,6 +1861,50 @@ function setupPokerRouter(clientDb, executePPTransaction2, adminDb2) {
     }
     await dbSet(db2, `poker_rooms/${roomId}/emotes/${uid}`, { emote, timestamp: now });
     res.json({ success: true, emote, timestamp: now });
+  });
+  router.post("/rebuy_practice", async (req, res) => {
+    const { roomId, uid, sessionToken, actionId } = req.body;
+    if (isActionProcessed(actionId)) {
+      return res.status(400).json({ success: false, error: "Y\xEAu c\u1EA7u tr\xF9ng l\u1EB7p" });
+    }
+    const auth = await verifyUserSession(db2, uid, sessionToken);
+    if (!auth.ok) {
+      return res.status(401).json({ success: false, error: auth.error });
+    }
+    const roomSnap = await dbGet(db2, `poker_rooms/${roomId}`);
+    if (!roomSnap.exists()) {
+      return res.status(404).json({ success: false, error: "Ph\xF2ng kh\xF4ng t\u1ED3n t\u1EA1i" });
+    }
+    const room = normalizePokerRoom(roomSnap.val());
+    if (!room.practice) {
+      return res.status(400).json({
+        success: false,
+        error: "Ch\u1EE9c n\u0103ng n\u1EA1p chip mi\u1EC5n ph\xED ch\u1EC9 \xE1p d\u1EE5ng cho b\xE0n Luy\u1EC7n T\u1EADp (EASY/NORMAL)"
+      });
+    }
+    const seat = room.seats.find((s) => s?.uid === uid);
+    if (!seat) {
+      return res.status(403).json({ success: false, error: "B\u1EA1n kh\xF4ng ng\u1ED3i trong b\xE0n n\xE0y" });
+    }
+    seat.chips = 5e3;
+    seat.folded = false;
+    seat.allIn = false;
+    delete seat.left;
+    delete seat.lastAction;
+    for (const s of room.seats) {
+      if (s && s.isAI && s.chips <= 0) {
+        s.chips = 5e3;
+      }
+    }
+    room.logs = room.logs || [];
+    room.logs.push(`\u{1F504} [${seat.name}] \u0111\xE3 n\u1EA1p l\u1EA1i 5,000 chip luy\u1EC7n t\u1EADp mi\u1EC5n ph\xED.`);
+    await dbSet(db2, `poker_rooms/${roomId}`, serializePokerRoom(room));
+    if (room.status === "WAITING" || room.round === "WAITING") {
+      safeSetTimeout(() => {
+        dealNewHand(db2, roomId, room, executePPTransaction2).catch(console.error);
+      }, 500);
+    }
+    res.json({ success: true, chips: seat.chips, message: "\u0110\xE3 n\u1EA1p l\u1EA1i 5,000 chip luy\u1EC7n t\u1EADp" });
   });
   return router;
 }
