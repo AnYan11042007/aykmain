@@ -294,5 +294,6 @@ export interface PokerRoom {
   turnTimeLimit?: number;
   emotes?: Record<string, { emote: string; timestamp: number }>;
   history?: PokerHistoryItem[];
+  practice?: boolean;
 }
 

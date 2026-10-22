@@ -41,7 +41,9 @@ import {
   Sparkles,
   Clock,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  RefreshCw,
+  Play
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ref, onValue, off } from 'firebase/database';
@@ -113,13 +115,25 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
   const [emoteCooldownUntil, setEmoteCooldownUntil] = useState<number>(0);
   const [nowTimestamp, setNowTimestamp] = useState<number>(Date.now());
 
-  // Personal Stats
-  const [personalStats, setPersonalStats] = useState<PersonalPokerStats>(() => {
+  // Personal Stats (Separated between Real PP games and Practice chip games)
+  const [statsTab, setStatsTab] = useState<'REAL' | 'PRACTICE'>('REAL');
+  const [realStats, setRealStats] = useState<PersonalPokerStats>(() => {
     if (typeof window === 'undefined') {
       return { handsPlayed: 0, handsWon: 0, biggestPot: 0, bestHandName: 'Chưa có', bestHandRank: 11 };
     }
     try {
-      const saved = localStorage.getItem(`ayk_poker_stats_${uid}`);
+      const saved = localStorage.getItem(`ayk_poker_stats_${uid}_real`) || localStorage.getItem(`ayk_poker_stats_${uid}`);
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return { handsPlayed: 0, handsWon: 0, biggestPot: 0, bestHandName: 'Chưa có', bestHandRank: 11 };
+  });
+
+  const [practiceStats, setPracticeStats] = useState<PersonalPokerStats>(() => {
+    if (typeof window === 'undefined') {
+      return { handsPlayed: 0, handsWon: 0, biggestPot: 0, bestHandName: 'Chưa có', bestHandRank: 11 };
+    }
+    try {
+      const saved = localStorage.getItem(`ayk_poker_stats_${uid}_practice`);
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return { handsPlayed: 0, handsWon: 0, biggestPot: 0, bestHandName: 'Chưa có', bestHandRank: 11 };
@@ -298,6 +312,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
   }, [room, uid]);
 
   const mySeat = mySeatIndex !== -1 && room ? room.seats[mySeatIndex] : null;
+  const unitLabel = room?.practice ? 'chip' : 'PP';
 
   const visualSeats = useMemo(() => {
     if (!room) return [];
@@ -400,10 +415,12 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
       }, 5000);
     }
 
-    // 2. Personal Stats Update
+    // 2. Personal Stats Update (Separated strictly between practice and real stakes)
     if (mySeat && !mySeat.left && lastHandRecordedRef.current !== currentHand) {
       lastHandRecordedRef.current = currentHand;
-      setPersonalStats(prev => {
+      const isPracticeHand = room.practice === true;
+
+      const updateStatsFn = (prev: PersonalPokerStats): PersonalPokerStats => {
         const nextPlayed = prev.handsPlayed + 1;
         const myWin = room.winners?.find(w => w.uid === uid);
         const nextWon = myWin ? prev.handsWon + 1 : prev.handsWon;
@@ -425,11 +442,18 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
         };
 
         try {
-          localStorage.setItem(`ayk_poker_stats_${uid}`, JSON.stringify(updated));
+          const key = isPracticeHand ? `ayk_poker_stats_${uid}_practice` : `ayk_poker_stats_${uid}_real`;
+          localStorage.setItem(key, JSON.stringify(updated));
         } catch (e) {}
 
         return updated;
-      });
+      };
+
+      if (isPracticeHand) {
+        setPracticeStats(updateStatsFn);
+      } else {
+        setRealStats(updateStatsFn);
+      }
     }
   }, [room, mySeat, uid, myHandEvaluation]);
 
@@ -516,11 +540,12 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
   };
 
   const handleCreateRoom = async () => {
+    const isPracticeMode = selectedMode === 'AI' && (aiDifficulty === 'EASY' || aiDifficulty === 'NORMAL');
     const minBuy = selectedBB * 20;
     const maxBuy = selectedBB * 100;
     const clampedBuyIn = Math.max(minBuy, Math.min(maxBuy, buyInSlider));
 
-    if ((user?.pp || 0) < clampedBuyIn) {
+    if (!isPracticeMode && (user?.pp || 0) < clampedBuyIn) {
       setErrorMessage(`Bạn không đủ ${clampedBuyIn.toLocaleString()} PP để tham gia bàn này`);
       return;
     }
@@ -531,8 +556,8 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
       name: user?.name || 'Võ sĩ AYK',
       avatar: user?.avatar || '',
       mode: selectedMode,
-      bigBlind: selectedBB,
-      buyIn: clampedBuyIn,
+      bigBlind: isPracticeMode ? 100 : selectedBB,
+      buyIn: isPracticeMode ? 5000 : clampedBuyIn,
       difficulty: selectedMode === 'AI' ? aiDifficulty : undefined,
       turnTimeLimit: selectedMode === 'MULTIPLAYER' ? turnTimeLimit : 20
     });
@@ -562,6 +587,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
 
   const handleLeaveTable = async () => {
     if (!currentRoomId) return;
+    const wasPractice = room?.practice;
     const data = await sendAction('leave', { roomId: currentRoomId, uid });
     if (data?.success) {
       setCurrentRoomId(null);
@@ -569,7 +595,17 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
       setMyHoleCards([]);
       if (data.refunded > 0) {
         onShowResult?.('Rời Bàn Poker', `Đã hoàn lại ${data.refunded.toLocaleString()} chip vào tài khoản PP!`, true);
+      } else if (wasPractice) {
+        onShowResult?.('Rời Bàn Poker', 'Đã rời bàn Luyện Tập. Chip ảo đã được giải phóng.', false);
       }
+    }
+  };
+
+  const handleRebuyPractice = async () => {
+    if (!currentRoomId) return;
+    const data = await sendAction('rebuy_practice', { roomId: currentRoomId, uid });
+    if (data?.success) {
+      playSound('chip');
     }
   };
 
@@ -671,7 +707,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
                 🎉 THẮNG LỚN! POT KHỦNG 20+ BB 🎉
               </span>
               <span className="text-base sm:text-xl font-mono font-black block">
-                {bigWinBanner.isMe ? 'BẠN ĐÃ ĂN TRỌN' : bigWinBanner.winnerName} +{bigWinBanner.amount.toLocaleString()} PP!
+                {bigWinBanner.isMe ? 'BẠN ĐÃ ĂN TRỌN' : bigWinBanner.winnerName} +{bigWinBanner.amount.toLocaleString()} {unitLabel}!
               </span>
             </div>
             <Sparkles className="w-6 h-6 animate-spin" />
@@ -786,38 +822,69 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 my-4">
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 text-center">
-                <span className="text-[11px] text-slate-400 font-mono block">SỐ VÁN ĐÃ ĐẤU</span>
-                <span className="text-xl font-mono font-black text-white mt-1 block">
-                  {personalStats.handsPlayed}
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 text-center">
-                <span className="text-[11px] text-slate-400 font-mono block">TỈ LỆ THẮNG</span>
-                <span className="text-xl font-mono font-black text-emerald-400 mt-1 block">
-                  {personalStats.handsPlayed > 0
-                    ? `${Math.round((personalStats.handsWon / personalStats.handsPlayed) * 100)}%`
-                    : '0%'}
-                </span>
-                <span className="text-[10px] text-slate-500 font-mono">({personalStats.handsWon} ván thắng)</span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-amber-500/30 text-center col-span-2">
-                <span className="text-[11px] text-yellow-400 font-mono block font-bold">POT LỚN NHẤT ĐÃ THẮNG</span>
-                <span className="text-xl sm:text-2xl font-mono font-black text-[#ffd700] mt-1 block">
-                  🪙 {personalStats.biggestPot.toLocaleString()} PP
-                </span>
-              </div>
-
-              <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30 text-center col-span-2">
-                <span className="text-[11px] text-purple-300 font-mono block font-bold">TAY BÀI MẠNH NHẤT TỪNG ĐẠT</span>
-                <span className="text-sm sm:text-base font-black text-white mt-1 block">
-                  {personalStats.bestHandName}
-                </span>
-              </div>
+            {/* Tabs for Real PP vs Practice Chip stats */}
+            <div className="flex rounded-xl bg-black/60 p-1 border border-white/10 my-3">
+              <button
+                onClick={() => setStatsTab('REAL')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  statsTab === 'REAL'
+                    ? 'bg-amber-500 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                💰 CƯỢC PP THẬT
+              </button>
+              <button
+                onClick={() => setStatsTab('PRACTICE')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-mono font-bold uppercase transition cursor-pointer flex items-center justify-center gap-1.5 ${
+                  statsTab === 'PRACTICE'
+                    ? 'bg-emerald-500 text-black shadow-md'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                🎓 LUYỆN TẬP (CHIP ẢO)
+              </button>
             </div>
+
+            {(() => {
+              const currentStat = statsTab === 'REAL' ? realStats : practiceStats;
+              const currentUnit = statsTab === 'REAL' ? 'PP' : 'chip';
+
+              return (
+                <div className="grid grid-cols-2 gap-3 my-3">
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 text-center">
+                    <span className="text-[11px] text-slate-400 font-mono block">SỐ VÁN ĐÃ ĐẤU</span>
+                    <span className="text-xl font-mono font-black text-white mt-1 block">
+                      {currentStat.handsPlayed}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-white/10 text-center">
+                    <span className="text-[11px] text-slate-400 font-mono block">TỈ LỆ THẮNG</span>
+                    <span className="text-xl font-mono font-black text-emerald-400 mt-1 block">
+                      {currentStat.handsPlayed > 0
+                        ? `${Math.round((currentStat.handsWon / currentStat.handsPlayed) * 100)}%`
+                        : '0%'}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono">({currentStat.handsWon} ván thắng)</span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-amber-500/30 text-center col-span-2">
+                    <span className="text-[11px] text-yellow-400 font-mono block font-bold">POT LỚN NHẤT ĐÃ THẮNG</span>
+                    <span className="text-xl sm:text-2xl font-mono font-black text-[#ffd700] mt-1 block">
+                      🪙 {currentStat.biggestPot.toLocaleString()} {currentUnit}
+                    </span>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/30 text-center col-span-2">
+                    <span className="text-[11px] text-purple-300 font-mono block font-bold">TAY BÀI MẠNH NHẤT TỪNG ĐẠT</span>
+                    <span className="text-sm sm:text-base font-black text-white mt-1 block">
+                      {currentStat.bestHandName}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
 
             <div className="pt-2 text-center">
               <button
@@ -851,10 +918,21 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
             </button>
 
             <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="text-yellow-400 text-xs sm:text-sm font-black uppercase tracking-wider font-mono flex items-center gap-1 whitespace-nowrap">
                   ♠ POKER<span className="hidden min-[480px]:inline"> TEXAS HOLD'EM</span>
                 </span>
+                {room && (
+                  room.practice ? (
+                    <span className="px-2 py-0.5 rounded-full bg-emerald-950 text-emerald-300 border border-emerald-500/60 text-[10px] font-mono font-black uppercase flex items-center gap-1 shadow">
+                      🎓 LUYỆN TẬP
+                    </span>
+                  ) : (
+                    <span className="px-2 py-0.5 rounded-full bg-amber-950 text-yellow-300 border border-amber-500/60 text-[10px] font-mono font-black uppercase flex items-center gap-1 shadow">
+                      💰 PP THẬT
+                    </span>
+                  )
+                )}
                 {room?.mode === 'AI' && (
                   <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold uppercase ${
                     room.difficulty === 'EASY'
@@ -1077,61 +1155,103 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
               )}
 
               {/* Create Room Controls */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
-                <div className="p-3 bg-black/40 border border-white/10 rounded-xl space-y-2">
-                  <label className="text-[11px] font-mono text-cyan-300 font-bold uppercase block">
-                    MỨC CƯỢC BIG BLIND (BB)
-                  </label>
-                  <div className="grid grid-cols-3 gap-1.5 font-mono text-xs">
-                    {[50, 100, 200, 500, 1000, 2000].map(bb => (
+              {selectedMode === 'AI' && (aiDifficulty === 'EASY' || aiDifficulty === 'NORMAL') ? (
+                /* PRACTICE MODE LOBBY PANEL */
+                <div className="p-4 rounded-xl bg-gradient-to-r from-emerald-950/70 via-slate-900 to-emerald-950/70 border-2 border-emerald-500/60 shadow-[0_0_30px_rgba(16,185,129,0.25)] flex flex-col md:flex-row items-center justify-between gap-4">
+                  <div className="space-y-1.5 text-center md:text-left">
+                    <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-300 font-mono font-black text-xs uppercase tracking-wider">
+                      🎓 CHẾ ĐỘ LUYỆN TẬP · KHÔNG DÙNG PP · KHÔNG THƯỞNG PP
+                    </div>
+                    <p className="text-xs sm:text-sm text-slate-200">
+                      Bạn sẽ được cấp miễn phí <strong className="text-emerald-400 font-mono">5.000 chip ảo</strong> để rèn luyện kỹ năng với 4 bot AI ({aiDifficulty === 'EASY' ? 'Độ khó DỄ' : 'Độ khó THƯỜNG'}). Hết chip được nạp lại miễn phí không giới hạn!
+                    </p>
+                    <p className="text-[11px] text-slate-400 font-mono">
+                      Mức cược tiêu chuẩn: Small Blind 50 / Big Blind 100 chip ảo · Hoàn toàn miễn phí 100%
+                    </p>
+                  </div>
+
+                  <div className="w-full md:w-auto shrink-0">
+                    <button
+                      onClick={handleCreateRoom}
+                      disabled={isCreating}
+                      className="w-full md:w-auto px-8 min-h-[52px] py-3.5 bg-gradient-to-r from-emerald-400 via-teal-400 to-emerald-500 hover:brightness-110 text-black font-mono font-black text-xs sm:text-sm uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_25px_rgba(16,185,129,0.5)] active:scale-95 flex items-center justify-center gap-2"
+                    >
+                      <Play className="w-4 h-4 fill-black" />
+                      <span>{isCreating ? 'ĐANG KHỞI TẠO...' : 'VÀO BÀN LUYỆN TẬP NGAY'}</span>
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* REAL STAKES LOBBY CONTROLS (AI HARD & MULTIPLAYER) */
+                <div className="space-y-3">
+                  {selectedMode === 'AI' && aiDifficulty === 'HARD' && (
+                    <div className="px-3.5 py-2 rounded-xl bg-amber-950/60 border border-amber-500/50 flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs">
+                      <span className="font-mono font-bold text-yellow-300 flex items-center gap-1.5">
+                        💰 CƯỢC PP THẬT (ĐỐI ĐẦU BOT AI KHÓ)
+                      </span>
+                      <span className="text-[11px] text-amber-200/90 font-mono">
+                        Buy-in sẽ trừ PP thật · Thắng nhận PP thật từ Pot · 2.000+ mô phỏng Monte Carlo
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
+                    <div className="p-3 bg-black/40 border border-white/10 rounded-xl space-y-2">
+                      <label className="text-[11px] font-mono text-cyan-300 font-bold uppercase block">
+                        MỨC CƯỢC BIG BLIND (BB)
+                      </label>
+                      <div className="grid grid-cols-3 gap-1.5 font-mono text-xs">
+                        {[50, 100, 200, 500, 1000, 2000].map(bb => (
+                          <button
+                            key={bb}
+                            onClick={() => {
+                              setSelectedBB(bb);
+                              setBuyInSlider(bb * 50);
+                            }}
+                            className={`py-1.5 rounded-lg border font-bold transition cursor-pointer ${
+                              selectedBB === bb ? 'bg-cyan-500 text-black border-cyan-400' : 'bg-slate-900 text-white border-white/10 hover:border-white/30'
+                            }`}
+                          >
+                            {bb} PP
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="p-3 bg-black/40 border border-white/10 rounded-xl space-y-2">
+                      <div className="flex justify-between items-center text-[11px] font-mono">
+                        <span className="text-yellow-400 font-bold uppercase">MỨC BUY-IN VÀO BÀN</span>
+                        <span className="text-white font-black">{buyInSlider.toLocaleString()} PP</span>
+                      </div>
+                      <input
+                        type="range"
+                        min={selectedBB * 20}
+                        max={selectedBB * 100}
+                        step={selectedBB * 5}
+                        value={buyInSlider}
+                        onChange={e => setBuyInSlider(Number(e.target.value))}
+                        className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg touch-pan-y"
+                      />
+                      <div className="flex justify-between text-[10px] font-mono text-slate-400">
+                        <span>Min: {(selectedBB * 20).toLocaleString()}</span>
+                        <span>50x BB</span>
+                        <span>Max: {(selectedBB * 100).toLocaleString()}</span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col justify-end">
                       <button
-                        key={bb}
-                        onClick={() => {
-                          setSelectedBB(bb);
-                          setBuyInSlider(bb * 50);
-                        }}
-                        className={`py-1.5 rounded-lg border font-bold transition cursor-pointer ${
-                          selectedBB === bb ? 'bg-cyan-500 text-black border-cyan-400' : 'bg-slate-900 text-white border-white/10 hover:border-white/30'
-                        }`}
+                        onClick={handleCreateRoom}
+                        disabled={isCreating}
+                        className="w-full min-h-[52px] py-3.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:brightness-110 text-black font-mono font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.5)] active:scale-95 flex items-center justify-center gap-2"
                       >
-                        {bb} PP
+                        <Plus className="w-4 h-4" />
+                        <span>{isCreating ? 'ĐANG KHỞI TẠO...' : selectedMode === 'AI' ? 'VÀO BÀN ĐẤU AI (CƯỢC PP)' : 'TẠO BÀN POKER MỚI'}</span>
                       </button>
-                    ))}
+                    </div>
                   </div>
                 </div>
-
-                <div className="p-3 bg-black/40 border border-white/10 rounded-xl space-y-2">
-                  <div className="flex justify-between items-center text-[11px] font-mono">
-                    <span className="text-yellow-400 font-bold uppercase">MỨC BUY-IN VÀO BÀN</span>
-                    <span className="text-white font-black">{buyInSlider.toLocaleString()} PP</span>
-                  </div>
-                  <input
-                    type="range"
-                    min={selectedBB * 20}
-                    max={selectedBB * 100}
-                    step={selectedBB * 5}
-                    value={buyInSlider}
-                    onChange={e => setBuyInSlider(Number(e.target.value))}
-                    className="w-full accent-cyan-400 cursor-pointer h-2 bg-slate-800 rounded-lg touch-pan-y"
-                  />
-                  <div className="flex justify-between text-[10px] font-mono text-slate-400">
-                    <span>Min: {(selectedBB * 20).toLocaleString()}</span>
-                    <span>50x BB</span>
-                    <span>Max: {(selectedBB * 100).toLocaleString()}</span>
-                  </div>
-                </div>
-
-                <div className="flex flex-col justify-end">
-                  <button
-                    onClick={handleCreateRoom}
-                    disabled={isCreating}
-                    className="w-full min-h-[52px] py-3.5 bg-gradient-to-r from-cyan-400 via-blue-500 to-indigo-600 hover:brightness-110 text-black font-mono font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_20px_rgba(0,240,255,0.5)] active:scale-95 flex items-center justify-center gap-2"
-                  >
-                    <Plus className="w-4 h-4" />
-                    <span>{isCreating ? 'ĐANG KHỞI TẠO...' : selectedMode === 'AI' ? 'VÀO BÀN ĐẤU AI NGAY' : 'TẠO BÀN POKER MỚI'}</span>
-                  </button>
-                </div>
-              </div>
+              )}
 
               {selectedMode === 'MULTIPLAYER' && (
                 <div className="space-y-2 border-t border-white/10 pt-3">
@@ -1199,7 +1319,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
                   <div className="px-3 sm:px-5 py-1 rounded-full bg-black/80 border-2 border-amber-400/90 shadow-[0_0_25px_rgba(250,204,21,0.6)] flex items-center gap-1.5 animate-pulse">
                     <span className="text-yellow-400 text-xs sm:text-sm">🪙</span>
                     <span className="text-xs sm:text-sm font-mono font-black text-yellow-300 uppercase tracking-wider">
-                      POT {room.pot.toLocaleString()} PP
+                      POT {room.pot.toLocaleString()} {unitLabel}
                     </span>
                   </div>
 
@@ -1237,7 +1357,16 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
                     <span className="px-3 py-1 rounded-full bg-black/80 border border-cyan-400/60 text-cyan-200 text-xs font-mono font-bold">
                       Đang chờ người chơi · {room.seats.filter(Boolean).length}/5 ghế
                     </span>
-                    {room.creator === uid ? (
+                    {room.practice && mySeat && mySeat.chips <= 0 ? (
+                      <button
+                        onClick={handleRebuyPractice}
+                        disabled={loadingAction}
+                        className="px-6 min-h-[48px] rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-black font-black text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_20px_rgba(52,211,153,0.7)] cursor-pointer flex items-center gap-2 animate-bounce"
+                      >
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span>NẠP LẠI 5.000 CHIP LUYỆN TẬP</span>
+                      </button>
+                    ) : room.creator === uid ? (
                       <button
                         onClick={handleStartHand}
                         disabled={loadingAction || room.seats.filter(st => st && st.chips > 0).length < 2}
@@ -1255,7 +1384,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
                     {room.winners.map(w => (
                       <div key={w.uid} className="px-3 py-1.5 rounded-xl bg-black/90 border-2 border-yellow-400/80 shadow-[0_0_25px_rgba(250,204,21,0.5)] text-center max-w-full">
                         <div className="text-xs sm:text-sm font-black text-yellow-300 truncate">
-                          🏆 {w.uid === uid ? 'BẠN' : w.name} +{w.amount.toLocaleString()} PP
+                          🏆 {w.uid === uid ? 'BẠN' : w.name} +{w.amount.toLocaleString()} {unitLabel}
                         </div>
                         <div className="text-[11px] font-mono text-emerald-300 truncate">{w.handDesc}</div>
                       </div>
@@ -1464,7 +1593,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
                               </div>
                               <div className="text-right shrink-0">
                                 <span className="font-bold text-[#ffd700] block">
-                                  +{item.pot.toLocaleString()} PP
+                                  +{item.pot.toLocaleString()} {unitLabel}
                                 </span>
                               </div>
                             </div>
@@ -1511,7 +1640,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
                 <div className="flex justify-between items-center">
                   <span className="text-[11px] text-slate-400 font-bold uppercase">TỐ ĐẾN</span>
                   <span className="text-sm sm:text-base font-black text-[#ffd700] tracking-wider">
-                    {customRaiseAmount.toLocaleString()} PP
+                    {customRaiseAmount.toLocaleString()} {unitLabel}
                   </span>
                 </div>
 
@@ -1630,46 +1759,60 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
               <div className={`grid gap-1.5 pt-1 min-[700px]:pt-2 ${
                 isShortScreen ? 'grid-cols-1' : 'grid-cols-3 min-[700px]:grid-cols-1'
               }`}>
-                {/* 1. TỐ BUTTON (Yellow) */}
-                <button
-                  onClick={() => handleBettingAction('RAISE', customRaiseAmount)}
-                  disabled={!bettingOptions?.canRaise || loadingAction}
-                  className="w-full min-h-[52px] h-[52px] sm:h-14 order-3 min-[700px]:order-none py-1.5 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.5)] active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
-                >
-                  <span className="text-sm font-black">TỐ</span>
-                  <span className="text-[11px] font-bold">{customRaiseAmount.toLocaleString()} PP</span>
-                </button>
-
-                {/* 2. THEO / CHECK BUTTON (Cyan) */}
-                {bettingOptions?.canCheck ? (
+                {/* REBUY PRACTICE CHIPS BUTTON IF DEPLETED */}
+                {room.practice && mySeat && mySeat.chips <= 0 ? (
                   <button
-                    onClick={() => handleBettingAction('CHECK')}
+                    onClick={handleRebuyPractice}
                     disabled={loadingAction}
-                    className="w-full min-h-[52px] h-[52px] sm:h-14 order-2 min-[700px]:order-none py-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
+                    className="w-full min-h-[52px] h-[52px] sm:h-14 py-1.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600 hover:brightness-110 disabled:opacity-30 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_20px_rgba(16,185,129,0.7)] active:scale-95 flex items-center justify-center gap-2 animate-pulse"
                   >
-                    <span className="text-sm font-black">CHECK</span>
-                    <span className="text-[11px] font-bold">MIỄN PHÍ</span>
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <span>NẠP LẠI 5.000 CHIP LUYỆN TẬP</span>
                   </button>
                 ) : (
-                  <button
-                    onClick={() => handleBettingAction('CALL')}
-                    disabled={!bettingOptions?.canCall || loadingAction}
-                    className="w-full min-h-[52px] h-[52px] sm:h-14 order-2 min-[700px]:order-none py-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
-                  >
-                    <span className="text-sm font-black">THEO</span>
-                    <span className="text-[11px] font-bold">{bettingOptions?.callAmount.toLocaleString()} PP</span>
-                  </button>
-                )}
+                  <>
+                    {/* 1. TỐ BUTTON (Yellow) */}
+                    <button
+                      onClick={() => handleBettingAction('RAISE', customRaiseAmount)}
+                      disabled={!bettingOptions?.canRaise || loadingAction}
+                      className="w-full min-h-[52px] h-[52px] sm:h-14 order-3 min-[700px]:order-none py-1.5 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(250,204,21,0.5)] active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
+                    >
+                      <span className="text-sm font-black">TỐ</span>
+                      <span className="text-[11px] font-bold">{customRaiseAmount.toLocaleString()} {unitLabel}</span>
+                    </button>
 
-                {/* 3. BỎ BÀI BUTTON (Red) */}
-                <button
-                  onClick={() => handleBettingAction('FOLD')}
-                  disabled={!mySeat || mySeat.folded || room.round === 'WAITING' || room.round === 'SHOWDOWN' || loadingAction}
-                  className="w-full min-h-[52px] h-[52px] sm:h-14 order-1 min-[700px]:order-none py-1.5 bg-rose-950/60 hover:bg-rose-900/80 disabled:opacity-25 border border-rose-500/60 text-rose-400 hover:text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
-                >
-                  <span className="text-xs sm:text-sm font-black">BỎ BÀI</span>
-                  <span className="text-[11px] font-mono">FOLD</span>
-                </button>
+                    {/* 2. THEO / CHECK BUTTON (Cyan) */}
+                    {bettingOptions?.canCheck ? (
+                      <button
+                        onClick={() => handleBettingAction('CHECK')}
+                        disabled={loadingAction}
+                        className="w-full min-h-[52px] h-[52px] sm:h-14 order-2 min-[700px]:order-none py-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
+                      >
+                        <span className="text-sm font-black">CHECK</span>
+                        <span className="text-[11px] font-bold">MIỄN PHÍ</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => handleBettingAction('CALL')}
+                        disabled={!bettingOptions?.canCall || loadingAction}
+                        className="w-full min-h-[52px] h-[52px] sm:h-14 order-2 min-[700px]:order-none py-1.5 bg-gradient-to-r from-cyan-400 to-blue-500 hover:brightness-110 disabled:opacity-25 text-black font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer shadow-[0_0_15px_rgba(0,240,255,0.4)] active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
+                      >
+                        <span className="text-sm font-black">THEO</span>
+                        <span className="text-[11px] font-bold">{bettingOptions?.callAmount.toLocaleString()} {unitLabel}</span>
+                      </button>
+                    )}
+
+                    {/* 3. BỎ BÀI BUTTON (Red) */}
+                    <button
+                      onClick={() => handleBettingAction('FOLD')}
+                      disabled={!mySeat || mySeat.folded || room.round === 'WAITING' || room.round === 'SHOWDOWN' || loadingAction}
+                      className="w-full min-h-[52px] h-[52px] sm:h-14 order-1 min-[700px]:order-none py-1.5 bg-rose-950/60 hover:bg-rose-900/80 disabled:opacity-25 border border-rose-500/60 text-rose-400 hover:text-white font-black text-xs uppercase tracking-wider rounded-xl transition cursor-pointer active:scale-95 flex flex-col items-center justify-center leading-tight touch-manipulation"
+                    >
+                      <span className="text-xs sm:text-sm font-black">BỎ BÀI</span>
+                      <span className="text-[11px] font-mono">FOLD</span>
+                    </button>
+                  </>
+                )}
               </div>
 
             </div>

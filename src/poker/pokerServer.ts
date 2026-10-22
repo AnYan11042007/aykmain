@@ -27,7 +27,7 @@ import { normalizePokerRoom, serializePokerRoom } from './pokerRoomUtil.ts';
 
 // Idempotency cache (actionId -> timestamp)
 const processedActionIds = new Map<string, number>();
-setInterval(() => {
+const cleanupInterval = setInterval(() => {
   const now = Date.now();
   for (const [id, time] of processedActionIds.entries()) {
     if (now - time > 60000) {
@@ -35,6 +35,17 @@ setInterval(() => {
     }
   }
 }, 30000);
+if (typeof cleanupInterval?.unref === 'function') {
+  cleanupInterval.unref();
+}
+
+export function safeSetTimeout(fn: () => void, ms: number) {
+  const timer = setTimeout(fn, ms);
+  if (timer && typeof timer.unref === 'function') {
+    timer.unref();
+  }
+  return timer;
+}
 
 export function isActionProcessed(actionId?: string): boolean {
   if (!actionId) return false;
@@ -271,12 +282,13 @@ export async function advancePokerGame(
       room.history = room.history.slice(-10);
     }
     room.logs = room.logs || [];
-    room.logs.push(`🎉 ${winner.name} thắng ${winAmount.toLocaleString()} PP (Mọi người đều bỏ bài).`);
+    const unit = room.practice ? 'chip' : 'PP';
+    room.logs.push(`🎉 ${winner.name} thắng ${winAmount.toLocaleString()} ${unit} (Mọi người đều bỏ bài).`);
 
     await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
     // Schedule next hand in 5 seconds
-    setTimeout(() => {
+    safeSetTimeout(() => {
       startNewHandIfReady(db, roomId, executePPTransaction).catch(console.error);
     }, 5000);
     return;
@@ -476,14 +488,15 @@ async function finishShowdown(
   }
 
   room.logs = room.logs || [];
+  const unit = room.practice ? 'chip' : 'PP';
   for (const w of room.winners) {
-    room.logs.push(`🏆 ${w.name} thắng ${w.amount.toLocaleString()} PP (${w.handDesc})`);
+    room.logs.push(`🏆 ${w.name} thắng ${w.amount.toLocaleString()} ${unit} (${w.handDesc})`);
   }
 
   await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
   // Schedule next hand in 5 seconds
-  setTimeout(() => {
+  safeSetTimeout(() => {
     startNewHandIfReady(db, roomId, executePPTransaction).catch(console.error);
   }, 5000);
 }
@@ -500,12 +513,35 @@ export async function startNewHandIfReady(
   if (!roomSnap.exists()) return;
   const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
 
-  // Close the table when no real player is left (otherwise bots would play forever)
-  const hasHuman = room.seats.some(s => s && !s.isAI && !s.left && s.chips > 0);
-  if (!hasHuman) {
+  // Close the table when no real player is seated
+  const hasHumanSeated = room.seats.some(s => s && !s.isAI && !s.left);
+  if (!hasHumanSeated) {
     await dbSet(db, `poker_rooms/${roomId}`, null);
     await dbSet(db, `poker_private/${roomId}`, null);
     return;
+  }
+
+  // If in practice room and human player ran out of chips, pause at WAITING for rebuy
+  if (room.practice) {
+    const human = room.seats.find(s => s && !s.isAI && !s.left);
+    if (human && human.chips <= 0) {
+      for (const s of room.seats) {
+        if (s && s.isAI && s.chips <= 0) {
+          s.chips = 5000;
+        }
+      }
+      room.status = 'WAITING';
+      room.round = 'WAITING';
+      room.currentTurnSeat = null;
+      room.pot = 0;
+      room.board = [];
+      room.revealedCards = {};
+      room.winners = [];
+      room.logs = room.logs || [];
+      room.logs.push(`⚠️ [${human.name}] đã hết chip luyện tập. Hãy bấm "Nạp Lại Chip" để tiếp tục.`);
+      await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
+      return;
+    }
   }
 
   // Stand up anyone with 0 chips (and players who left mid-hand)
@@ -739,8 +775,8 @@ async function executeAITurn(
     if (currentSeat.chips === 0) currentSeat.allIn = true;
     currentSeat.lastAction = currentSeat.allIn ? 'ALL-IN' : `THEO ${callDiff.toLocaleString()}`;
     currentSeat.hasActed = true;
-    currentRoom.logs = currentRoom.logs || [];
-    currentRoom.logs.push(`🪙 [${currentSeat.name}] Theo ${callDiff.toLocaleString()} PP.`);
+    const unit = currentRoom.practice ? 'chip' : 'PP';
+    currentRoom.logs.push(`🪙 [${currentSeat.name}] Theo ${callDiff.toLocaleString()} ${unit}.`);
   } else if (decision.action === 'RAISE' || decision.action === 'ALL_IN') {
     const isAllIn = decision.action === 'ALL_IN';
     const targetBet = isAllIn
@@ -763,7 +799,8 @@ async function executeAITurn(
     currentSeat.lastAction = currentSeat.allIn ? `ALL-IN ${targetBet.toLocaleString()}` : `TỐ ${targetBet.toLocaleString()}`;
     currentSeat.hasActed = true;
     currentRoom.logs = currentRoom.logs || [];
-    currentRoom.logs.push(`🔥 [${currentSeat.name}] ${currentSeat.allIn ? 'ALL-IN' : 'Tố lên'} ${targetBet.toLocaleString()} PP.`);
+    const unit = currentRoom.practice ? 'chip' : 'PP';
+    currentRoom.logs.push(`🔥 [${currentSeat.name}] ${currentSeat.allIn ? 'ALL-IN' : 'Tố lên'} ${targetBet.toLocaleString()} ${unit}.`);
   }
 
   recordPlayerAction(roomId, currentSeat.uid, decision.action, currentRoom.round);
@@ -793,7 +830,7 @@ function checkIfNextTurnIsAI(
   if (currentSeat && currentSeat.isAI && !currentSeat.folded && !currentSeat.allIn) {
     // Random thinking delay 0.8s - 2.5s
     const delay = crypto.randomInt(800, 2500);
-    setTimeout(() => {
+    safeSetTimeout(() => {
       onAITurnTrigger(db, roomId, room, currentSeat, executePPTransaction).catch(console.error);
     }, delay);
   }
@@ -836,33 +873,56 @@ export function setupPokerRouter(
       return res.status(401).json({ success: false, error: auth.error });
     }
 
-    const bb = Math.max(10, Math.floor(Number(bigBlind) || 100));
-    const minBuyIn = bb * 20;
-    const maxBuyIn = bb * 100;
+    const targetMode = mode === 'MULTIPLAYER' ? 'MULTIPLAYER' : 'AI';
+    const validDifficulty = difficulty === 'EASY' || difficulty === 'HARD' ? difficulty : 'NORMAL';
+    // Server is source of truth: practice is strictly AI + EASY/NORMAL. Client practice value is ignored.
+    const isPractice = targetMode === 'AI' && (validDifficulty === 'EASY' || validDifficulty === 'NORMAL');
 
-    const requestedBuyIn = Math.floor(Number(buyIn) || minBuyIn);
-    if (requestedBuyIn < minBuyIn || requestedBuyIn > maxBuyIn) {
-      return res.status(400).json({
-        success: false,
-        error: `Mức Buy-in phải từ ${minBuyIn.toLocaleString()} đến ${maxBuyIn.toLocaleString()} PP`
-      });
-    }
+    let initialChips = 5000;
+    let bb = 100;
+    let minBuyIn = 2000;
+    let maxBuyIn = 10000;
+    let userNewPP = typeof auth.user.pp === 'number' ? auth.user.pp : 0;
 
-    // Atomically debit PP from user
-    const tx = await executePPTransaction(uid, -requestedBuyIn);
-    if (!tx.success) {
-      return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ để Buy-in' });
+    if (!isPractice) {
+      bb = Math.max(10, Math.floor(Number(bigBlind) || 100));
+      minBuyIn = bb * 20;
+      maxBuyIn = bb * 100;
+
+      const requestedBuyIn = Math.floor(Number(buyIn) || minBuyIn);
+      if (requestedBuyIn < minBuyIn || requestedBuyIn > maxBuyIn) {
+        return res.status(400).json({
+          success: false,
+          error: `Mức Buy-in phải từ ${minBuyIn.toLocaleString()} đến ${maxBuyIn.toLocaleString()} PP`
+        });
+      }
+
+      // Atomically debit PP from user
+      const tx = await executePPTransaction(uid, -requestedBuyIn);
+      if (!tx.success) {
+        return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ để Buy-in' });
+      }
+      userNewPP = tx.newPP;
+      initialChips = requestedBuyIn;
+    } else {
+      // Practice mode: fixed 5,000 practice chips, blinds 50/100, no PP deducted
+      initialChips = 5000;
+      bb = 100;
+      minBuyIn = 2000;
+      maxBuyIn = 10000;
     }
 
     const roomId = `PK${Date.now().toString().slice(-4)}${crypto.randomInt(10, 99)}`;
-    await recordPokerTransaction(db, uid, -requestedBuyIn, `Buy-in Poker Texas Hold'em (Bàn #${roomId})`);
+    if (!isPractice) {
+      await recordPokerTransaction(db, uid, -initialChips, `Buy-in Poker Texas Hold'em (Bàn #${roomId})`);
+    }
 
     const creatorSeat: PokerSeat = {
       seatIndex: 0,
       uid,
       name: name || auth.user.name || 'Người chơi',
       avatar: avatar || auth.user.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&auto=format&fit=crop&q=80',
-      chips: requestedBuyIn,
+      chips: initialChips,
       currentBet: 0,
       totalHandBet: 0,
       folded: false,
@@ -874,7 +934,7 @@ export function setupPokerRouter(
     const seats: (PokerSeat | null)[] = [creatorSeat, null, null, null, null];
 
     // If AI mode: fill 4 AI bots
-    if (mode === 'AI') {
+    if (targetMode === 'AI') {
       for (let i = 1; i <= 4; i++) {
         const botTemplate = AI_BOTS[i - 1];
         seats[i] = {
@@ -882,7 +942,7 @@ export function setupPokerRouter(
           uid: `ai_bot_${i}_${roomId}`,
           name: botTemplate.name,
           avatar: botTemplate.avatar,
-          chips: requestedBuyIn,
+          chips: initialChips,
           currentBet: 0,
           totalHandBet: 0,
           folded: false,
@@ -894,13 +954,12 @@ export function setupPokerRouter(
       }
     }
 
-    const validDifficulty = difficulty === 'EASY' || difficulty === 'HARD' ? difficulty : 'NORMAL';
     const validTurnTime = [15, 30, 45].includes(Number(turnTimeLimit)) ? Number(turnTimeLimit) : 20;
 
     const room: PokerRoom = {
       id: roomId,
       name: `BÀN #${roomId}`,
-      mode: mode === 'MULTIPLAYER' ? 'MULTIPLAYER' : 'AI',
+      mode: targetMode,
       creator: uid,
       creatorName: creatorSeat.name,
       bigBlind: bb,
@@ -917,21 +976,22 @@ export function setupPokerRouter(
       lastRaiseDelta: bb,
       board: [],
       actionExpiry: 0,
-      logs: [`Phòng poker ${roomId} đã được tạo thành công.`],
-      difficulty: mode === 'AI' ? validDifficulty : undefined,
-      turnTimeLimit: validTurnTime
+      logs: [`Phòng poker ${roomId} (${isPractice ? 'Luyện tập · 5,000 chip ảo' : 'Cược PP thật'}) đã được tạo thành công.`],
+      difficulty: targetMode === 'AI' ? validDifficulty : undefined,
+      turnTimeLimit: validTurnTime,
+      practice: isPractice
     };
 
     await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
     // If AI mode, start immediately
-    if (mode === 'AI') {
-      setTimeout(() => {
+    if (targetMode === 'AI') {
+      safeSetTimeout(() => {
         dealNewHand(db, roomId, room, executePPTransaction).catch(console.error);
       }, 500);
     }
 
-    res.json({ success: true, roomId, room, newPP: tx.newPP });
+    res.json({ success: true, roomId, room, newPP: userNewPP });
   });
 
   /**
@@ -982,13 +1042,16 @@ export function setupPokerRouter(
       });
     }
 
-    // Debit PP
-    const tx = await executePPTransaction(uid, -requestedBuyIn);
-    if (!tx.success) {
-      return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ để Buy-in' });
+    // Debit PP only if real room (not practice)
+    let userNewPP = typeof auth.user.pp === 'number' ? auth.user.pp : 0;
+    if (!room.practice) {
+      const tx = await executePPTransaction(uid, -requestedBuyIn);
+      if (!tx.success) {
+        return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ để Buy-in' });
+      }
+      userNewPP = tx.newPP;
+      await recordPokerTransaction(db, uid, -requestedBuyIn, `Buy-in Poker Texas Hold'em (Bàn #${roomId})`);
     }
-
-    await recordPokerTransaction(db, uid, -requestedBuyIn, `Buy-in Poker Texas Hold'em (Bàn #${roomId})`);
 
     const newSeat: PokerSeat = {
       seatIndex: targetSeat,
@@ -1010,12 +1073,12 @@ export function setupPokerRouter(
 
     await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
 
-    res.json({ success: true, room, seatIndex: targetSeat, newPP: tx.newPP });
+    res.json({ success: true, room, seatIndex: targetSeat, newPP: userNewPP });
   });
 
   /**
    * POST /api/poker/leave
-   * Stand up and refund remaining chips to PP
+   * Stand up and refund remaining chips to PP (real games only; practice chips are discarded)
    */
   router.post('/leave', async (req, res) => {
     const { roomId, uid, sessionToken, actionId } = req.body;
@@ -1043,9 +1106,9 @@ export function setupPokerRouter(
     const seat = room.seats[seatIdx]!;
     const refundChips = seat.chips || 0;
 
-    // Refund chips to PP if > 0
-    let newPP = 0;
-    if (refundChips > 0) {
+    // Refund chips to PP if > 0 and NOT a practice room
+    let newPP = typeof auth.user.pp === 'number' ? auth.user.pp : 0;
+    if (!room.practice && refundChips > 0) {
       const tx = await executePPTransaction(uid, refundChips);
       if (tx.success) {
         newPP = tx.newPP;
@@ -1055,7 +1118,10 @@ export function setupPokerRouter(
 
     const midHand = room.round !== 'WAITING' && room.round !== 'SHOWDOWN';
     room.logs = room.logs || [];
-    room.logs.push(`🚪 [${seat.name}] đã rời bàn (${refundChips.toLocaleString()} chip hoàn vào PP).`);
+    const refundLogMsg = room.practice
+      ? `${refundChips.toLocaleString()} chip luyện tập bị hủy`
+      : `${refundChips.toLocaleString()} chip hoàn vào PP`;
+    room.logs.push(`🚪 [${seat.name}] đã rời bàn (${refundLogMsg}).`);
 
     if (midHand && (seat.totalHandBet || 0) > 0) {
       // Keep a folded "ghost" seat so the chips they already put in stay in the pot / side-pot maths.
@@ -1072,7 +1138,7 @@ export function setupPokerRouter(
     if (humansLeft.length === 0) {
       await dbSet(db, `poker_rooms/${roomId}`, null);
       await dbSet(db, `poker_private/${roomId}`, null);
-      return res.json({ success: true, refunded: refundChips, newPP });
+      return res.json({ success: true, refunded: room.practice ? 0 : refundChips, newPP });
     }
 
     const stillInHand = room.seats.filter(s => s && !s.folded);
@@ -1082,7 +1148,7 @@ export function setupPokerRouter(
       await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
     }
 
-    res.json({ success: true, refunded: refundChips, newPP });
+    res.json({ success: true, refunded: room.practice ? 0 : refundChips, newPP });
   });
 
   /**
@@ -1190,7 +1256,8 @@ export function setupPokerRouter(
       seat.lastAction = seat.allIn ? 'ALL-IN' : `THEO ${callDiff.toLocaleString()}`;
       seat.hasActed = true;
       room.logs = room.logs || [];
-      room.logs.push(`🪙 [${seat.name}] Theo ${callDiff.toLocaleString()} PP.`);
+      const unit = room.practice ? 'chip' : 'PP';
+      room.logs.push(`🪙 [${seat.name}] Theo ${callDiff.toLocaleString()} ${unit}.`);
     } else if (action === 'RAISE' || action === 'ALL_IN') {
       const isAllInAction = action === 'ALL_IN';
       const targetBet = isAllInAction ? options.maxRaiseTotal : Math.floor(Number(amount) || options.minRaiseTotal);
@@ -1198,7 +1265,7 @@ export function setupPokerRouter(
       if (targetBet < options.minRaiseTotal && targetBet !== options.maxRaiseTotal) {
         return res.status(400).json({
           success: false,
-          error: `Mức tố tối thiểu là ${options.minRaiseTotal.toLocaleString()} PP`
+          error: `Mức tố tối thiểu là ${options.minRaiseTotal.toLocaleString()} ${room.practice ? 'chip' : 'PP'}`
         });
       }
 
@@ -1222,7 +1289,8 @@ export function setupPokerRouter(
       seat.lastAction = seat.allIn ? `ALL-IN ${targetBet.toLocaleString()}` : `TỐ ${targetBet.toLocaleString()}`;
       seat.hasActed = true;
       room.logs = room.logs || [];
-      room.logs.push(`🔥 [${seat.name}] ${seat.allIn ? 'ALL-IN' : 'Tố lên'} ${targetBet.toLocaleString()} PP.`);
+      const unit = room.practice ? 'chip' : 'PP';
+      room.logs.push(`🔥 [${seat.name}] ${seat.allIn ? 'ALL-IN' : 'Tố lên'} ${targetBet.toLocaleString()} ${unit}.`);
     } else {
       return res.status(400).json({ success: false, error: 'Hành động không hợp lệ' });
     }
@@ -1282,10 +1350,10 @@ export function setupPokerRouter(
       room.logs.push(`⏰ [${seat.name}] hết giờ, tự động Bỏ bài.`);
     }
 
-    // If 3 consecutive timeouts: stand up & refund
+    // If 3 consecutive timeouts: stand up & refund (real rooms only; practice rooms discard chips)
     if (seat.consecutiveTimeouts >= 3 && !seat.isAI) {
       const refund = seat.chips || 0;
-      if (refund > 0) {
+      if (!room.practice && refund > 0) {
         await executePPTransaction(seat.uid, refund);
         await recordPokerTransaction(db, seat.uid, refund, `Tự động hoàn trả chip do vắng mặt 3 lượt (Bàn #${roomId})`);
       }
@@ -1336,6 +1404,69 @@ export function setupPokerRouter(
 
     await dbSet(db, `poker_rooms/${roomId}/emotes/${uid}`, { emote, timestamp: now });
     res.json({ success: true, emote, timestamp: now });
+  });
+
+  /**
+   * POST /api/poker/rebuy_practice
+   * Refill practice chips to 5,000 for free (practice rooms only)
+   */
+  router.post('/rebuy_practice', async (req, res) => {
+    const { roomId, uid, sessionToken, actionId } = req.body;
+
+    if (isActionProcessed(actionId)) {
+      return res.status(400).json({ success: false, error: 'Yêu cầu trùng lặp' });
+    }
+
+    const auth = await verifyUserSession(db, uid, sessionToken);
+    if (!auth.ok) {
+      return res.status(401).json({ success: false, error: auth.error });
+    }
+
+    const roomSnap = await dbGet(db, `poker_rooms/${roomId}`);
+    if (!roomSnap.exists()) {
+      return res.status(404).json({ success: false, error: 'Phòng không tồn tại' });
+    }
+    const room = normalizePokerRoom(roomSnap.val() as PokerRoom);
+
+    if (!room.practice) {
+      return res.status(400).json({
+        success: false,
+        error: 'Chức năng nạp chip miễn phí chỉ áp dụng cho bàn Luyện Tập (EASY/NORMAL)'
+      });
+    }
+
+    const seat = room.seats.find(s => s?.uid === uid);
+    if (!seat) {
+      return res.status(403).json({ success: false, error: 'Bạn không ngồi trong bàn này' });
+    }
+
+    // Refill to 5,000 practice chips
+    seat.chips = 5000;
+    seat.folded = false;
+    seat.allIn = false;
+    delete seat.left;
+    delete seat.lastAction;
+
+    // Refill any AI bot that also reached 0
+    for (const s of room.seats) {
+      if (s && s.isAI && s.chips <= 0) {
+        s.chips = 5000;
+      }
+    }
+
+    room.logs = room.logs || [];
+    room.logs.push(`🔄 [${seat.name}] đã nạp lại 5,000 chip luyện tập miễn phí.`);
+
+    await dbSet(db, `poker_rooms/${roomId}`, serializePokerRoom(room));
+
+    // If table was WAITING, restart next hand
+    if (room.status === 'WAITING' || room.round === 'WAITING') {
+      safeSetTimeout(() => {
+        dealNewHand(db, roomId, room, executePPTransaction).catch(console.error);
+      }, 500);
+    }
+
+    res.json({ success: true, chips: seat.chips, message: 'Đã nạp lại 5,000 chip luyện tập' });
   });
 
   return router;

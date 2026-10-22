@@ -38,6 +38,7 @@ export function normalizePokerRoom<T extends Partial<PokerRoom> | null | undefin
   room.pot = room.pot || 0;
   room.highestBet = room.highestBet || 0;
   room.currentTurnSeat = typeof room.currentTurnSeat === 'number' ? room.currentTurnSeat : null;
+  room.practice = room.practice === true;
   return room;
 }
 
