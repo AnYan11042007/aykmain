@@ -164,7 +164,7 @@ export default function App() {
   }
   const [toasts, setToasts] = useState<Toast[]>([]);
 
-  // 1. Session verification & Profile synchronization
+  // 1. Session verification & Profile + Wallet synchronization (wallets/$uid)
   useEffect(() => {
     if (!uid) {
       setUser(null);
@@ -174,60 +174,89 @@ export default function App() {
 
     setLoadingUser(true);
     const uRef = ref(db, `users/${uid}`);
+    const walletRef = ref(db, `wallets/${uid}`);
 
-    const unsubscribe = onValue(uRef, (snap) => {
-      if (snap.exists()) {
-        const uData = snap.val() as User;
-        const currentPP = uData.pp || 0;
+    let latestUserData: any = null;
+    let latestWalletData: any = null;
 
-        // Anti-cheat verification
-        lastVerifiedPPRef.current = currentPP;
-        
-        // Anti-spoofing session token validation
-        const localToken = safeLocalStorageGet('s88_sessionToken');
-        if (uData.sessionToken) {
-          if (!localToken || localToken !== uData.sessionToken) {
-            safeLocalStorageSet('s88_sessionToken', uData.sessionToken);
-          }
-        }
-
-        setUser(uData);
-      } else {
-        // DO NOT force logout or reset state on missing snapshot!
-        // Construct resilient fallback session so player is never kicked mid-game
+    const mergeAndSetUser = () => {
+      if (!latestUserData && !latestWalletData) {
+        // Construct resilient fallback session without auto-granting 100,000 PP
         setUser((prevUser) => {
-          if (prevUser) return prevUser; // keep active profile
+          if (prevUser) return prevUser;
           return {
             uid: uid,
             name: `Sinh Viên ${uid}`,
             bankAccount: uid,
-            pp: 100000,
+            pp: 0,
+            xp: 0,
+            level: 1,
             role: 'STUDENT',
             class: 'Tân Sinh Viên AYK8686',
             avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
           };
         });
+        return;
       }
+
+      const mergedUser: User = {
+        ...(latestUserData || {}),
+        uid: latestUserData?.uid || uid,
+        name: latestUserData?.name || `Sinh Viên ${uid}`,
+        role: latestUserData?.role || 'STUDENT',
+        class: latestUserData?.class || 'Tân Sinh Viên AYK8686',
+        avatar: latestUserData?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+        bankAccount: latestUserData?.bankAccount || uid,
+        // Authoritative wallet data taking precedence
+        pp: Number(latestWalletData?.pp ?? latestUserData?.pp ?? 0),
+        xp: Number(latestWalletData?.xp ?? latestUserData?.xp ?? 0),
+        gold: latestWalletData?.gold ?? latestUserData?.gold,
+        inventory: latestWalletData?.inventory ?? latestUserData?.inventory,
+        battlePassXP: latestWalletData?.battlePassXP ?? latestUserData?.battlePassXP,
+        gachaCoins: latestWalletData?.gachaCoins ?? latestUserData?.gachaCoins,
+        isPremiumBattlePass: latestWalletData?.isPremiumBattlePass ?? latestUserData?.isPremiumBattlePass,
+        level: latestWalletData?.level ?? latestUserData?.level ?? 1,
+        unlockedFrames: latestWalletData?.unlockedFrames ?? latestUserData?.unlockedFrames,
+      };
+
+      lastVerifiedPPRef.current = mergedUser.pp;
+
+      // Anti-spoofing session token validation
+      const localToken = safeLocalStorageGet('s88_sessionToken');
+      if (mergedUser.sessionToken) {
+        if (!localToken || localToken !== mergedUser.sessionToken) {
+          safeLocalStorageSet('s88_sessionToken', mergedUser.sessionToken);
+        }
+      }
+
+      setUser(mergedUser);
       setLoadingUser(false);
+    };
+
+    const unsubUser = onValue(uRef, (snap) => {
+      if (snap.exists()) {
+        latestUserData = snap.val();
+      }
+      mergeAndSetUser();
     }, (err) => {
-      console.error('Firebase read error:', err);
-      // Even on error, maintain fallback session if UID exists
-      setUser((prevUser) => {
-        if (prevUser) return prevUser;
-        return {
-          uid: uid,
-          name: `Sinh Viên ${uid}`,
-          bankAccount: uid,
-          pp: 100000,
-          role: 'STUDENT',
-          class: 'Tân Sinh Viên AYK8686',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
-        };
-      });
-      setLoadingUser(false);
+      console.warn('Users profile read notice:', err);
+      mergeAndSetUser();
     });
 
-    return () => unsubscribe();
+    const unsubWallet = onValue(walletRef, (snap) => {
+      if (snap.exists()) {
+        latestWalletData = snap.val();
+      }
+      mergeAndSetUser();
+    }, (err) => {
+      console.warn('Wallet node read notice:', err);
+      mergeAndSetUser();
+    });
+
+    return () => {
+      unsubUser();
+      unsubWallet();
+    };
   }, [uid]);
 
   // Offline Mode Detection State

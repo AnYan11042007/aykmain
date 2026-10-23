@@ -15,6 +15,13 @@
       }
     },
 
+    "wallets": {
+      "$uid": {
+        ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
+        ".write": false
+      }
+    },
+
     "users": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
@@ -24,6 +31,27 @@
           ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
         },
         "xp": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "gold": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "inventory": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "battlePassXP": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "gachaCoins": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "isPremiumBattlePass": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "level": {
+          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+        },
+        "unlockedFrames": {
           ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
         },
         "role": {
@@ -57,22 +85,54 @@
 
     "matches": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$matchId": {
+        ".write": "auth != null && (!data.exists() || data.child('player1').val() === auth.uid || data.child('player2').val() === auth.uid || auth.token.admin === true)"
+      }
     },
 
     "rps_rooms": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$roomId": {
+        ".write": "auth != null",
+        "moves": {
+          "$playerUid": {
+            ".write": "auth != null && (auth.uid === $playerUid || root.child('auth_mapping').child(auth.uid).val() === $playerUid)"
+          }
+        }
+      }
     },
 
     "blackjack_rooms": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$roomId": {
+        ".write": "auth != null",
+        "seats": {
+          "$seatIdx": {
+            ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || newData.child('uid').val() === auth.uid || auth.token.admin === true)"
+          }
+        }
+      }
     },
 
     "tienlen_rooms": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$roomId": {
+        ".write": "auth != null",
+        "players": {
+          "$playerUid": {
+            ".write": "auth != null && (auth.uid === $playerUid || root.child('auth_mapping').child(auth.uid).val() === $playerUid || auth.token.admin === true)"
+          }
+        }
+      }
+    },
+
+    "tienlen_private": {
+      "$roomId": {
+        "$uid": {
+          ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
+          ".write": false
+        }
+      }
     },
 
     "quests": {
@@ -92,7 +152,12 @@
 
     "live_arena_bets": {
       ".read": "auth != null",
-      ".write": "auth != null"
+      "$game": {
+        "$betId": {
+          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || root.child('auth_mapping').child(auth.uid).val() === data.child('uid').val())",
+          ".validate": "newData.hasChild('uid') && (newData.child('uid').val() === auth.uid || root.child('auth_mapping').child(auth.uid).val() === newData.child('uid').val())"
+        }
+      }
     },
 
     "live_arena_chat": {

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Sparkles, AlertTriangle, ShieldCheck, RefreshCw } from 'lucide-react';
 import { User } from '../../types';
 import { motion, AnimatePresence } from 'motion/react';

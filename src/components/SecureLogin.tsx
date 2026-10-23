@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { get, ref, update, set } from 'firebase/database';
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, updatePassword } from 'firebase/auth';
-import { db, auth, formatVirtualEmail } from '../firebase';
+import { db, auth, formatVirtualEmail, fetchWithAuth } from '../firebase';
 import { Shield, Eye, EyeOff, Key, HelpCircle, Hash } from 'lucide-react';
 
 interface SecureLoginProps {
@@ -254,6 +254,13 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       try { localStorage.setItem('s88_sessionToken', idToken); } catch (e) {}
       try { localStorage.setItem('s88_id_token', idToken); } catch (e) {}
       try { sessionStorage.setItem('s88_sessionToken', idToken); } catch (e) {}
+
+      // Initialize server wallet node (wallets/$numericId) strictly via server Admin SDK
+      try {
+        await fetchWithAuth('/api/wallet/init-registration', { method: 'POST' });
+      } catch (wErr) {
+        console.warn('Wallet init notice:', wErr);
+      }
 
       onLoginSuccess(numericId, idToken);
     } catch (err: any) {
