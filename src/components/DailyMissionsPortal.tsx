@@ -26,7 +26,8 @@ import {
   Zap,
   Gift,
   Clock,
-  PlayCircle
+  PlayCircle,
+  Info
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import confetti from 'canvas-confetti';
@@ -451,32 +452,73 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
 
         {/* Dashboard Stats Bar */}
         <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-3 pt-6 border-t border-white/10 text-center">
-          <div className="bg-black/40 border border-white/5 p-3 rounded-xl">
+          <div className="bg-black/40 border border-white/5 p-3 rounded-xl flex flex-col justify-between">
             <span className="text-[10px] text-slate-400 uppercase block">Tiến độ hôm nay</span>
-            <span className="text-lg font-black text-[#00f0ff] text-glow-blue">
+            <span className="text-lg font-black text-[#00f0ff] text-glow-blue my-1">
               {completedCount}/{totalCount} OK
             </span>
+            <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-white/10">
+              <div
+                className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((completedCount / (totalCount || 1)) * 100))}%` }}
+              />
+            </div>
           </div>
 
-          <div className="bg-black/40 border border-white/5 p-3 rounded-xl">
+          <div className="bg-black/40 border border-white/5 p-3 rounded-xl flex flex-col justify-between">
             <span className="text-[10px] text-slate-400 uppercase block">Đã nhận thưởng</span>
-            <span className="text-lg font-black text-emerald-400 text-glow-green">
+            <span className="text-lg font-black text-emerald-400 text-glow-green my-1">
               {claimedCount}/{totalCount} ván
             </span>
+            <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden border border-white/10">
+              <div
+                className="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
+                style={{ width: `${Math.min(100, Math.round((claimedCount / (totalCount || 1)) * 100))}%` }}
+              />
+            </div>
           </div>
 
-          <div className="bg-black/40 border border-white/5 p-3 rounded-xl">
+          <div className="bg-black/40 border border-white/5 p-3 rounded-xl flex flex-col justify-between">
             <span className="text-[10px] text-slate-400 uppercase block">PP đã thu hoạch</span>
-            <span className="text-lg font-black text-yellow-400 text-glow-gold">
+            <span className="text-lg font-black text-yellow-400 text-glow-gold my-1">
               +{earnedRewardToday.toLocaleString()} PP
             </span>
+            <span className="text-[9px] text-yellow-500/80 font-mono">
+              {totalRewardToday > 0 ? Math.round((earnedRewardToday / totalRewardToday) * 100) : 0}% quỹ ngày
+            </span>
           </div>
 
-          <div className="bg-black/40 border border-white/5 p-3 rounded-xl">
+          <div className="bg-black/40 border border-white/5 p-3 rounded-xl flex flex-col justify-between">
             <span className="text-[10px] text-slate-400 uppercase block">Tổng quỹ thưởng ngày</span>
-            <span className="text-lg font-black text-amber-300">
+            <span className="text-lg font-black text-amber-300 my-1">
               +{totalRewardToday.toLocaleString()} PP
             </span>
+            <span className="text-[9px] text-slate-500 font-mono">
+              20 thử thách ngẫu nhiên
+            </span>
+          </div>
+        </div>
+
+        {/* Global Visual Progress Bar Tracker */}
+        <div className="mt-4 pt-3 border-t border-white/10 space-y-1.5">
+          <div className="flex justify-between items-center text-xs">
+            <span className="text-slate-400 uppercase font-mono text-[10px] flex items-center gap-1.5">
+              <Target className="w-3.5 h-3.5 text-cyan-400" />
+              Tổng quan tiến độ hoàn thành nhiệm vụ ngày:
+            </span>
+            <span className="text-cyan-400 font-black font-mono text-xs tabular-nums">
+              {completedCount} / {totalCount} ({Math.min(100, Math.round((completedCount / (totalCount || 1)) * 100))}%)
+            </span>
+          </div>
+          <div className="w-full bg-slate-950 rounded-full h-3 overflow-hidden border border-white/10 p-0.5 shadow-inner">
+            <div
+              className={`h-full rounded-full transition-all duration-500 ${
+                completedCount >= totalCount && totalCount > 0
+                  ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 shadow-[0_0_12px_rgba(52,211,153,0.5)]'
+                  : 'bg-gradient-to-r from-cyan-400 via-teal-400 to-emerald-400 shadow-[0_0_8px_rgba(6,182,212,0.4)]'
+              }`}
+              style={{ width: `${Math.min(100, Math.round((completedCount / (totalCount || 1)) * 100))}%` }}
+            />
           </div>
         </div>
       </div>
@@ -871,16 +913,57 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, scale: 0.95 }}
-                  className={`p-4.5 rounded-2xl border transition-all duration-300 relative flex flex-col justify-between gap-4 ${
+                  whileHover={{ y: -3, scale: 1.008, transition: { duration: 0.18, ease: 'easeOut' } }}
+                  className={`group p-4.5 rounded-2xl border transition-all duration-300 relative flex flex-col justify-between gap-4 cursor-pointer ${
                     isJustClaimed
                       ? 'bg-gradient-to-br from-yellow-950/50 via-slate-900 to-amber-950/40 border-yellow-400 shadow-[0_0_30px_rgba(234,179,8,0.6)] ring-2 ring-yellow-400/80 animate-pulse'
                       : m.claimed
-                        ? 'bg-slate-950/40 border-white/5 opacity-65'
+                        ? 'bg-slate-950/40 border-white/5 opacity-70 hover:opacity-90 hover:border-white/20'
                         : isCompleted
-                          ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-emerald-900/20 border-emerald-500/50 shadow-[0_0_20px_rgba(16,185,129,0.2)]'
-                          : 'bg-slate-900/70 border-cyan-500/20 hover:border-cyan-500/40 hover:shadow-[0_0_15px_rgba(0,240,255,0.1)]'
+                          ? 'bg-gradient-to-br from-emerald-950/30 via-slate-900 to-emerald-900/20 border-emerald-500/50 hover:border-emerald-400 hover:shadow-[0_0_25px_rgba(16,185,129,0.35)]'
+                          : 'bg-slate-900/70 border-cyan-500/20 hover:border-cyan-400/60 hover:shadow-[0_8px_25px_rgba(0,240,255,0.18)]'
                   }`}
                 >
+                  {/* Interactive Mission Details & Reward Tooltip on Hover */}
+                  <div
+                    role="tooltip"
+                    className="absolute bottom-[calc(100%+10px)] left-1/2 -translate-x-1/2 w-[92%] sm:w-80 p-3.5 bg-slate-900/98 backdrop-blur-xl border border-cyan-500/40 rounded-xl shadow-[0_12px_35px_rgba(0,0,0,0.85),0_0_20px_rgba(0,240,255,0.2)] opacity-0 invisible group-hover:opacity-100 group-hover:visible translate-y-2 group-hover:translate-y-0 transition-all duration-200 pointer-events-none z-30 text-left"
+                  >
+                    <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
+                      <div className="flex items-center gap-1.5 min-w-0">
+                        <Sparkles className="w-3.5 h-3.5 text-yellow-400 shrink-0" />
+                        <span className="text-[11px] font-black uppercase text-cyan-300 tracking-wider truncate">
+                          {m.title}
+                        </span>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400 shrink-0 ml-2">
+                        {m.claimed ? 'Đã nhận' : isCompleted ? 'Sẵn sàng' : `${m.current}/${m.target}`}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-slate-200 font-sans leading-relaxed mb-2.5">
+                      {m.description || 'Hoàn thành nhiệm vụ để nhận phần thưởng và kinh nghiệm Battle Pass.'}
+                    </p>
+
+                    <div className="bg-black/60 rounded-lg p-2.5 border border-white/10 flex items-center justify-between">
+                      <span className="text-[10px] text-slate-400 uppercase font-mono font-bold">
+                        Phần Thưởng:
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black text-yellow-400 font-mono flex items-center gap-1">
+                          <Coins className="w-3.5 h-3.5 text-yellow-400 fill-current" />
+                          +{m.reward.toLocaleString()} PP
+                        </span>
+                        <span className="text-[10px] text-cyan-300 font-mono font-bold bg-cyan-500/20 px-1.5 py-0.5 rounded border border-cyan-500/30">
+                          +40 XP
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Tooltip caret / arrow */}
+                    <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 bg-slate-900 border-b border-r border-cyan-500/40 rotate-45" />
+                  </div>
+
                   {/* Floating Gold Reward Burst Badge on Claim Success */}
                   <AnimatePresence>
                     {isJustClaimed && (
@@ -913,9 +996,17 @@ export default function DailyMissionsPortal({ uid, user, onShowResult }: DailyMi
                       {statusBadge.text}
                     </span>
 
-                    <span className="text-[10px] text-slate-400 font-mono">
-                      Mục tiêu: <strong className="text-white font-bold">{m.target}</strong> {unitLabel}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] text-slate-400 font-mono">
+                        Mục tiêu: <strong className="text-white font-bold">{m.target}</strong> {unitLabel}
+                      </span>
+                      <span
+                        className="inline-flex items-center text-cyan-400/80 group-hover:text-cyan-300 transition-colors"
+                        title={`${m.title}: ${m.description} | Thưởng: +${m.reward.toLocaleString()} PP`}
+                      >
+                        <Info className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
                   </div>
 
                   <div className="flex items-start justify-between gap-3">

@@ -24,6 +24,7 @@ import RankingsPortal from './components/RankingsPortal';
 import AdminPortal from './components/AdminPortal';
 import LuckyWheel from './components/LuckyWheel';
 import DailyMissionsPortal from './components/DailyMissionsPortal';
+import { UserMission, getOrInitializeUserMissions } from './utils/missions';
 import AYKNewsPortal from './components/AYKNewsPortal';
 import WorldHuntingPortal from './components/WorldHuntingPortal';
 import TransactionHistoryPortal from './components/TransactionHistoryPortal';
@@ -51,7 +52,7 @@ import confetti from 'canvas-confetti';
 
 // Import motion for fluid dragging animations and icons for PIP
 import { motion, AnimatePresence } from 'motion/react';
-import { Tv, Maximize2, X, Flame, Sparkles, Menu, Newspaper, Crosshair, Gamepad2, Target, Trophy } from 'lucide-react';
+import { Tv, Maximize2, X, Flame, Sparkles, Menu, Newspaper, Crosshair, Gamepad2, Target, Trophy, CheckCircle2 } from 'lucide-react';
 
 const safeLocalStorageGet = (key: string): string | null => {
   try {
@@ -273,6 +274,45 @@ export default function App() {
     updateStreak();
   }, [uid, user?.lastLoginDate]);
 
+  // Real-time daily missions tracking for visual progress bar
+  const [dailyMissions, setDailyMissions] = useState<UserMission[]>([]);
+
+  useEffect(() => {
+    if (!uid) {
+      setDailyMissions([]);
+      return;
+    }
+
+    const todayStr = getTodayVNString();
+    const userMissionsRef = ref(db, `users/${uid}/daily_missions/${todayStr}/missions_list`);
+    const unsubscribe = onValue(userMissionsRef, (snap) => {
+      if (snap.exists()) {
+        const val = snap.val();
+        const list: UserMission[] = Array.isArray(val) ? val : Object.values(val);
+        const obsoleteTypes = ['bank_deposit', 'check_in', 'marketplace_buy', 'rps_match', 'bj_match', 'tienlen_match', 'roulette_spin'];
+        const validList = list.filter((m) => m && !obsoleteTypes.includes(m.type));
+        setDailyMissions(validList);
+      } else {
+        getOrInitializeUserMissions(uid)
+          .then((initList) => setDailyMissions(initList))
+          .catch(() => {});
+      }
+    });
+
+    return () => unsubscribe();
+  }, [uid]);
+
+  const totalDailyMissions = dailyMissions.length || 20;
+  const completedDailyMissions = dailyMissions.filter(
+    (m) => (m.current >= m.target && m.target > 0) || m.claimed
+  ).length;
+  const readyToClaimMissions = dailyMissions.filter(
+    (m) => m.current >= m.target && m.target > 0 && !m.claimed
+  ).length;
+  const dailyMissionProgressPercent = totalDailyMissions > 0
+    ? Math.min(100, Math.round((completedDailyMissions / totalDailyMissions) * 100))
+    : 0;
+
   // 2. Real-time active online indicators ping
   useEffect(() => {
     if (!uid || !user) return;
@@ -422,6 +462,26 @@ export default function App() {
                 <Flame className="w-4 h-4 text-orange-400 fill-current animate-pulse" />
                 <span>CHUỖI ĐĂNG NHẬP: <strong className="text-white font-black">{user?.streak_days || 1} NGÀY</strong></span>
               </div>
+
+              {/* Quick Daily Mission Progress Button */}
+              <button
+                onClick={() => setCurrentTab('missions')}
+                className={`flex items-center gap-2 px-3 py-1 rounded-full border transition cursor-pointer ${
+                  currentTab === 'missions'
+                    ? 'bg-cyan-500/25 border-cyan-400 text-cyan-300 shadow-[0_0_12px_rgba(6,182,212,0.3)]'
+                    : 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/20'
+                }`}
+                title="Bấm để xem chi tiết Nhiệm Vụ Hằng Ngày"
+              >
+                <Target className="w-3.5 h-3.5 text-cyan-400 animate-pulse" />
+                <span>NHIỆM VỤ: <strong className="text-white font-black">{completedDailyMissions}/{totalDailyMissions}</strong></span>
+                <div className="w-16 h-2 bg-slate-900 rounded-full overflow-hidden border border-white/10 hidden lg:block">
+                  <div
+                    className="h-full bg-gradient-to-r from-cyan-400 to-emerald-400 rounded-full transition-all duration-300"
+                    style={{ width: `${dailyMissionProgressPercent}%` }}
+                  />
+                </div>
+              </button>
             </div>
 
             <div className="flex items-center gap-3">
@@ -459,7 +519,108 @@ export default function App() {
               )}
 
               {currentTab === 'missions' && (
-                <DailyMissionsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+                <div className="space-y-6">
+                  {/* Daily Missions Visual Progress Bar Section in App.tsx */}
+                  <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-slate-950 via-cyan-950/40 to-slate-950 border border-cyan-500/40 p-5 md:p-6 shadow-[0_0_30px_rgba(6,182,212,0.15)] font-mono">
+                    <div className="absolute -top-10 -right-10 w-44 h-44 bg-cyan-500/10 rounded-full blur-2xl pointer-events-none" />
+                    <div className="absolute -bottom-10 -left-10 w-44 h-44 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+
+                    <div className="relative z-10 space-y-4">
+                      {/* Top label & completion count */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="p-2.5 rounded-xl bg-cyan-500/20 border border-cyan-500/40 text-cyan-400 shrink-0 shadow-[0_0_15px_rgba(6,182,212,0.25)]">
+                            <Target className="w-6 h-6 text-cyan-400" />
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h2 className="text-sm md:text-base font-black text-white uppercase tracking-wider">
+                                TIẾN ĐỘ NHIỆM VỤ HÔM NAY
+                              </h2>
+                              <span className="text-[10px] text-cyan-300 font-bold bg-cyan-500/15 border border-cyan-500/30 px-2 py-0.5 rounded-full tabular-nums">
+                                {dailyMissionProgressPercent}%
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-400 font-sans mt-0.5">
+                              Hoàn thành toàn bộ nhiệm vụ trong ngày để tối đa hóa Portal Points (PP) và XP Battle Pass
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Metric readout */}
+                        <div className="flex items-center gap-2 self-start sm:self-auto bg-black/60 border border-white/10 px-3.5 py-1.5 rounded-xl">
+                          <span className="text-xs text-slate-400 font-sans">Đã hoàn thành:</span>
+                          <span className="text-base font-black text-white tabular-nums">
+                            <strong className="text-cyan-400">{completedDailyMissions}</strong> / {totalDailyMissions}
+                          </span>
+                          <span className="text-[10px] text-slate-400 uppercase">nhiệm vụ</span>
+                        </div>
+                      </div>
+
+                      {/* Visual Progress Bar */}
+                      <div className="space-y-1.5">
+                        <div className="w-full h-4 bg-slate-950/90 rounded-full overflow-hidden p-0.5 border border-cyan-500/30 shadow-inner relative">
+                          <motion.div
+                            initial={{ width: 0 }}
+                            animate={{ width: `${dailyMissionProgressPercent}%` }}
+                            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+                            className={`h-full rounded-full relative transition-all ${
+                              dailyMissionProgressPercent >= 100
+                                ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-cyan-400 shadow-[0_0_15px_rgba(52,211,153,0.7)]'
+                                : dailyMissionProgressPercent > 50
+                                ? 'bg-gradient-to-r from-cyan-500 via-blue-500 to-emerald-400 shadow-[0_0_12px_rgba(6,182,212,0.5)]'
+                                : 'bg-gradient-to-r from-cyan-600 to-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.4)]'
+                            }`}
+                          >
+                            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                          </motion.div>
+                        </div>
+
+                        {/* Milestones / Status indicator below bar */}
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 font-mono">
+                          <span>0%</span>
+                          <span>25%</span>
+                          <span className="font-bold text-cyan-400/80">50% NỬA CHẶNG ĐƯỜNG</span>
+                          <span>75%</span>
+                          <span className={completedDailyMissions === totalDailyMissions && totalDailyMissions > 0 ? 'font-black text-emerald-400' : ''}>
+                            100% {completedDailyMissions === totalDailyMissions && totalDailyMissions > 0 ? '🎯 HOÀN TẤT!' : ''}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Quick notification row */}
+                      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-white/5">
+                        {readyToClaimMissions > 0 ? (
+                          <div className="flex items-center gap-2 text-[11px] text-amber-300 font-sans">
+                            <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-spin" />
+                            <span>
+                              Có <strong>{readyToClaimMissions}</strong> nhiệm vụ đã hoàn tất đang chờ nhận thưởng PP!
+                            </span>
+                          </div>
+                        ) : completedDailyMissions === totalDailyMissions && totalDailyMissions > 0 ? (
+                          <div className="flex items-center gap-2 text-[11px] text-emerald-400 font-sans">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>
+                              Chúc mừng! Bạn đã hoàn thành 100% tất cả nhiệm vụ hôm nay.
+                            </span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2 text-[11px] text-slate-400 font-sans">
+                            <span>
+                              Còn <strong>{Math.max(0, totalDailyMissions - completedDailyMissions)}</strong> nhiệm vụ cần hoàn tất để nhận trọn vẹn điểm thưởng ngày hôm nay.
+                            </span>
+                          </div>
+                        )}
+
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          Tự động làm mới vào 00:00 (GMT+7)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <DailyMissionsPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+                </div>
               )}
 
               {currentTab === 'luckywheel' && (
