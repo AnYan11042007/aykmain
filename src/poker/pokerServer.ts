@@ -851,8 +851,8 @@ export function setupPokerRouter(
    * Create table & Buy-in
    */
   router.post('/create', async (req, res) => {
+    const uid = (req as any).uid || req.body.uid;
     const {
-      uid,
       sessionToken,
       name,
       avatar,
@@ -999,7 +999,8 @@ export function setupPokerRouter(
    * Join existing room seat & Buy-in
    */
   router.post('/join', async (req, res) => {
-    const { roomId, uid, sessionToken, name, avatar, seatIndex, buyIn, actionId } = req.body;
+    const uid = (req as any).uid || req.body.uid;
+    const { roomId, sessionToken, name, avatar, seatIndex, buyIn, actionId } = req.body;
 
     if (isActionProcessed(actionId)) {
       return res.status(400).json({ success: false, error: 'Yêu cầu trùng lặp' });
@@ -1081,7 +1082,8 @@ export function setupPokerRouter(
    * Stand up and refund remaining chips to PP (real games only; practice chips are discarded)
    */
   router.post('/leave', async (req, res) => {
-    const { roomId, uid, sessionToken, actionId } = req.body;
+    const uid = (req as any).uid || req.body.uid;
+    const { roomId, sessionToken, actionId } = req.body;
 
     if (isActionProcessed(actionId)) {
       return res.status(400).json({ success: false, error: 'Yêu cầu trùng lặp' });
@@ -1191,7 +1193,8 @@ export function setupPokerRouter(
    * Submit betting action: FOLD | CHECK | CALL | RAISE | ALL_IN
    */
   router.post('/action', async (req, res) => {
-    const { roomId, uid, sessionToken, action, amount, actionId } = req.body;
+    const uid = (req as any).uid || req.body.uid;
+    const { roomId, sessionToken, action, amount, actionId } = req.body;
 
     if (isActionProcessed(actionId)) {
       return res.status(400).json({ success: false, error: 'Yêu cầu trùng lặp' });
@@ -1373,7 +1376,8 @@ export function setupPokerRouter(
    * Send quick emote / reaction at table (rate limited: 1 per 3s per player)
    */
   router.post('/emote', async (req, res) => {
-    const { roomId, uid, sessionToken, emote } = req.body;
+    const uid = (req as any).uid || req.body.uid;
+    const { roomId, sessionToken, emote } = req.body;
     const auth = await verifyUserSession(db, uid, sessionToken);
     if (!auth.ok) {
       return res.status(401).json({ success: false, error: auth.error });
@@ -1411,7 +1415,8 @@ export function setupPokerRouter(
    * Refill practice chips to 5,000 for free (practice rooms only)
    */
   router.post('/rebuy_practice', async (req, res) => {
-    const { roomId, uid, sessionToken, actionId } = req.body;
+    const uid = (req as any).uid || req.body.uid;
+    const { roomId, sessionToken, actionId } = req.body;
 
     if (isActionProcessed(actionId)) {
       return res.status(400).json({ success: false, error: 'Yêu cầu trùng lặp' });

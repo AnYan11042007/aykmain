@@ -200,7 +200,6 @@ export default function App() {
           return {
             uid: uid,
             name: `Sinh Viên ${uid}`,
-            pass: '123456',
             bankAccount: uid,
             pp: 100000,
             role: 'STUDENT',
@@ -218,7 +217,6 @@ export default function App() {
         return {
           uid: uid,
           name: `Sinh Viên ${uid}`,
-          pass: '123456',
           bankAccount: uid,
           pp: 100000,
           role: 'STUDENT',

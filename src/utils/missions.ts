@@ -4,7 +4,7 @@
  */
 
 import { ref, get, update, set } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 
 export interface Mission {
   id: string;
@@ -422,76 +422,21 @@ export async function broadcastDailyMissionsToAllUsers(customMissions?: Mission[
 
 // Claim reward for a completed mission
 export async function claimMissionReward(uid: string, missionId: string) {
-  const todayStr = getTodayString();
-  const userMissionsRef = ref(db, `users/${uid}/daily_missions/${todayStr}/missions_list`);
-  const snap = await get(userMissionsRef);
+  // Call server-authoritative endpoint with atomic double-claim locking & server-calculated reward
+  const response = await fetchWithAuth('/api/missions/claim', {
+    method: 'POST',
+    body: JSON.stringify({ missionId })
+  });
 
-  if (!snap.exists()) {
-    throw new Error('Nhiệm vụ không tồn tại!');
+  const resData = await response.json();
+  if (!response.ok || !resData.success) {
+    throw new Error(resData.error || 'Lỗi nhận thưởng từ máy chủ');
   }
-
-  const list: UserMission[] = Object.values(snap.val());
-  const idx = list.findIndex((m) => m.id === missionId);
-
-  if (idx === -1) {
-    throw new Error('Không tìm thấy nhiệm vụ tương ứng!');
-  }
-
-  const mission = list[idx];
-  if (mission.claimed) {
-    throw new Error('Bạn đã nhận phần thưởng cho nhiệm vụ này rồi!');
-  }
-
-  if (mission.current < mission.target) {
-    throw new Error('Chưa hoàn thành tiến độ yêu cầu!');
-  }
-
-  // Credit PP securely via server transaction
-  try {
-    await fetch('/api/rewards/award', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        uid,
-        type: 'daily_mission',
-        amount: mission.reward,
-        message: `Nhiệm vụ: ${mission.title}`
-      })
-    });
-  } catch (err) {
-    console.error('Error crediting mission PP on server:', err);
-  }
-
-  const uRef = ref(db, `users/${uid}`);
-  const uSnap = await get(uRef);
-  const currentXP = uSnap.val()?.xp || 0;
-  const currentLevel = uSnap.val()?.level || 1;
-
-  const newXP = currentXP + 40; // Gain 40 XP per completed mission
-  const nextLevelXP = currentLevel * 100;
-
-  const updates: any = {};
-  if (newXP >= nextLevelXP) {
-    updates.xp = newXP - nextLevelXP;
-    updates.bbp = newXP;
-    updates.bpXP = newXP;
-    updates.level = currentLevel + 1;
-  } else {
-    updates.xp = newXP;
-    updates.bbp = newXP;
-    updates.bpXP = newXP;
-  }
-
-  await update(uRef, updates);
-
-  // Mark mission as claimed
-  const updatedList = [...list];
-  updatedList[idx] = { ...mission, claimed: true };
-  await set(userMissionsRef, updatedList);
 
   return {
     success: true,
-    reward: mission.reward,
-    levelUp: newXP >= nextLevelXP
+    reward: resData.reward,
+    newPP: resData.newPP,
+    levelUp: Boolean(resData.levelUp)
   };
 }

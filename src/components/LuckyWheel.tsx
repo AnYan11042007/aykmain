@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, update, set, push, onValue } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { 
   Sparkles, 
@@ -33,21 +33,19 @@ interface LuckyWheelProps {
 
 export interface WheelSegment {
   label: string;
-  type: 'pp' | 'xp' | 'frame';
-  value: string | number;
+  type: 'pp';
+  value: number;
   color: string;
   text: string;
 }
 
 const DEFAULT_SEGMENTS: WheelSegment[] = [
-  { label: '+5,000 PP', type: 'pp', value: 5000, color: '#1a1012', text: '#ef4444' },
-  { label: '+200 XP BBP', type: 'xp', value: 200, color: '#091a18', text: '#10b981' },
-  { label: 'Khung Cầu Vồng Neon', type: 'frame', value: 'neon-ring', color: '#181024', text: '#a855f7' },
-  { label: '+15,000 PP', type: 'pp', value: 15000, color: '#1a180c', text: '#eab308' },
-  { label: '+500 XP BBP', type: 'xp', value: 500, color: '#0b1624', text: '#06b6d4' },
-  { label: 'Khung Cyberpunk', type: 'frame', value: 'cyber-ring', color: '#181024', text: '#ec4899' },
-  { label: '+50,000 PP', type: 'pp', value: 50000, color: '#1a180c', text: '#ffd700' },
-  { label: 'Khung Hoàng Gia Gold', type: 'frame', value: 'gold-ring', color: '#241a0b', text: '#f97316' },
+  { label: '+500 PP', type: 'pp', value: 500, color: '#1e1b4b', text: '#818cf8' },
+  { label: '+2,000 PP', type: 'pp', value: 2000, color: '#064e3b', text: '#34d399' },
+  { label: '+5,000 PP (Hoàn Tiền)', type: 'pp', value: 5000, color: '#1e293b', text: '#38bdf8' },
+  { label: '+10,000 PP', type: 'pp', value: 10000, color: '#701a75', text: '#f472b6' },
+  { label: '+25,000 PP', type: 'pp', value: 25000, color: '#78350f', text: '#fbbf24' },
+  { label: '+50,000 PP (JACKPOT)', type: 'pp', value: 50000, color: '#451a03', text: '#f59e0b' },
 ];
 
 export default function LuckyWheel({ uid, user, onShowResult }: LuckyWheelProps) {
@@ -195,173 +193,65 @@ export default function LuckyWheel({ uid, user, onShowResult }: LuckyWheelProps)
 
   const handleSpin = async (bypassCooldown = false) => {
     if (isSpinning) return;
-    
-    if (cooldownTimeLeft > 0 && !bypassCooldown && !isAdminOrTeacher) {
-      onShowResult(
-        'VÒNG QUAY ĐANG TRONG THỜI GIAN CHỜ',
-        `Bạn đã quay hôm nay rồi! Vui lòng quay lại sau ${formatCooldown(cooldownTimeLeft)} nữa nhé.`,
-        false
-      );
-      return;
-    }
 
     setIsSpinning(true);
-    incrementMissionProgress(uid, 'wheel_spins');
 
-    const activeSegments = segments.length >= 2 ? segments : DEFAULT_SEGMENTS;
-    const winningIndex = Math.floor(Math.random() * activeSegments.length);
-    const degreesPerSlice = 360 / activeSegments.length;
-    
-    const sliceAngle = winningIndex * degreesPerSlice;
-    const extraSpins = 360 * 5;
-    const finalRotation = extraSpins + (360 - sliceAngle) + (degreesPerSlice / 2);
+    try {
+      // Call server-authoritative wheel spin endpoint (single atomic transaction, EV 4,755 PP, max 10/day)
+      const res = await fetchWithAuth('/api/wheel/spin', {
+        method: 'POST'
+      });
+      const data = await res.json();
 
-    setRotation(finalRotation);
+      if (!res.ok || !data.success) {
+        setIsSpinning(false);
+        onShowResult(
+          'KHÔNG THỂ QUAY THƯỞNG ❌',
+          data.error || 'Số dư không đủ 5,000 PP hoặc đã hết lượt quay hôm nay!',
+          false
+        );
+        return;
+      }
 
-    setTimeout(async () => {
-      setIsSpinning(false);
-      const wonSegment = activeSegments[winningIndex];
+      incrementMissionProgress(uid, 'wheel_spins');
 
-      try {
-        const userSnap = await get(ref(db, `users/${uid}`));
-        const freshUser = userSnap.val() || {};
-        const now = Date.now();
+      const winningIndex = typeof data.prizeIndex === 'number' ? data.prizeIndex : 0;
+      const activeSegments = segments.length >= 2 ? segments : DEFAULT_SEGMENTS;
+      const degreesPerSlice = 360 / activeSegments.length;
+      
+      const sliceAngle = winningIndex * degreesPerSlice;
+      const extraSpins = 360 * 5;
+      const finalRotation = extraSpins + (360 - sliceAngle) + (degreesPerSlice / 2);
 
-        const userUpdates: Record<string, any> = {
-          lastLuckyWheelSpin: now
-        };
+      setRotation(finalRotation);
 
-        let resultMessage = '';
+      setTimeout(() => {
+        setIsSpinning(false);
+        const wonPrize = data.prize;
+        const netPnl = data.pnl;
+        const spinsToday = data.spinsToday || 1;
 
-        if (wonSegment.type === 'pp') {
-          const currentPP = freshUser.pp || 0;
-          const currentBBP = freshUser.bbp || freshUser.xp || 0;
-          const currentXP = freshUser.xp || 0;
-          let currentLevel = freshUser.level || 1;
-
-          const addedPP = typeof wonSegment.value === 'number' ? wonSegment.value : parseInt(String(wonSegment.value)) || 0;
-          // Grant 10% PP as bonus BBP (min 100 BBP) when winning valuable PP segment
-          const bonusBBP = Math.max(100, Math.floor(addedPP * 0.1));
-
-          const newXP = currentXP + bonusBBP;
-          const newBBP = currentBBP + bonusBBP;
-
-          let leveledUp = false;
-          let calcLevel = currentLevel;
-          let tempXP = newXP;
-          while (tempXP >= calcLevel * 100) {
-            tempXP -= calcLevel * 100;
-            calcLevel += 1;
-            leveledUp = true;
-          }
-
-          // Credit PP securely via server transaction
-          fetch('/api/rewards/award', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              uid,
-              type: 'lucky_wheel',
-              amount: addedPP,
-              message: 'Vòng Quay May Mắn'
-            })
-          }).catch((e) => console.error('Reward credit error:', e));
-
-          userUpdates['bbp'] = newBBP;
-          userUpdates['xp'] = newXP;
-          userUpdates['bpXP'] = newXP;
-          userUpdates['battlePassXP'] = newXP;
-          userUpdates['level'] = calcLevel;
-
-          resultMessage = `🎉 Chúc mừng bạn! Bạn đã nhận +${addedPP.toLocaleString()} PP và thưởng nóng +${bonusBBP.toLocaleString()} BBP Battle Pass!${
-            leveledUp ? `\n🎉 ĐỘT PHÁ CẢNH GIỚI! Thăng cấp thành công lên Level ${calcLevel}!` : ''
-          }`;
-        } else if (wonSegment.type === 'xp') {
-          const currentXP = freshUser.xp || 0;
-          const currentBBP = freshUser.bbp || freshUser.xp || 0;
-          let currentLevel = freshUser.level || 1;
-          const addedXP = typeof wonSegment.value === 'number' ? wonSegment.value : parseInt(String(wonSegment.value)) || 0;
-          
-          const newXP = currentXP + addedXP;
-          const newBBP = currentBBP + addedXP;
-
-          // Level up algorithm
-          let leveledUp = false;
-          let calcLevel = currentLevel;
-          let tempXP = newXP;
-          while (tempXP >= calcLevel * 100) {
-            tempXP -= calcLevel * 100;
-            calcLevel += 1;
-            leveledUp = true;
-          }
-
-          userUpdates['xp'] = newXP;
-          userUpdates['bbp'] = newBBP;
-          userUpdates['bpXP'] = newXP;
-          userUpdates['battlePassXP'] = newXP;
-          userUpdates['level'] = calcLevel;
-
-          resultMessage = `⚡ Sếp đã nhận được +${addedXP.toLocaleString()} XP / BBP Kinh Nghiệm Battle Pass! ${
-            leveledUp ? `\n🎉 ĐỘT PHÁ CẢNH GIỚI! Thăng cấp Battle Pass thành công lên Level ${calcLevel}!` : ''
-          }`;
-        } else if (wonSegment.type === 'frame') {
-          const currentInventory = freshUser.inventory || { frames: [], titles: [] };
-          const wonFrame = String(wonSegment.value);
-          const currentBBP = freshUser.bbp || freshUser.xp || 0;
-          const currentXP = freshUser.xp || 0;
-          const bonusBBP = 300; // Bonus BBP for winning rare frame item
-
-          const newXP = currentXP + bonusBBP;
-          const newBBP = currentBBP + bonusBBP;
-
-          if (!currentInventory.frames) {
-            currentInventory.frames = [];
-          }
-
-          if (!currentInventory.frames.includes(wonFrame)) {
-            currentInventory.frames.push(wonFrame);
-          }
-
-          userUpdates['inventory'] = currentInventory;
-          userUpdates['activeFrame'] = wonFrame;
-          userUpdates['bbp'] = newBBP;
-          userUpdates['xp'] = newXP;
-          userUpdates['bpXP'] = newXP;
-          userUpdates['battlePassXP'] = newXP;
-
-          resultMessage = `👑 ĐỈNH CAO CHÓI LÒ! Sếp đã nhận ngay ${wonSegment.label} độc quyền (+${bonusBBP} BBP) và đã tự động trang bị!`;
+        if (wonPrize.pp >= 10000) {
+          try {
+            confetti({
+              particleCount: 120,
+              spread: 70,
+              origin: { y: 0.6 }
+            });
+          } catch (e) {}
         }
 
-        // Apply updates directly to users/${uid} in Realtime Database
-        await update(ref(db, `users/${uid}`), userUpdates);
-
-        // Transaction log
-        await push(ref(db, 'transactions'), {
-          sender: 'SYSTEM_LUCKYWHEEL',
-          senderName: 'Vòng Quay AYK',
-          receiver: uid,
-          receiverName: freshUser.name || freshUser.fullName || 'Sinh Viên',
-          amount: wonSegment.type === 'pp' ? wonSegment.value : 0,
-          message: `Quay Vòng Quay May Mắn: Trúng ${wonSegment.label}`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: now
-        });
-
-        // Confetti animation
-        confetti({
-          particleCount: 150,
-          spread: 80,
-          origin: { y: 0.6 }
-        });
-
-        onShowResult('VÒNG QUAY MAY MẮN - THÀNH CÔNG 🎉', resultMessage, true);
-        setLastSpinTime(now);
-
-      } catch (err) {
-        console.error('Lucky wheel update failed:', err);
-        onShowResult('VÒNG QUAY THẤT BẠI', 'Đã xảy ra sự cố kỹ thuật trong quá trình ghi nhận giải thưởng!', false);
-      }
-    }, 4500);
+        const msg = `🎉 KẾT QUẢ VÒNG QUAY:\nBạn đã trúng: ${wonPrize.label}!\nPhí quay: -5,000 PP\nThu về ròng: ${netPnl >= 0 ? '+' : ''}${netPnl.toLocaleString()} PP\n(Đã quay ${spinsToday}/10 lượt hôm nay)`;
+        onShowResult(
+          netPnl >= 0 ? 'TRÚNG THƯỞNG VÒNG QUAY 🎁' : 'KẾT QUẢ VÒNG QUAY 🎯',
+          msg,
+          netPnl >= 0
+        );
+      }, 3500);
+    } catch (err: any) {
+      setIsSpinning(false);
+      onShowResult('LỖI MÁY CHỦ', err?.message || 'Lỗi khi quay thưởng!', false);
+    }
   };
 
   const activeSegments = segments.length >= 2 ? segments : DEFAULT_SEGMENTS;

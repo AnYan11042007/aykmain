@@ -38,7 +38,7 @@ export interface User {
   gold_stats?: GoldStats;
   locked: boolean;
   name: string;
-  pass: string;
+  pass?: string;
   pp: number;
   role: 'STUDENT' | 'TEACHER' | 'ADMIN';
   sem: number;

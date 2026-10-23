@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ref, update, get } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { Shield, Edit2, Check, X, ArrowUp, ArrowDown, UserMinus, UserCheck, Key, Award, Flame } from 'lucide-react';
 
@@ -162,12 +162,9 @@ export default function AdminUserManage({ adminUid, onShowResult }: AdminUserMan
     const nextPP = currentPP + amount;
     if (nextPP < 0) return;
     try {
-      const callerUid = adminUid || localStorage.getItem('s88_uid') || '';
-      const response = await fetch('/api/admin/adjust-pp', {
+      const response = await fetchWithAuth('/api/admin/adjust-pp', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminUid: callerUid,
           targetUid: studentId,
           amount
         })

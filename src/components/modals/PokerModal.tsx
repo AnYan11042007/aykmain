@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { ref, onValue, off } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { User, PokerRoom, PokerSeat, PokerDifficulty, PokerHistoryItem } from '../../types';
 import {
   parseCard,
@@ -295,9 +295,8 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
       setSecondsRemaining(diff);
 
       if (diff === 0 && room.currentTurnSeat !== null) {
-        fetch('/api/poker/check_timeout', {
+        fetchWithAuth('/api/poker/check_timeout', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ roomId: room.id })
         }).catch(() => {});
       }
@@ -514,9 +513,8 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
     const actionId = `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
 
     try {
-      const res = await fetch(`/api/poker/${endpoint}`, {
+      const res = await fetchWithAuth(`/api/poker/${endpoint}`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ...payload,
           sessionToken: token,

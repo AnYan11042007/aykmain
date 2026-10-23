@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, onValue, update, set } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { Landmark, ArrowUpRight, ArrowDownLeft, Send, History } from 'lucide-react';
 import { User, Transaction } from '../types';
 
@@ -92,11 +92,9 @@ export default function BankPortal({ uid, user, onShowResult }: BankPortalProps)
       }
 
       // Call server-authoritative atomic transfer endpoint
-      const response = await fetch('/api/bank/transfer', {
+      const response = await fetchWithAuth('/api/bank/transfer', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          senderUid: uid,
           receiverId: targetUid,
           amount: amt
         })

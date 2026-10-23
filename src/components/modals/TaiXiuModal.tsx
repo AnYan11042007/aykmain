@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { Sparkles, X, Tv, HelpCircle, Eye, RefreshCw, CheckCircle2, RotateCcw } from 'lucide-react';
 import { User } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -124,11 +124,9 @@ export default function TaiXiuModal({ uid, user, onClose, onShowResult }: TaiXiu
 
     try {
       // Call server-authoritative endpoint with crypto.randomInt and atomic transaction
-      const response = await fetch('/api/game/roll', {
+      const response = await fetchWithAuth('/api/game/roll', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          uid,
           game: 'taixiu',
           betAmount: totalBetAmount,
           choice,
