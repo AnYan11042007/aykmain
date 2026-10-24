@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense, lazy } from 'react';
 import { get, ref, onValue, set, onDisconnect, push, update } from 'firebase/database';
 import { db } from './firebase';
 import { User } from './types';
@@ -21,31 +21,33 @@ import LiveCasinoStream from './components/LiveCasinoStream';
 import ChatPortal from './components/ChatPortal';
 import MarketplacePortal from './components/MarketplacePortal';
 import RankingsPortal from './components/RankingsPortal';
-import AdminPortal from './components/AdminPortal';
 import LuckyWheel from './components/LuckyWheel';
 import DailyMissionsPortal from './components/DailyMissionsPortal';
 import { UserMission, getOrInitializeUserMissions } from './utils/missions';
 import AYKNewsPortal from './components/AYKNewsPortal';
-import WorldHuntingPortal from './components/WorldHuntingPortal';
-import TransactionHistoryPortal from './components/TransactionHistoryPortal';
 import ProfileModal from './components/modals/ProfileModal';
 import BackgroundMusic from './components/BackgroundMusic';
-import ExclusiveIdeasModal from './components/modals/ExclusiveIdeasModal';
 
-// Game Modals list
-import TaiXiuModal from './components/modals/TaiXiuModal';
-import PenaltyModal from './components/modals/PenaltyModal';
-import AirplaneModal from './components/modals/AirplaneModal';
-import CryptoModal from './components/modals/CryptoModal';
-import HorseModal from './components/modals/HorseModal';
-import ClawModal from './components/modals/ClawModal';
-import FcMobileModal from './components/modals/FcMobileModal';
-import RpsModal from './components/modals/RpsModal';
-import BlackjackModal from './components/modals/BlackjackModal';
-import TienLenModal from './components/modals/TienLenModal';
-import RouletteModal from './components/modals/RouletteModal';
-import WorldCardBattleModal from './components/modals/WorldCardBattleModal';
-import PokerModal from './components/modals/PokerModal';
+// Lazy loaded heavy portals & modals for bundle optimization
+const AdminPortal = lazy(() => import('./components/AdminPortal'));
+const WorldHuntingPortal = lazy(() => import('./components/WorldHuntingPortal'));
+const TransactionHistoryPortal = lazy(() => import('./components/TransactionHistoryPortal'));
+const ExclusiveIdeasModal = lazy(() => import('./components/modals/ExclusiveIdeasModal'));
+
+// Game Modals list (lazy loaded)
+const TaiXiuModal = lazy(() => import('./components/modals/TaiXiuModal'));
+const PenaltyModal = lazy(() => import('./components/modals/PenaltyModal'));
+const AirplaneModal = lazy(() => import('./components/modals/AirplaneModal'));
+const CryptoModal = lazy(() => import('./components/modals/CryptoModal'));
+const HorseModal = lazy(() => import('./components/modals/HorseModal'));
+const ClawModal = lazy(() => import('./components/modals/ClawModal'));
+const FcMobileModal = lazy(() => import('./components/modals/FcMobileModal'));
+const RpsModal = lazy(() => import('./components/modals/RpsModal'));
+const BlackjackModal = lazy(() => import('./components/modals/BlackjackModal'));
+const TienLenModal = lazy(() => import('./components/modals/TienLenModal'));
+const RouletteModal = lazy(() => import('./components/modals/RouletteModal'));
+const WorldCardBattleModal = lazy(() => import('./components/modals/WorldCardBattleModal'));
+const PokerModal = lazy(() => import('./components/modals/PokerModal'));
 
 // Winnings Confetti trigger import
 import confetti from 'canvas-confetti';
@@ -538,7 +540,9 @@ export default function App() {
               )}
 
               {currentTab === 'hunting' && (
-                <WorldHuntingPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+                <Suspense fallback={<div className="p-8 text-center text-cyan-400 font-mono animate-pulse">ĐANG TẢI ĐẤU TRƯỜNG SĂN BOSS...</div>}>
+                  <WorldHuntingPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+                </Suspense>
               )}
 
               {currentTab === 'academic' && (
@@ -695,11 +699,15 @@ export default function App() {
               )}
 
               {currentTab === 'tx_history' && (
-                <TransactionHistoryPortal uid={uid} user={user} />
+                <Suspense fallback={<div className="p-8 text-center text-cyan-400 font-mono animate-pulse">ĐANG TẢI LỊCH SỬ GIAO DỊCH...</div>}>
+                  <TransactionHistoryPortal uid={uid} user={user} />
+                </Suspense>
               )}
 
               {currentTab === 'admin' && (
-                <AdminPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+                <Suspense fallback={<div className="p-8 text-center text-cyan-400 font-mono animate-pulse">ĐANG TẢI TRANG QUẢN TRỊ...</div>}>
+                  <AdminPortal uid={uid} user={user} onShowResult={handleShowGameResult} />
+                </Suspense>
               )}
             </motion.div>
           </AnimatePresence>
@@ -710,7 +718,7 @@ export default function App() {
       {/* ========================================================= */}
       {/*                     GAME OVERLAYS                         */}
       {/* ========================================================= */}
-
+      <Suspense fallback={<div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 text-cyan-400 font-mono text-sm animate-pulse">ĐANG TẢI TRÒ CHƠI...</div>}>
       {/* Tai Xiu */}
       {activeGameKey === 'taixiu' && (
         <TaiXiuModal 
@@ -845,6 +853,7 @@ export default function App() {
           onShowResult={handleShowGameResult}
         />
       )}
+      </Suspense>
 
       {/* ========================================================= */}
       {/*                 GLOBAL TOAST NOTIFICATIONS                */}

@@ -102,7 +102,6 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
 
   const handleSpinWheel = async () => {
     if (isSpinning) return;
-    incrementMissionProgress(uid, 'roulette_spin');
     if (currentBets.length === 0) {
       alert('Vui lòng đặt cược trước khi quay!');
       return;
@@ -119,175 +118,54 @@ export default function RouletteModal({ uid, user, onClose, onShowResult }: Roul
     setIsSpinning(true);
     setWinningNumber(null);
 
-    // Deduct total stakes immediately
     try {
-      (window as any).__s88_last_legit_tx = Date.now();
-      await update(ref(db, `users/${uid}`), { pp: currentPP - totalStake });
-
-      // Save deduction transaction history immediately for each bet placed
-      for (const bet of currentBets) {
-        await push(ref(db, 'transactions'), {
-          sender: uid,
-          senderName: user?.name || 'High Roller',
-          receiver: 'SYSTEM_ROULETTE',
-          receiverName: 'Đấu Trường Roulette AYK',
-          amount: bet.amount,
-          message: `Cược Roulette: Ô [${getSpotLabel(bet.choice)}]`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-      }
-    } catch (err) {
-      // Transaction write failed - Bet Failure Toast Trigger
-      setIsSpinning(false);
-      onShowResult(
-        'LỖI GIAO DỊCH / BET FAILURE',
-        'Đã xảy ra lỗi khi ghi dữ liệu cược lên máy chủ. Tài khoản không bị trừ PP. Vui lòng kiểm tra lại đường truyền!',
-        false
-      );
-      return;
-    }
-
-    // Determine final number
-    let finalNum = Math.floor(Math.random() * 37); // 0 to 36
-
-    // Admin manual override check
-    if (adminForceResult) {
-      const forced = parseInt(adminForceResult);
-      if (!isNaN(forced) && forced >= 0 && forced <= 36) {
-        finalNum = forced;
-      }
-    }
-
-    // Set high rotational angle (5 spins + pocket angle offset)
-    const segmentAngle = 360 / 37;
-    const finalAngle = 360 * 6 - (finalNum * segmentAngle);
-
-    setWheelRotation(finalAngle);
-
-    setTimeout(() => {
-      resolveGame(finalNum, totalStake);
-    }, 6000); // 6 seconds dramatic wheel spin
-  };
-
-  const resolveGame = async (winningNum: number, totalStake: number) => {
-    setIsSpinning(false);
-    setWinningNumber(winningNum);
-    setGameHistory((prev) => [winningNum, ...prev].slice(0, 8));
-
-    const isRed = RED_NUMBERS.includes(winningNum);
-    const isBlack = BLACK_NUMBERS.includes(winningNum);
-    const isGreen = winningNum === 0;
-
-    let totalPayout = 0;
-    const details: string[] = [];
-
-    currentBets.forEach((bet) => {
-      let isWin = false;
-      let mult = 0;
-
-      if (bet.choice === 'RED' && isRed) {
-        isWin = true;
-        mult = 2;
-      } else if (bet.choice === 'BLACK' && isBlack) {
-        isWin = true;
-        mult = 2;
-      } else if (bet.choice === 'GREEN' && isGreen) {
-        isWin = true;
-        mult = 35;
-      } else if (bet.choice === 'LOW' && winningNum >= 1 && winningNum <= 18) {
-        isWin = true;
-        mult = 2;
-      } else if (bet.choice === 'HIGH' && winningNum >= 19 && winningNum <= 36) {
-        isWin = true;
-        mult = 2;
-      } else if (bet.choice === 'DOZEN_1' && winningNum >= 1 && winningNum <= 12) {
-        isWin = true;
-        mult = 3;
-      } else if (bet.choice === 'DOZEN_2' && winningNum >= 13 && winningNum <= 24) {
-        isWin = true;
-        mult = 3;
-      } else if (bet.choice === 'DOZEN_3' && winningNum >= 25 && winningNum <= 36) {
-        isWin = true;
-        mult = 3;
-      } else if (bet.choice.startsWith('NUM_')) {
-        const num = parseInt(bet.choice.replace('NUM_', ''));
-        if (num === winningNum) {
-          isWin = true;
-          mult = 35;
-        }
-      }
-
-      if (isWin) {
-        const pay = bet.amount * mult;
-        totalPayout += pay;
-        details.push(`+${pay.toLocaleString()} PP từ [${getSpotLabel(bet.choice)}]`);
-      }
-    });
-
-    const netPnl = totalPayout - totalStake;
-    const won = totalPayout > 0;
-
-    try {
-      // Credit payouts to user database
-      if (totalPayout > 0) {
-        (window as any).__s88_last_legit_tx = Date.now();
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const currentPP = uSnap.val()?.pp || 0;
-        await update(ref(db, `users/${uid}`), { pp: currentPP + totalPayout });
-
-        // Save payout transaction history for win
-        await push(ref(db, 'transactions'), {
-          sender: 'SYSTEM_ROULETTE',
-          senderName: 'Đấu Trường Roulette AYK',
-          receiver: uid,
-          receiverName: user?.name || 'High Roller',
-          amount: totalPayout,
-          message: `Thắng Roulette: Trúng ô kết quả [${winningNum}]`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-      }
-
-      // Record logs in game logger
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'High Roller',
-        game: 'Arena Roulette',
-        bet: totalStake,
-        pnl: netPnl,
-        result: won ? `Thắng (+${totalPayout.toLocaleString()} PP)` : 'Thua',
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
+      const res = await fetchWithAuth('/api/game/roulette', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bets: currentBets })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setIsSpinning(false);
+        alert(data.error || 'Lỗi khi đặt cược Roulette');
+        return;
+      }
 
-      // Clear bets and notify
-      setCurrentBets([]);
-      const numColorText = isGreen ? 'Xanh Lá' : isRed ? 'Đỏ' : 'Đen';
-      
+      const finalNum = data.winningNum;
+      const segmentAngle = 360 / 37;
+      const finalAngle = 360 * 6 - (finalNum * segmentAngle);
+      setWheelRotation(finalAngle);
+
       setTimeout(() => {
-        onClose();
-        if (won) {
-          onShowResult(
-            '🎰 ROULETTE - THẮNG LỚN!',
-            `Quay trúng ô số: ${winningNum} (${numColorText})!\nChi tiết thắng cược:\n${details.join('\n')}\nTổng PP nhận về: +${totalPayout.toLocaleString()} PP!`,
-            true
-          );
-        } else {
-          onShowResult(
-            '💀 ROULETTE - THUẬT LẬP KÈO',
-            `Quay trúng ô số: ${winningNum} (${numColorText})!\nRất tiếc, các cửa của bạn không khớp. Bạn mất -${totalStake.toLocaleString()} PP cược.`,
-            false
-          );
-        }
-      }, 1000);
+        setIsSpinning(false);
+        setWinningNumber(finalNum);
+        setGameHistory((prev) => [finalNum, ...prev].slice(0, 8));
+        setCurrentBets([]);
 
-    } catch (err) {
-      onShowResult(
-        'LỖI GHI KẾT QUẢ / TRANSACTION FAILURE',
-        'Không thể hoàn tất giao dịch đồng bộ hóa kết quả. Vui lòng liên hệ Admin sòng bài!',
-        false
-      );
+        const isGreen = finalNum === 0;
+        const isRed = RED_NUMBERS.includes(finalNum);
+        const numColorText = isGreen ? 'Xanh Lá' : isRed ? 'Đỏ' : 'Đen';
+
+        setTimeout(() => {
+          onClose();
+          if (data.won) {
+            onShowResult(
+              '🎰 ROULETTE - THẮNG LỚN!',
+              `Quay trúng ô số: ${finalNum} (${numColorText})!\nChi tiết thắng cược:\n${(data.details || []).join('\n')}\nTổng PP nhận về: +${data.totalPayout.toLocaleString()} PP!`,
+              true
+            );
+          } else {
+            onShowResult(
+              '💀 ROULETTE - THUẬT LẬP KÈO',
+              `Quay trúng ô số: ${finalNum} (${numColorText})!\nRất tiếc, các cửa của bạn không khớp. Bạn mất -${data.totalStake.toLocaleString()} PP cược.`,
+              false
+            );
+          }
+        }, 1000);
+      }, 6000);
+    } catch (err: any) {
+      setIsSpinning(false);
+      alert('Lỗi kết nối máy chủ khi quay Roulette');
     }
   };
 

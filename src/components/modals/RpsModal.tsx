@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, onValue, update, remove, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Trophy, Swords, Zap } from 'lucide-react';
 import { User, RpsRoom } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -92,8 +92,6 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult, pre
         const u2Data = u2Snap.val() as User;
 
         if (res === 1) {
-          // P1 wins whole pot (bet * 2)
-          await update(ref(db, `users/${freshRoom.p1}`), { pp: (u1Data.pp || 0) + (freshRoom.bet * 2) });
           finalMsg = `<span class="text-emerald-400 font-bold">${freshRoom.p1Name} ĐÃ CHIẾN THẮNG ! Húp trọn toàn bộ tiền cược.<br>🔥 ${freshRoom.p2Name} bị trừ -${freshRoom.bet.toLocaleString()} PP!</span>`;
           
           await push(ref(db, 'game_logs'), {
@@ -103,8 +101,6 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult, pre
             uid: freshRoom.p2, name: freshRoom.p2Name, game: "Oẳn Tù Tì", bet: freshRoom.bet, pnl: -freshRoom.bet, result: "Thua", time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
           });
         } else if (res === -1) {
-          // P2 wins
-          await update(ref(db, `users/${freshRoom.p2}`), { pp: (u2Data.pp || 0) + (freshRoom.bet * 2) });
           finalMsg = `<span class="text-[#ff003c] font-bold">${freshRoom.p2Name} ĐÃ CHIẾN THẮNG ! Húp trọn toàn bộ tiền cược.<br>🔥 ${freshRoom.p1Name} bị trừ -${freshRoom.bet.toLocaleString()} PP!</span>`;
 
           await push(ref(db, 'game_logs'), {
@@ -114,9 +110,6 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult, pre
             uid: freshRoom.p1, name: freshRoom.p1Name, game: "Oẳn Tù Tì", bet: freshRoom.bet, pnl: -freshRoom.bet, result: "Thua", time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
           });
         } else {
-          // Draw -> refund both
-          await update(ref(db, `users/${freshRoom.p1}`), { pp: (u1Data.pp || 0) + freshRoom.bet });
-          await update(ref(db, `users/${freshRoom.p2}`), { pp: (u2Data.pp || 0) + freshRoom.bet });
           finalMsg = `<span class="text-glow-gold text-[#ffd700] font-bold">HÒA NHAU ! HOÀN LẠI TIỀN CƯỢC CHO CẢ HAI BÊN.</span>`;
         }
 
@@ -146,10 +139,6 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult, pre
         alert('Có người không đủ số PP để theo kèo, giải tán bàn!');
         return;
       }
-
-      // Deduct PP from both on start
-      await update(ref(db, `users/${room.p1}`), { pp: (u1Data.pp || 0) - room.bet });
-      await update(ref(db, `users/${room.p2}`), { pp: (u2Data.pp || 0) - room.bet });
 
       await update(ref(db, `rps_rooms/${roomId}`), {
         status: 'PLAYING',
@@ -194,10 +183,6 @@ export default function RpsModal({ uid, user, roomId, onClose, onShowResult, pre
           alert('Có đối thủ cạn kiệt PP, sập sòng!');
           return;
         }
-
-        // Deduct stakes and relaunch
-        await update(ref(db, `users/${freshRoom.p1}`), { pp: (u1Data.pp || 0) - freshRoom.bet });
-        await update(ref(db, `users/${freshRoom.p2}`), { pp: (u2Data.pp || 0) - freshRoom.bet });
 
         await update(ref(db, `rps_rooms/${roomId}`), {
           status: 'PLAYING',

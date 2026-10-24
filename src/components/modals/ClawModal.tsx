@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Sparkles, HelpCircle } from 'lucide-react';
 import { User } from '../../types';
 import { motion } from 'motion/react';
@@ -96,162 +95,72 @@ export default function ClawModal({ uid, user, onClose, onShowResult }: ClawModa
         return;
       }
 
-      // Deduct PP initially
-      try {
-        (window as any).__s88_last_legit_tx = Date.now();
-        await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
-
-        // Save bet transaction ledger
-        await push(ref(db, 'transactions'), {
-          sender: uid,
-          senderName: user?.name || 'Sinh Viên',
-          receiver: 'SYSTEM_CLAW',
-          receiverName: 'Máy Gắp Thú AYK',
-          amount: amt,
-          message: `Cược Gắp Thú: Gắp thú 1 lượt (${amt.toLocaleString()} PP)`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        setIsClawActive(true);
-        setClawMsg('🎯 BẮT ĐẦU! Hãy quan sát thú di chuyển và nhấn [ GẮP XUỐNG NGAY ] khi thú đi qua hồng tâm!');
-      } catch (err) {
-        setIsClawActive(false);
-        setIsClawDropping(false);
-        onShowResult(
-          'LỖI GIAO DỊCH',
-          'Giao dịch đặt cược không hợp lệ hoặc bị gián đoạn do độ trễ mạng. Vui lòng thử lại!',
-          false
-        );
-      }
+      setIsClawActive(true);
+      setClawMsg('🎯 BẮT ĐẦU! Hãy quan sát thú di chuyển và nhấn [ GẮP XUỐNG NGAY ] khi thú đi qua hồng tâm!');
     } else {
-      // Release Claw Drop down!
+      // Release Claw Drop down with server authoritative resolution!
       setIsClawDropping(true);
       setClawMsg('🦾 Đang hạ ngàm gắp kim loại xuống...');
-      setCraneTop(210); // Claw moves down to prize lane
+      setCraneTop(210);
 
-      setTimeout(() => {
-        // Evaluate catch diff (checking offset near 48% dead center line)
-        let hitPrize: Prize | null = null;
-        let minDiff = 999;
-
-        prizes.forEach((p) => {
-          const diff = Math.abs(p.x - 48);
-          if (diff < 8 && diff < minDiff) {
-            minDiff = diff;
-            hitPrize = p;
-          }
+      try {
+        const res = await fetchWithAuth('/api/game/claw', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ betAmount: amt })
         });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          alert(data.error || 'Lỗi giao dịch gắp thú');
+          setIsClawActive(false);
+          setIsClawDropping(false);
+          setCraneTop(-10);
+          return;
+        }
 
-        if (hitPrize) {
-          // RNG Slip chance logic
-          let slipChance = 0.35; // 35% base slip
-          if (hitPrize.mult === 10) slipChance = 0.70; // 70% slip for Jackpot Unicorn
-          else if (hitPrize.mult === 3) slipChance = 0.40;
-          else if (hitPrize.mult === 2) slipChance = 0.25;
-
-          if (Math.random() < slipChance) {
-            hitPrize = null; // Slipped!
+        setTimeout(() => {
+          if (data.caught && data.prize) {
+            setCraneChar('🤏');
+            setGrabbedChar(data.prize.type);
+            setGrabbedVisible(true);
+            setGrabbedTop(210);
+            setClawMsg(`🎉 QUÁ ĐỈNH! Ngàm gắp đã tóm chặt ${data.prize.name} (${data.prize.type})! Đang kéo lên...`);
+          } else {
+            setCraneChar('🏗️');
+            setClawMsg('💨 Hụt rồi! Thú đã né thoát ngàm gắp. Đang thu ngàm về...');
           }
-        }
 
-        if (hitPrize) {
-          // Visual caught styling
-          setCraneChar('🤏');
-          setGrabbedChar(hitPrize.type);
-          setGrabbedVisible(true);
-          setGrabbedTop(210);
-          setClawMsg(`🎉 QUÁ ĐỈNH! Ngàm gắp đã tóm chặt ${hitPrize.name} (${hitPrize.type})! Đang kéo lên...`);
+          setCraneTop(-10);
+          setGrabbedTop(30);
 
-          // Temporarily hide caught prize from lane list
-          const caughtId = hitPrize.id;
-          setPrizes((prev) => prev.map((p) => p.id === caughtId ? { ...p, visible: false } : p));
-        } else {
-          setCraneChar('🏗️');
-          setClawMsg('💨 Hụt rồi! Thú đã né thoát ngàm gắp. Đang thu ngàm về...');
-        }
+          setTimeout(() => {
+            setIsClawActive(false);
+            setIsClawDropping(false);
+            setGrabbedVisible(false);
+            setCraneChar('🏗️');
 
-        // Pull Crane claw back up to top
-        setCraneTop(-10);
-        setGrabbedTop(30);
-
-        setTimeout(async () => {
-          if (hitPrize) {
-            const pWin = amt * hitPrize.mult;
-            try {
-              const uSnap = await get(ref(db, `users/${uid}`));
-              const freshPP = uSnap.val()?.pp || 0;
-
-              // Credit payout
-              (window as any).__s88_last_legit_tx = Date.now();
-              await update(ref(db, `users/${uid}`), { pp: freshPP + pWin });
-
-              await push(ref(db, 'transactions'), {
-                sender: 'SYSTEM_CLAW',
-                senderName: 'Máy Gắp Thú AYK',
-                receiver: uid,
-                receiverName: user?.name || 'Sinh Viên',
-                amount: pWin,
-                message: `Thắng Gắp Thú: Gắp trúng ${hitPrize.type} ${hitPrize.name} x${hitPrize.mult}`,
-                time: new Date().toLocaleString('vi-VN'),
-                timestamp: Date.now()
-              });
-
-              await push(ref(db, 'game_logs'), {
-                uid,
-                name: user?.name || 'Sinh Viên',
-                game: 'Gắp Thú',
-                bet: amt,
-                pnl: pWin - amt,
-                result: `Thắng (Gắp trúng ${hitPrize.type} x${hitPrize.mult})`,
-                time: new Date().toLocaleString('vi-VN'),
-                timestamp: Date.now()
-              });
-
+            if (data.caught && data.prize) {
               onShowResult(
                 'GẮP TRÚNG THÀNH CÔNG 🎉',
-                `Xin chúc mừng! Bạn đã gắp thành công: ${hitPrize.type} ${hitPrize.name}!\nNhận thưởng nhân x${hitPrize.mult} cược: +${pWin.toLocaleString()} PP!`,
+                `Xin chúc mừng! Bạn đã gắp thành công: ${data.prize.type} ${data.prize.name}!\nNhận thưởng: +${data.payout.toLocaleString()} PP!`,
                 true
               );
-            } catch (err) {
-              console.error(err);
-            }
-          } else {
-            try {
-              await push(ref(db, 'game_logs'), {
-                uid,
-                name: user?.name || 'Sinh Viên',
-                game: 'Gắp Thú',
-                bet: amt,
-                pnl: -amt,
-                result: `Thua (Hụt)`,
-                time: new Date().toLocaleString('vi-VN'),
-                timestamp: Date.now()
-              });
-
+            } else {
               onShowResult(
                 'GẮP HỤT MẤT RỒI 💸',
                 `Mũi ngàm chỉ gắp được không khí...\nBạn bị trừ -${amt.toLocaleString()} PP cược. Lần sau canh kỹ hơn nhé!`,
                 false
               );
-            } catch (err) {
-              console.error(err);
             }
-          }
+          }, 1200);
+        }, 1200);
 
-          // Restore machine layout
-          setIsClawActive(false);
-          setIsClawDropping(false);
-          setGrabbedVisible(false);
-          setGrabbedTop(250);
-          setCraneChar('🏗️');
-          setClawMsg('🦄 Kỳ Lân (x10) | 🧸 Gấu / 🐼 Trúc (x3) | 🦊 Cáo / 🐧 Cụt (x2)');
-
-          // Re-enable visibility of all prizes in list
-          setPrizes((prev) => prev.map((p) => ({ ...p, visible: true })));
-        }, 900);
-
-      }, 900);
+      } catch (err) {
+        setIsClawActive(false);
+        setIsClawDropping(false);
+        setCraneTop(-10);
+        alert('Lỗi kết nối máy chủ gắp thú');
+      }
     }
   };
 

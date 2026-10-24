@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Trophy, Activity, MessageSquare, Play, HelpCircle, Users, Coins } from 'lucide-react';
 import { User } from '../../types';
 import { getTodayVNString } from '../../utils/date';
@@ -97,9 +96,10 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
     };
   }, []);
 
+  const serverMatchRef = useRef<any>(null);
+
   const handleStartMatch = async (choice: 'BLUE' | 'RED') => {
     if (isMatchActive) return;
-    incrementMissionProgress(uid, 'fcmobile_match');
 
     const amt = parseInt(betAmount);
     if (isNaN(amt) || amt <= 0) {
@@ -113,36 +113,47 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
       return;
     }
 
-    setIsMatchActive(true);
-    setBetChoice(choice);
-    setScore({ blue: 0, red: 0 });
-    setMatchMin(0);
-    currentMinRef.current = 0;
-    totalMinRef.current = 90 + Math.floor(Math.random() * 5) + 1; // 91-95 mins with extra time
-
-    resetPlayerPositions();
-
-    // Start possessing at the center midfielder
-    setPossessingTeam(choice);
-    const initialOwner = choice === 'BLUE' ? 'b_mf' : 'r_mf';
-    setBallOwnerId(initialOwner);
-    const centerPlayer = players.find((p) => p.id === initialOwner);
-    if (centerPlayer) {
-      setBallPos({ left: centerPlayer.baseLeft, top: centerPlayer.baseTop });
-    }
-
     try {
-      // Deduct PP instantly
-      await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
+      const res = await fetchWithAuth('/api/game/fcmobile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice, betAmount: amt })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Lỗi khi bắt đầu trận đấu FC Mobile');
+        return;
+      }
+
+      serverMatchRef.current = data;
+
+      setIsMatchActive(true);
+      setBetChoice(choice);
+      setScore({ blue: 0, red: 0 });
+      setMatchMin(0);
+      currentMinRef.current = 0;
+      totalMinRef.current = 90 + Math.floor(Math.random() * 5) + 1; // 91-95 mins with extra time
+
+      resetPlayerPositions();
+
+      // Start possessing at the center midfielder
+      setPossessingTeam(choice);
+      const initialOwner = choice === 'BLUE' ? 'b_mf' : 'r_mf';
+      setBallOwnerId(initialOwner);
+      const centerPlayer = players.find((p) => p.id === initialOwner);
+      if (centerPlayer) {
+        setBallPos({ left: centerPlayer.baseLeft, top: centerPlayer.baseTop });
+      }
+
       setCommentary('Trọng tài chính thổi còi khai cuộc! Trận đấu bóng đá siêu thực S-System bắt đầu!');
       setPhaseText('TRẬN ĐẤU BẮT ĐẦU');
 
       matchIntervalRef.current = setInterval(() => {
         executeMatchTick(choice, amt);
-      }, 1000); // Dynamic step-by-step update every 1 second
+      }, 1000);
     } catch (err) {
       console.error(err);
-      alert('Gặp lỗi khi bắt đầu trận đấu!');
+      alert('Gặp lỗi kết nối khi bắt đầu trận đấu!');
       setIsMatchActive(false);
     }
   };
@@ -332,79 +343,37 @@ export default function FcMobileModal({ uid, user, onClose, onShowResult }: FcMo
     setPhaseText('TRẬN ĐẤU KẾT THÚC');
     setCommentary('HẾT GIỜ! Trọng tài chính nổi còi mãn cuộc trận đấu kịch tính nghẹt thở!');
 
-    const finalBlue = score.blue;
-    const finalRed = score.red;
-    const winner = finalBlue > finalRed ? 'BLUE' : finalRed > finalBlue ? 'RED' : 'DRAW';
+    const sData = serverMatchRef.current;
+    const finalBlue = sData?.score?.blue ?? score.blue;
+    const finalRed = sData?.score?.red ?? score.red;
+    const winner = sData?.winner ?? (finalBlue > finalRed ? 'BLUE' : finalRed > finalBlue ? 'RED' : 'DRAW');
 
-    let payout = 0;
-    let isWin = false;
+    const payout = sData?.payout ?? 0;
+    const isWin = sData?.isWin ?? false;
     let titleText = '';
     let messageText = `Tỉ số chung cuộc: Xanh ${finalBlue} - ${finalRed} Đỏ.\n`;
 
     if (winner === 'DRAW') {
-      payout = amt; // refund on draw
-      isWin = true;
       titleText = 'HÒA ĐẤU SỨC';
       messageText += `Hai bên bất phân thắng bại! Sếp được hoàn trả toàn bộ ${amt.toLocaleString()} PP cược.`;
-    } else if (winner === choice) {
+    } else if (isWin) {
       const gap = Math.abs(finalBlue - finalRed);
       if (gap >= 2) {
-        payout = Math.floor(amt * 2.5);
-        isWin = true;
         titleText = 'JACKPOT THẮNG ĐẬM';
-        messageText += `Cực đỉnh! Đội sếp chọn thắng cách biệt ${gap} bàn giòn giã! Nhận Jackpot x2.5: +${payout.toLocaleString()} PP!`;
+        messageText += `Cực đỉnh! Đội sếp chọn thắng cách biệt ${gap} bàn giòn giã! Nhận Jackpot: +${payout.toLocaleString()} PP!`;
       } else {
-        payout = amt * 2;
-        isWin = true;
         titleText = 'CHIẾN THẮNG KÈO ĐẤU';
-        messageText += `Tuyệt hảo! Đội sếp chọn bảo toàn thắng lợi sát nút! Nhận thưởng x2: +${payout.toLocaleString()} PP!`;
+        messageText += `Tuyệt hảo! Đội sếp chọn bảo toàn thắng lợi sát nút! Nhận thưởng: +${payout.toLocaleString()} PP!`;
       }
     } else {
-      payout = 0;
-      isWin = false;
       titleText = 'BẠI TRẬN ĐÁNG TIẾC';
       messageText += `Trận thua sát nút! Sếp bị trừ mất trắng -${amt.toLocaleString()} PP cược. Chúc sếp may mắn lượt sau!`;
     }
 
-    try {
-      // Award PP to user
-      if (payout > 0) {
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const freshPP = (uSnap.val()?.pp || 0) + payout;
-        await update(ref(db, `users/${uid}`), { pp: freshPP });
-      }
-
-      // Record logs
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'FC Mobile',
-        bet: amt,
-        pnl: payout - amt,
-        result: isWin && winner !== 'DRAW' ? 'Thắng' : winner === 'DRAW' ? 'Hòa' : 'Thua',
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now(),
-      });
-
-      // Daily mission update
-      try {
-        const todayStr = getTodayVNString(); // YYYY-MM-DD (Asia/Ho_Chi_Minh ICT)
-        const missionRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
-        const mSnap = await get(missionRef);
-        const currentCrash = mSnap.val()?.crashRides || 0;
-        // Increment mission count (using crashRides field or similar to reward gaming activity)
-        await update(missionRef, { crashRides: currentCrash + 1 });
-      } catch (err) {
-        console.warn('Daily mission update skipped:', err);
-      }
-
-      setTimeout(() => {
-        onClose();
-        onShowResult(titleText, messageText, isWin);
-      }, 3000);
-    } catch (err) {
-      console.error(err);
-    }
+    setTimeout(() => {
+      onClose();
+      onShowResult(titleText, messageText, isWin);
+    }, 2000);
   };
 
   // Keyboard Shortcuts for Power Users

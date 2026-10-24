@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, TrendingUp, Sparkles, ChevronRight } from 'lucide-react';
 import { User } from '../../types';
 
@@ -60,33 +59,28 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
       return;
     }
 
-    setIsTrading(true);
-    setHasRugPulled(false);
-    setMultiplier(1.00);
-    betRef.current = amt;
-
-    // Reset chart points
-    chartPointsRef.current = [{ x: 0, y: 260 }];
-    chartXRef.current = 0;
-    chartMultRef.current = 1.00;
-
-    // Calculate random rug pull point (100 / (random * 100))
-    const r = Math.random();
-    let point = 100 / (r * 100);
-    point = Math.max(1.00, Math.min(100.00, point));
-    
-    // 8% chance of instant rug pull
-    if (Math.random() < 0.08) {
-      point = 1.00;
-    }
-    
-    rugPullPointRef.current = parseFloat(point.toFixed(2));
-
     try {
-      // Deduct PP instantly
-      await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
+      const res = await fetchWithAuth('/api/game/crypto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bet', betAmount: amt })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Lỗi khởi động sàn giao dịch!');
+        return;
+      }
 
-      // Run live candlestick canvas drawing loops
+      setIsTrading(true);
+      setHasRugPulled(false);
+      setMultiplier(1.00);
+      betRef.current = amt;
+
+      // Reset chart points
+      chartPointsRef.current = [{ x: 0, y: 260 }];
+      chartXRef.current = 0;
+      chartMultRef.current = 1.00;
+
       let speed = 0.003;
       const canvas = canvasRef.current;
       const ctx = canvas?.getContext('2d');
@@ -102,7 +96,6 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
         chartXRef.current += 3.5;
         let cY = 260 - ((currentMult - 1.0) * 35);
         if (cY < 20) {
-          // Cap drawing but add subtle random jittering for visual realism
           cY = 20 + Math.random() * 8;
         }
 
@@ -129,11 +122,13 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
           ctx.stroke();
         }
 
-        // Check if rug pull point has been crossed
-        if (currentMult >= rugPullPointRef.current) {
-          clearInterval(tradingIntervalRef.current!);
-          tradingIntervalRef.current = null;
-          handleRugPull();
+        // Maximum visual multiplier safety cap
+        if (currentMult >= 50.0) {
+          if (tradingIntervalRef.current) {
+            clearInterval(tradingIntervalRef.current);
+            tradingIntervalRef.current = null;
+          }
+          handleCashOut();
         }
       }, 40);
 
@@ -148,7 +143,7 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
     setHasRugPulled(true);
 
     const amt = betRef.current;
-    const finalPoint = rugPullPointRef.current;
+    const finalPoint = chartMultRef.current;
 
     // Draw final crash drop down line on Canvas
     const canvas = canvasRef.current;
@@ -160,30 +155,20 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
       ctx.stroke();
     }
 
-    try {
-      // Log failure loss
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Crypto',
-        bet: amt,
-        pnl: -amt,
-        result: `Rug Pull ở x${finalPoint.toFixed(2)} (Thua)`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
+    fetchWithAuth('/api/game/crypto', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'rugged' })
+    }).catch(() => {});
 
-      setTimeout(() => {
-        onClose();
-        onShowResult(
-          '📉 RUG PULL !!! SẬP SÀN',
-          `Nến xanh của bạn đã bị cá mập úp sọt xả hàng ở x${finalPoint.toFixed(2)}!\nTổn thất toàn bộ nguồn vốn đầu tư: -${amt.toLocaleString()} PP.`,
-          false
-        );
-      }, 1500);
-    } catch (err) {
-      console.error(err);
-    }
+    setTimeout(() => {
+      onClose();
+      onShowResult(
+        '📉 RUG PULL !!! SẬP SÀN',
+        `Nến xanh của bạn đã bị cá mập úp sọt xả hàng ở x${finalPoint.toFixed(2)}!\nTổn thất toàn bộ nguồn vốn đầu tư: -${amt.toLocaleString()} PP.`,
+        false
+      );
+    }, 1500);
   };
 
   const handleCashOut = async () => {
@@ -194,41 +179,31 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
       tradingIntervalRef.current = null;
     }
 
-    setIsTrading(false);
-    const amt = betRef.current;
-    const currentMult = multiplier;
-    const winAmount = Math.floor(amt * currentMult);
+    const currentMult = chartMultRef.current;
 
     try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      const freshPP = uSnap.val()?.pp || 0;
-
-      // Credit winnings
-      await update(ref(db, `users/${uid}`), { pp: freshPP + winAmount });
-
-      // Log success
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Crypto',
-        bet: amt,
-        pnl: winAmount - amt,
-        result: `Chốt lời Coin x${currentMult.toFixed(2)} (Thắng)`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
+      const res = await fetchWithAuth('/api/game/crypto', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cashout', multiplier: currentMult })
       });
+      const data = await res.json();
 
-      setTimeout(() => {
-        onClose();
-        onShowResult(
-          'CHỐT LỜI THÀNH CÔNG !',
-          `Bạn đã bán xả hàng kịp thời ở mốc nến xanh x${currentMult.toFixed(2)}!\nNhận được dòng tiền: +${winAmount.toLocaleString()} PP!`,
-          true
-        );
-      }, 1500);
-
+      if (res.ok && data.success) {
+        setIsTrading(false);
+        setTimeout(() => {
+          onClose();
+          onShowResult(
+            'CHỐT LỜI THÀNH CÔNG !',
+            `Bạn đã bán xả hàng kịp thời ở mốc nến xanh x${currentMult.toFixed(2)}!\nNhận được dòng tiền: +${data.winAmount.toLocaleString()} PP!`,
+            true
+          );
+        }, 1500);
+      } else {
+        handleRugPull();
+      }
     } catch (err) {
-      console.error(err);
+      handleRugPull();
     }
   };
 

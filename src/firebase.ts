@@ -24,14 +24,16 @@ export const auth = getAuth(app);
 // ----------------- FIREBASE APP CHECK -----------------
 if (typeof window !== 'undefined') {
   try {
-    const recaptchaKey = metaEnv.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
-    if (metaEnv.DEV) {
-      (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+    const recaptchaKey = metaEnv.VITE_RECAPTCHA_SITE_KEY;
+    if (recaptchaKey) {
+      if (metaEnv.DEV) {
+        (self as any).FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      }
+      initializeAppCheck(app, {
+        provider: new ReCaptchaV3Provider(recaptchaKey),
+        isTokenAutoRefreshEnabled: true
+      });
     }
-    initializeAppCheck(app, {
-      provider: new ReCaptchaV3Provider(recaptchaKey),
-      isTokenAutoRefreshEnabled: true
-    });
   } catch (err) {
     // Graceful skip if App Check already initialized or in restricted sandbox
     console.warn('[Firebase App Check] Init notice:', err);
@@ -45,6 +47,15 @@ if (typeof window !== 'undefined') {
 export function formatVirtualEmail(identifier: string): string {
   const clean = identifier.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
   return `${clean || 'user'}@ayk8686.internal`;
+}
+
+/**
+ * Constructs absolute API URL respecting VITE_API_BASE for deployments (e.g. GitHub Pages -> Cloud Run)
+ */
+export function apiUrl(path: string): string {
+  const base = (metaEnv.VITE_API_BASE || '').trim().replace(/\/$/, '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return base ? `${base}${cleanPath}` : cleanPath;
 }
 
 /**
@@ -67,9 +78,10 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 /**
- * Centralized fetch helper attaching Firebase ID Token in Authorization header
+ * Centralized fetch helper attaching Firebase ID Token in Authorization header and resolving API base
  */
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
+  const targetUrl = url.startsWith('http://') || url.startsWith('https://') ? url : apiUrl(url);
   const token = await getAuthToken();
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
@@ -78,7 +90,7 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  return fetch(url, {
+  return fetch(targetUrl, {
     ...options,
     headers
   });

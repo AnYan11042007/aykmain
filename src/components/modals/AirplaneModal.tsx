@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, update, push, onValue } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Navigation, Flame, Trophy, Info, HelpCircle, Volume2, VolumeX, Zap, ShieldAlert, Crosshair, Sparkles } from 'lucide-react';
 import { User } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -256,28 +256,11 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
       crashHandledRef.current = currentRoundId;
       playSoundEffect('crash', isMuted);
 
-      // Mark as CRASHED in database
-      update(ref(db, `users/${uid}/crash_game`), { status: 'CRASHED' });
-
-      // Write game log & transaction history
-      push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Crash',
-        bet: activeBet.amount,
-        pnl: -activeBet.amount,
-        result: `Nổ ở x${crashPoint.toFixed(2)} (Thua)`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
-
-      push(ref(db, `transactions/${uid}`), {
-        id: `tx_crash_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        type: 'EXPENSE',
-        title: 'Nổ Phi Thuyền AYK',
-        amount: -activeBet.amount,
-        unit: 'PP',
-        timestamp: Date.now()
+      // Notify server of crash
+      fetchWithAuth('/api/game/airplane', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'crash' })
       }).catch(() => {});
 
       onShowResult(
@@ -297,50 +280,25 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
     setIsProcessing(true);
     playSoundEffect('cashout', isMuted);
 
-    const winAmount = Math.floor(activeBet.amount * currentMultiplier);
-    const profit = winAmount - activeBet.amount;
-
     try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      const freshPP = uSnap.val()?.pp || 0;
-
-      // Credit winnings and finalize bet state
-      await update(ref(db, `users/${uid}`), {
-        pp: freshPP + winAmount,
-        'crash_game/status': 'CASHED_OUT',
-        'crash_game/multiplier': currentMultiplier
+      const res = await fetchWithAuth('/api/game/airplane', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'cashout', multiplier: currentMultiplier })
       });
-
-      // Write game logs
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Crash',
-        bet: activeBet.amount,
-        pnl: profit,
-        result: `Nhảy dù chốt x${currentMultiplier.toFixed(2)} (Thắng)`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
-
-      // Write transaction history
-      await push(ref(db, `transactions/${uid}`), {
-        id: `tx_crash_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-        type: 'INCOME',
-        title: `Nhảy Dù Không Chiến AYK (x${currentMultiplier.toFixed(2)})`,
-        amount: winAmount,
-        unit: 'PP',
-        timestamp: Date.now()
-      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Giao dịch nhảy dù không thành công');
+      }
 
       onShowResult(
         '🪂 NHẢY DÙ THÀNH CÔNG!',
-        `Thoát hiểm an toàn ở mốc x${currentMultiplier.toFixed(2)}!\nĐã chốt lợi nhuận +${winAmount.toLocaleString()} PP vào tài khoản!`,
+        `Thoát hiểm an toàn ở mốc x${currentMultiplier.toFixed(2)}!\nĐã chốt lợi nhuận +${data.winAmount.toLocaleString()} PP vào tài khoản!`,
         true
       );
-    } catch (err) {
+    } catch (err: any) {
       cashOutLockRef.current = false;
-      alert('Giao dịch nhảy dù thất bại. Vui lòng thử lại!');
+      alert(err.message || 'Giao dịch nhảy dù thất bại. Vui lòng thử lại!');
     } finally {
       setIsProcessing(false);
     }
@@ -385,65 +343,16 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
     playSoundEffect('bet', isMuted);
 
     try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      if (!uSnap.exists()) {
-        alert('Tài khoản không tồn tại!');
-        setIsProcessing(false);
-        return;
-      }
-
-      const currentPP = uSnap.val().pp || 0;
-      if (currentPP < amt) {
-        alert(`Số dư PP không đủ để cất cánh! Hiện có: ${currentPP.toLocaleString()} PP.`);
-        setIsProcessing(false);
-        return;
-      }
-
-      // Deduct PP & Record active bet structure
-      await update(ref(db, `users/${uid}`), {
-        pp: currentPP - amt,
-        crash_game: {
-          roundId: currentRoundId,
-          amount: amt,
-          status: 'PLAYING'
-        }
+      const res = await fetchWithAuth('/api/game/airplane', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'bet', betAmount: amt })
       });
-
-      // Award Daily Missions progress
-      try {
-        const todayStr = getTodayVNString();
-        const mRef = ref(db, `users/${uid}/daily_missions/${todayStr}`);
-        const mSnap = await get(mRef);
-        let currentRides = 0;
-        if (mSnap.exists() && typeof mSnap.val() === 'object' && mSnap.val() !== null) {
-          currentRides = mSnap.val().crashRides || 0;
-        }
-        await update(mRef, { crashRides: currentRides + 1 });
-        await incrementMissionProgress(uid, 'crash_rides');
-      } catch (mErr) {
-        console.warn('Daily mission update error:', mErr);
-      }
-
-      // Increase Battle Pass XP
-      try {
-        const freshSnap = await get(ref(db, `users/${uid}`));
-        if (freshSnap.exists()) {
-          const uVal = freshSnap.val();
-          const currentXP = uVal.xp || 0;
-          const currentLevel = uVal.level || 1;
-          const newXP = currentXP + 25;
-          const nextLevelXP = currentLevel * 100;
-          if (newXP >= nextLevelXP) {
-            await update(ref(db, `users/${uid}`), {
-              xp: newXP - nextLevelXP,
-              level: currentLevel + 1
-            });
-          } else {
-            await update(ref(db, `users/${uid}`), { xp: newXP });
-          }
-        }
-      } catch (xpErr) {
-        console.warn('XP update error:', xpErr);
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Lỗi đặt cược cất cánh!');
+        setIsProcessing(false);
+        return;
       }
 
       setBetAmount('');

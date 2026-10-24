@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, Shield, Zap, Swords, Heart, Sparkles, Eye, Trophy, RefreshCw, Send, Volume2, Users, Bot, BarChart2, Layers, Clock, Info, History, Flag } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { ref, onValue, set, update, push, remove, get } from 'firebase/database';
 import { getCardImageSvg, getCardBackSvg } from './cardImages';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -3031,7 +3031,14 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
 
       const betAmt = p1Obj?.bet || p2Obj?.bet || (roomData.totalPot ? Math.floor(roomData.totalPot / 2) : 5000);
 
-      // Determine points delta for both players
+      // Settle match economics on server
+      fetchWithAuth('/api/game/worldcard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: roomData.id, winnerId })
+      }).catch((e) => console.warn('[WorldCard Settle Warning]:', e));
+
+      // Determine points delta for both players (cosmetic card rank stats)
       if (p1Obj && p1Obj.id && !p1Obj.isBot) {
         const isP1Win = winnerId === p1Obj.id;
         const isOpponentAi = !p2Obj || p2Obj.isBot || p2Obj.id === 'bot_ai_master';
@@ -3041,13 +3048,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         get(p1Ref).then((snap) => {
           if (snap.exists()) {
             const val = snap.val();
-            const currentPP = val.pp || 0;
-            const newPP = isP1Win ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
             const currentCardPoints = val.cardPoints || 0;
             const newCardPoints = Math.max(0, currentCardPoints + p1CardDelta);
             
             update(p1Ref, { 
-              pp: newPP,
               cardPoints: newCardPoints,
               cardWins: (val.cardWins || 0) + (isP1Win ? 1 : 0),
               cardLosses: (val.cardLosses || 0) + (isP1Win ? 0 : 1)
@@ -3074,13 +3078,10 @@ export default function WorldCardBattleModal({ uid, user, onClose, onShowResult 
         get(p2Ref).then((snap) => {
           if (snap.exists()) {
             const val = snap.val();
-            const currentPP = val.pp || 0;
-            const newPP = isP2Win ? currentPP + betAmt : Math.max(0, currentPP - betAmt);
             const currentCardPoints = val.cardPoints || 0;
             const newCardPoints = Math.max(0, currentCardPoints + p2CardDelta);
 
             update(p2Ref, { 
-              pp: newPP,
               cardPoints: newCardPoints,
               cardWins: (val.cardWins || 0) + (isP2Win ? 1 : 0),
               cardLosses: (val.cardLosses || 0) + (isP2Win ? 0 : 1)

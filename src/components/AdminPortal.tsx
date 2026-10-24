@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, update, push, set, onValue, remove } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User, Quest, Report } from '../types';
 import { Shield, Users, Ticket, Plus, Check, Play, Square, Ban, Trash2, Award, Zap, AlertTriangle, Settings, Coins, LayoutGrid, RefreshCw, Sparkles } from 'lucide-react';
 import AdminUserManage from './AdminUserManage';
@@ -907,19 +907,25 @@ export default function AdminPortal({ uid, user, onShowResult }: AdminPortalProp
 
   // Adjust PP Balance
   const handleAdjustPP = async (targetUid: string, currentPP: number, change: number) => {
-    const nextPP = currentPP + change;
-    if (nextPP < 0) return;
-
     try {
-      await update(ref(db, `users/${targetUid}`), { pp: nextPP });
-      if (onShowResult) {
-        onShowResult('CẤP PHÁT QUỸ 💰', `Đã điều chỉnh tài sản cho UID ${targetUid}: ${change > 0 ? '+' : ''}${change.toLocaleString()} PP!`, true);
+      const res = await fetchWithAuth('/api/admin/adjust-pp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ targetUid, amount: change })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi điều chỉnh PP');
       }
-    } catch (err) {
+
       if (onShowResult) {
-        onShowResult('THẤT BẠI ❌', 'Không thể chỉnh sửa PP!', false);
+        onShowResult('CẤP PHÁT QUỸ 💰', `Đã điều chỉnh tài sản cho UID ${targetUid}: ${change > 0 ? '+' : ''}${change.toLocaleString()} PP! Số dư mới: ${data.newPP.toLocaleString()} PP`, true);
+      }
+    } catch (err: any) {
+      if (onShowResult) {
+        onShowResult('THẤT BẠI ❌', err.message || 'Không thể chỉnh sửa PP!', false);
       } else {
-        alert('Không thể chỉnh sửa PP!');
+        alert(err.message || 'Không thể chỉnh sửa PP!');
       }
     }
   };

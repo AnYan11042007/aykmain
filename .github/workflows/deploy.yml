@@ -1,9 +1,9 @@
 name: Deploy Full-Stack to Google Cloud Run
 
 on:
+  workflow_dispatch:
   push:
     branches: ["main"]
-  workflow_dispatch:
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID || 'appsinhvien-24482' }}
@@ -15,7 +15,6 @@ jobs:
   deploy:
     name: Build & Deploy Container
     runs-on: ubuntu-latest
-    if: ${{ secrets.GCP_SA_KEY != '' }}
 
     permissions:
       contents: read
@@ -35,29 +34,39 @@ jobs:
           npm ci || npm install
           npm test
 
+      - name: Check GCP Credentials
+        id: check_gcp
+        run: |
+          if [ -n "${{ secrets.GCP_SA_KEY }}" ]; then
+            echo "has_gcp=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_gcp=false" >> $GITHUB_OUTPUT
+            echo "GCP_SA_KEY is not configured. Skipping Cloud Run container deployment."
+          fi
+
       - name: Authenticate to Google Cloud
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+        if: steps.check_gcp.outputs.has_gcp == 'true'
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SA_KEY }}
 
       - name: Set up Cloud SDK
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+        if: steps.check_gcp.outputs.has_gcp == 'true'
         uses: google-github-actions/setup-gcloud@v2
 
       - name: Configure Docker for Google Container Registry
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+        if: steps.check_gcp.outputs.has_gcp == 'true'
         run: gcloud auth configure-docker --quiet
 
       - name: Build and Push Docker Container
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+        if: steps.check_gcp.outputs.has_gcp == 'true'
         run: |
           docker build -t ${{ env.IMAGE_NAME }}:${{ github.sha }} -t ${{ env.IMAGE_NAME }}:latest .
           docker push ${{ env.IMAGE_NAME }}:${{ github.sha }}
           docker push ${{ env.IMAGE_NAME }}:latest
 
       - name: Deploy to Cloud Run
-        if: ${{ secrets.GCP_SA_KEY != '' }}
+        if: steps.check_gcp.outputs.has_gcp == 'true'
         uses: google-github-actions/deploy-cloudrun@v2
         with:
           service: ${{ env.SERVICE_NAME }}

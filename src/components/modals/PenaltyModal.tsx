@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Trophy, AlertTriangle, ArrowRight, ShieldCheck } from 'lucide-react';
 import { User } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -39,6 +38,7 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
 
   const powerIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const cursorDirRef = useRef<number>(4); // Speed multiplier
+  const serverResultRef = useRef<any>(null);
 
   useEffect(() => {
     return () => {
@@ -60,20 +60,18 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
     }
 
     try {
-      // Deduct PP initially
-      await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
-
-      // Save deduction transaction ledger write immediately
-      await push(ref(db, 'transactions'), {
-        sender: uid,
-        senderName: user?.name || 'Sinh Viên',
-        receiver: 'SYSTEM_PENALTY',
-        receiverName: 'Đá Luân Lưu AYK',
-        amount: amt,
-        message: `Cược Penalty: Đá luân lưu 5 quả`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
+      const res = await fetchWithAuth('/api/game/roll', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ game: 'penalty', betAmount: amt, target: 1 })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Lỗi khi bắt đầu lượt sút');
+        return;
+      }
+
+      serverResultRef.current = data;
 
       // Initialize match layout
       setIsPlaying(true);
@@ -252,53 +250,22 @@ export default function PenaltyModal({ uid, user, onClose, onShowResult }: Penal
     if (powerIntervalRef.current) clearInterval(powerIntervalRef.current);
 
     const amt = parseInt(betAmount);
-    if (finalGoals >= 3) {
-      const payout = amt * 2;
-      try {
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const freshPP = uSnap.val()?.pp || 0;
-        await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
+    const sResult = serverResultRef.current;
+    const isWin = sResult ? sResult.won : finalGoals >= 3;
+    const payout = sResult?.payout || (isWin ? Math.floor(amt * 1.95) : 0);
 
-        await push(ref(db, 'game_logs'), {
-          uid,
-          name: user?.name || 'Sinh Viên',
-          game: 'Penalty',
-          bet: amt,
-          pnl: payout - amt,
-          result: `Thắng (Ghi ${finalGoals}/5 quả)`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        onShowResult(
-          'CHIẾN THẮNG KÈO ĐẤU!',
-          `Ghi bàn thành công: ${finalGoals}/5 quả!\nBạn nhận về: +${payout.toLocaleString()} PP!`,
-          true
-        );
-      } catch (err) {
-        console.error(err);
-      }
+    if (isWin) {
+      onShowResult(
+        'CHIẾN THẮNG KÈO ĐẤU!',
+        `Ghi bàn thành công: ${finalGoals}/5 quả!\nBạn nhận về: +${payout.toLocaleString()} PP!`,
+        true
+      );
     } else {
-      try {
-        await push(ref(db, 'game_logs'), {
-          uid,
-          name: user?.name || 'Sinh Viên',
-          game: 'Penalty',
-          bet: amt,
-          pnl: -amt,
-          result: `Thua (Ghi ${finalGoals}/5 quả)`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        onShowResult(
-          'THẤT BẠI KÈO ĐẤU',
-          `Bạn chỉ ghi được ${finalGoals}/5 quả bóng.\nBạn bị trừ mất trắng -${amt.toLocaleString()} PP cược.`,
-          false
-        );
-      } catch (err) {
-        console.error(err);
-      }
+      onShowResult(
+        'THẤT BẠI KÈO ĐẤU',
+        `Bạn chỉ ghi được ${finalGoals}/5 quả bóng.\nBạn bị trừ mất -${amt.toLocaleString()} PP cược.`,
+        false
+      );
     }
   };
 

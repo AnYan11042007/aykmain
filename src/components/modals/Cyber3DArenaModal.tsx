@@ -30,7 +30,7 @@ import {
   Crown
 } from 'lucide-react';
 import { ref, update, push, onValue, set, remove, get } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { User } from '../../types';
 import confetti from 'canvas-confetti';
 
@@ -768,21 +768,17 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
   // Handle Player Award on Kill
   const handleRewardKill = async (rewardPP: number, monsterName: string) => {
     try {
-      const userRef = ref(db, `users/${uid}`);
-      const newPP = (user?.pp || 0) + rewardPP;
-      await update(userRef, {
-        pp: newPP,
-      });
-
-      const txRef = push(ref(db, `transactions/${uid}`));
-      await update(txRef, {
-        type: 'GAME_WIN',
-        amount: rewardPP,
-        title: `Săn Được 3D: ${monsterName}`,
-        timestamp: Date.now(),
+      await fetchWithAuth('/api/game/cyber3d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'kill',
+          monsterType: monsterName,
+          monsterName
+        })
       });
     } catch (err) {
-      console.error('Lỗi cộng thưởng săn 3D:', err);
+      console.error('Lỗi ghi nhận thưởng diệt quái 3D:', err);
     }
   };
 
@@ -799,10 +795,19 @@ export default function Cyber3DArenaModal({ uid, user, onClose, onShowResult }: 
     }
 
     try {
-      const userRef = ref(db, `users/${uid}`);
-      await update(userRef, {
-        pp: currentPP - bulletCost,
+      const res = await fetchWithAuth('/api/game/cyber3d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'fire',
+          bulletTier: selectedTierIndex + 1
+        })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        alert(data.error || 'Lỗi khi bắn đạn');
+        return;
+      }
 
       setTotalSpentPP((s) => s + bulletCost);
 

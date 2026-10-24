@@ -4,8 +4,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { get, ref, update, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Award, HelpCircle, ShieldCheck } from 'lucide-react';
 import { User } from '../../types';
 import { motion } from 'motion/react';
@@ -77,47 +76,37 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
     setCommentary(`Đang cược Ngựa số ${choice}... Cố lên!`);
 
     try {
-      // Deduct PP initially
-      await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
-      await incrementMissionProgress(uid, 'horse_rides');
-
-      // Record transaction log for the deduction
-      await push(ref(db, 'transactions'), {
-        sender: uid,
-        senderName: user?.name || 'Sinh Viên',
-        receiver: 'SYSTEM_HORSE',
-        receiverName: 'Đua Ngựa Hoàng Gia AYK',
-        amount: amt,
-        message: `Cược Đua Ngựa: Chọn chiến mã số ${choice}`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
+      const res = await fetchWithAuth('/api/game/horse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice, betAmount: amt })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setIsRacing(false);
+        alert(data.error || 'Lỗi khi đặt cược đua ngựa');
+        return;
+      }
 
+      const winningHorse = data.winningHorse;
       let currentPositions = [0, 0, 0, 0];
 
       // Run race animation interval
-      raceIntervalRef.current = setInterval(async () => {
+      raceIntervalRef.current = setInterval(() => {
         let finished = false;
-        let winningHorse = 0;
 
         const nextPositions = currentPositions.map((pos, idx) => {
-          // Add random stride steps between 0.1% and 0.9%
           let step = Math.random() * 0.8 + 0.1;
-
-          // Admin override speed boost
-          if (adminForceWinner !== null) {
-            if (idx + 1 === adminForceWinner) {
-              step += 0.35; // Accelerate the forced horse
-            } else {
-              step = Math.max(0.05, step - 0.1); // Retard other horses slightly
-            }
+          // Accelerate the determined winning horse
+          if (idx + 1 === winningHorse) {
+            step += 0.35;
+          } else {
+            step = Math.max(0.05, step - 0.1);
           }
 
           const nextPos = pos + step;
-
           if (nextPos >= 85 && !finished) {
             finished = true;
-            winningHorse = idx + 1;
           }
           return nextPos;
         });
@@ -126,9 +115,29 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
         setPositions(nextPositions);
 
         if (finished) {
-          clearInterval(raceIntervalRef.current!);
-          raceIntervalRef.current = null;
-          handleRaceFinished(winningHorse, choice, amt);
+          if (raceIntervalRef.current) {
+            clearInterval(raceIntervalRef.current);
+            raceIntervalRef.current = null;
+          }
+          setIsRacing(false);
+          setCommentary(`NGỰA SỐ ${winningHorse} ĐÃ VỀ ĐÍCH ĐẦU TIÊN!`);
+
+          setTimeout(() => {
+            onClose();
+            if (data.isWinner) {
+              onShowResult(
+                'THẮNG CƯỢC ĐUA NGỰA !',
+                `Ngựa số ${winningHorse} bạn chọn đã về nhất xuất sắc!\nBạn giành chiến thắng: +${data.payout.toLocaleString()} PP!`,
+                true
+              );
+            } else {
+              onShowResult(
+                'THẤT BẠI CƯỢC !',
+                `Ngựa số ${winningHorse} đã về nhất.\nLựa chọn của bạn là Ngựa số ${choice} và mất đi -${amt.toLocaleString()} PP cược.`,
+                false
+              );
+            }
+          }, 1200);
         }
       }, 50);
 
@@ -139,78 +148,6 @@ export default function HorseModal({ uid, user, onClose, onShowResult }: HorseMo
         'Giao dịch đặt cược không hợp lệ hoặc bị gián đoạn do độ trễ mạng. Vui lòng thử lại!',
         false
       );
-    }
-  };
-
-  const handleRaceFinished = async (winningHorse: number, choice: number, amt: number) => {
-    setIsRacing(false);
-    setCommentary(`NGỰA SỐ ${winningHorse} ĐÃ VỀ ĐÍCH ĐẦU TIÊN!`);
-
-    const isWinner = choice === winningHorse;
-    const winAmount = amt * 3;
-
-    try {
-      if (isWinner) {
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const freshPP = uSnap.val()?.pp || 0;
-        await update(ref(db, `users/${uid}`), { pp: freshPP + winAmount });
-
-        // Save win transaction log to ledger
-        await push(ref(db, 'transactions'), {
-          sender: 'SYSTEM_HORSE',
-          senderName: 'Đua Ngựa Hoàng Gia AYK',
-          receiver: uid,
-          receiverName: user?.name || 'Sinh Viên',
-          amount: winAmount,
-          message: `Thắng Đua Ngựa: Ngựa số ${choice} về đích đầu tiên`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        // Log transaction success
-        await push(ref(db, 'game_logs'), {
-          uid,
-          name: user?.name || 'Sinh Viên',
-          game: 'Đua Ngựa',
-          bet: amt,
-          pnl: winAmount - amt,
-          result: `Thắng (Chọn Ngựa ${choice} - Thắng ${winningHorse})`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        setTimeout(() => {
-          onClose();
-          onShowResult(
-            'THẮNG CƯỢC ĐUA NGỰA !',
-            `Ngựa số ${winningHorse} bạn chọn đã về nhất xuất sắc!\nBạn giành chiến thắng x3 tiền cược: +${winAmount.toLocaleString()} PP!`,
-            true
-          );
-        }, 1200);
-      } else {
-        // Log transaction loss
-        await push(ref(db, 'game_logs'), {
-          uid,
-          name: user?.name || 'Sinh Viên',
-          game: 'Đua Ngựa',
-          bet: amt,
-          pnl: -amt,
-          result: `Thua (Chọn Ngựa ${choice} - Thắng ${winningHorse})`,
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        setTimeout(() => {
-          onClose();
-          onShowResult(
-            'THẤT BẠI CƯỢC !',
-            `Ngựa số ${winningHorse} đã về nhất.\nLựa chọn của bạn là Ngựa số ${choice} và mất đi -${amt.toLocaleString()} PP cược.`,
-            false
-          );
-        }, 1200);
-      }
-    } catch (err) {
-      console.error(err);
     }
   };
 
