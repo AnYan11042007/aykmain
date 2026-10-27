@@ -20,6 +20,16 @@ Tại **Settings** &rarr; **Secrets and variables** &rarr; **Actions** &rarr; ta
 - `VITE_API_BASE`: URL máy chủ backend (Ví dụ: `https://ayk-backend-xyz.a.run.app` hoặc `https://ayk-main.onrender.com`).
   - Khi cấu hình biến này, toàn bộ client trên GitHub Pages sẽ gọi API tới backend qua helper `apiUrl()`.
 
+### Bước 3: Khắc Phục Lỗi Kẹt ở Màn Hình "Đang khởi tạo..."
+Nếu truy cập link GitHub Pages mà thấy màn hình đứng yên ở chữ **"Đang khởi tạo..."**:
+- **Nguyên nhân**: Dòng chữ "Đang khởi tạo..." là placeholder tĩnh trong file `index.html` gốc. Hiện tượng này xảy ra khi GitHub Pages đang được cấu hình ở chế độ cũ *"Deploy from a branch"*, dẫn đến GitHub phục vụ trực tiếp file nguồn chưa qua bản build của Vite.
+- **Cách xử lý**:
+  1. Vào repository &rarr; **Settings** &rarr; **Pages** &rarr; tại mục **Source**, chuyển sang **GitHub Actions**.
+  2. Chuyển sang tab **Actions** ở menu trên cùng của repository, chọn workflow **Deploy to GitHub Pages**.
+  3. Nếu workflow chưa chạy hoặc có dấu đỏ: bấm **Run workflow** (chọn branch `main`), đợi hoàn tất với dấu tích xanh ✔.
+  4. Mở lại link trang web `https://<tên-user>.github.io/<tên-repo>/` và bấm **Ctrl + F5** (hoặc Cmd + Shift + R trên Mac) để xóa toàn bộ bộ nhớ đệm trình duyệt.
+  5. Đảm bảo biến `VITE_API_BASE` đã được thêm tại tab Variables như ở Bước 2. Thiếu backend thì trang web vẫn hiện giao diện đăng nhập nhưng các hành động game/tài khoản sẽ không kết nối được server.
+
 ---
 
 ## 2. Triển Khai Backend Lên Google Cloud Run / Render

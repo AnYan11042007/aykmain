@@ -245,7 +245,7 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
         setLobbyRooms([]);
       }
     });
-    return () => off(roomsRef, 'value', unsub);
+    return () => unsub();
   }, [previewRoom]);
 
   useEffect(() => {
@@ -278,8 +278,8 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
     });
 
     return () => {
-      off(roomRef, 'value', unsubRoom);
-      off(privRef, 'value', unsubPriv);
+      unsubRoom();
+      unsubPriv();
     };
   }, [currentRoomId, uid, previewRoom]);
 

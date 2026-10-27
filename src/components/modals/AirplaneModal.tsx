@@ -200,12 +200,16 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
   const bettingTimeLeft = Math.ceil((5000 - cycleTime) / 1000);
   const flightTimeS = isBettingPhase ? 0 : (cycleTime - 5000) / 1000;
 
-  const crashPoint = getCrashPointForRound(currentRoundId);
+  // Use server crash point from active bet if exists, else fallback to deterministic cycle point
+  const crashPoint = (activeBet && activeBet.status === 'PLAYING' && (activeBet as any).crashPoint)
+    ? (activeBet as any).crashPoint
+    : getCrashPointForRound(currentRoundId);
+
   const rawMultiplier = getMultiplierAtTime(flightTimeS);
-  const hasCrashed = rawMultiplier >= crashPoint;
+  const hasCrashed = !isBettingPhase && rawMultiplier >= crashPoint;
   const currentMultiplier = hasCrashed ? crashPoint : rawMultiplier;
 
-  const hasBetThisRound = activeBet && activeBet.roundId === currentRoundId;
+  const hasBetThisRound = Boolean(activeBet && (activeBet.roundId === currentRoundId || activeBet.status === 'PLAYING'));
 
   // Reset lock when round changes or betting phase begins
   useEffect(() => {
@@ -274,7 +278,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
   // Handle Cash Out function (Jumping Out)
   const handleCashOut = async () => {
     if (isProcessing || cashOutLockRef.current) return;
-    if (!hasBetThisRound || activeBet.status !== 'PLAYING' || hasCrashed) return;
+    if (!hasBetThisRound || !activeBet || activeBet.status !== 'PLAYING' || hasCrashed) return;
 
     cashOutLockRef.current = true;
     setIsProcessing(true);
@@ -291,9 +295,12 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
         throw new Error(data.error || 'Giao dịch nhảy dù không thành công');
       }
 
+      const outMult = data.multiplier || currentMultiplier;
+      setActiveBet((prev) => prev ? { ...prev, status: 'CASHED_OUT', multiplier: outMult } : null);
+
       onShowResult(
         '🪂 NHẢY DÙ THÀNH CÔNG!',
-        `Thoát hiểm an toàn ở mốc x${currentMultiplier.toFixed(2)}!\nĐã chốt lợi nhuận +${data.winAmount.toLocaleString()} PP vào tài khoản!`,
+        `Thoát hiểm an toàn ở mốc x${outMult.toFixed(2)}!\nĐã chốt lợi nhuận +${data.winAmount.toLocaleString()} PP vào tài khoản!`,
         true
       );
     } catch (err: any) {
@@ -346,7 +353,7 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
       const res = await fetchWithAuth('/api/game/airplane', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'bet', betAmount: amt })
+        body: JSON.stringify({ action: 'bet', betAmount: amt, roundId: currentRoundId })
       });
       const data = await res.json();
       if (!res.ok || !data.success) {
@@ -355,6 +362,9 @@ export default function AirplaneModal({ uid, user, onClose, onShowResult }: Airp
         return;
       }
 
+      if (data.bet) {
+        setActiveBet(data.bet);
+      }
       setBetAmount('');
     } catch (err) {
       alert('Lỗi đặt cược cất cánh!');

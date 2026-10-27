@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, onValue, update, push, remove } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { Coins, TrendingUp, TrendingDown, MessageSquare, Send, Zap, Activity, Clock, ShieldAlert } from 'lucide-react';
 import { User, GoldMarket, GoldChatMessage } from '../types';
 import { Chart, registerables } from 'chart.js';
@@ -287,35 +287,20 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
 
     try {
       setLastTradeTime(now);
-      const currentGold = user?.gold || { amount: 0, avgPrice: 0 };
-      const newAmount = currentGold.amount + amt;
-      const newAvg = ((currentGold.amount * currentGold.avgPrice) + totalCost) / newAmount;
-
-      // Update state
-      await update(ref(db, `users/${uid}`), {
-        pp: userPP - totalCost,
-        gold: {
-          amount: newAmount,
-          avgPrice: newAvg
-        }
+      const res = await fetchWithAuth('/api/gold/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'buy', amount: amt, price: buyPrice })
       });
-
-      // Write logs
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Mua Vàng',
-        bet: totalCost,
-        pnl: 0,
-        result: `Mua thành công +${amt.toFixed(2)} GOLD`,
-        time: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-        timestamp: Date.now()
-      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi khi mua Vàng');
+      }
 
       setBuyAmount('');
-      onShowResult('MUA VÀNG THÀNH CÔNG', `Đã mua thành công +${amt.toLocaleString()} GOLD!\nTrừ phí giao dịch: -${totalCost.toLocaleString()} PP.\nGiá mua trung bình: ${Math.floor(newAvg).toLocaleString()} PP/GOLD.`, true);
-    } catch (err) {
-      alert('Lỗi khi mua Vàng!');
+      onShowResult('MUA VÀNG THÀNH CÔNG', `Đã mua thành công +${amt.toLocaleString()} GOLD!\nTrừ phí giao dịch: -${totalCost.toLocaleString()} PP.\nGiá mua trung bình: ${Math.floor(data.gold?.avgPrice || buyPrice).toLocaleString()} PP/GOLD.`, true);
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi mua Vàng!');
     }
   };
 
@@ -340,53 +325,27 @@ export default function GoldPortal({ uid, user, onShowResult }: GoldPortalProps)
     const totalEarned = Math.floor(amt * sellPrice);
     const costOfAmt = Math.floor(amt * myGoldAvg);
     const profit = totalEarned - costOfAmt;
-    const userPP = user?.pp || 0;
 
     try {
       setLastTradeTime(now);
-      const nextAmount = myGoldAmount - amt;
-
-      const userRef = ref(db, `users/${uid}`);
-      if (nextAmount > 0.00001) {
-        await update(userRef, {
-          pp: userPP + totalEarned,
-          gold: {
-            amount: nextAmount,
-            avgPrice: myGoldAvg
-          }
-        });
-      } else {
-        // Remove gold portfolio key if fully sold out
-        await update(userRef, { pp: userPP + totalEarned });
-        await remove(ref(db, `users/${uid}/gold`));
+      const res = await fetchWithAuth('/api/gold/trade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'sell', amount: amt, price: sellPrice })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi khi bán Vàng');
       }
-
-      // Update total trade statistics profit/loss
-      const currentStatsProfit = user?.gold_stats?.totalProfit || 0;
-      await update(ref(db, `users/${uid}/gold_stats`), {
-        totalProfit: currentStatsProfit + profit
-      });
-
-      // Write logs
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Bán Vàng',
-        bet: costOfAmt,
-        pnl: profit,
-        result: profit >= 0 ? `Chốt lời +${profit.toLocaleString()} PP` : `Cắt lỗ -${Math.abs(profit).toLocaleString()} PP`,
-        time: new Date().toLocaleString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh' }),
-        timestamp: Date.now()
-      });
 
       setSellAmount('');
       onShowResult(
-        profit >= 0 ? 'BÁN VÀNG CHỐT LỜI' : 'BÁN VÀNG CẮT LỖ',
-        `Đã bán thành công -${amt.toLocaleString()} GOLD!\nThu hồi dòng tiền: +${totalEarned.toLocaleString()} PP.\nLợi nhuận thực tế: ${profit >= 0 ? '+' : ''}${profit.toLocaleString()} PP!`,
+        'BÁN VÀNG THÀNH CÔNG',
+        `Đã thanh khoản thành công ${amt.toFixed(2)} GOLD!\nNhận về: +${totalEarned.toLocaleString()} PP!\n${profit >= 0 ? `Lợi nhuận ròng: +${profit.toLocaleString()} PP.` : `Cắt lỗ: -${Math.abs(profit).toLocaleString()} PP.`}`,
         profit >= 0
       );
-    } catch (err) {
-      alert('Lỗi khi bán vàng!');
+    } catch (err: any) {
+      alert(err.message || 'Lỗi khi bán Vàng!');
     }
   };
 

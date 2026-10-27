@@ -49,11 +49,19 @@ export function formatVirtualEmail(identifier: string): string {
   return `${clean || 'user'}@ayk8686.internal`;
 }
 
+import { handleClientApiFallback } from './services/clientApiFallback';
+
 /**
  * Constructs absolute API URL respecting VITE_API_BASE for deployments (e.g. GitHub Pages -> Cloud Run)
  */
 export function apiUrl(path: string): string {
-  const base = (metaEnv.VITE_API_BASE || '').trim().replace(/\/$/, '');
+  let base = (metaEnv.VITE_API_BASE || '').trim().replace(/\/$/, '');
+  if (!base && typeof window !== 'undefined') {
+    try {
+      const custom = localStorage.getItem('s88_backend_url');
+      if (custom) base = custom.trim().replace(/\/$/, '');
+    } catch (_) {}
+  }
   const cleanPath = path.startsWith('/') ? path : `/${path}`;
   return base ? `${base}${cleanPath}` : cleanPath;
 }
@@ -78,10 +86,31 @@ export async function getAuthToken(): Promise<string | null> {
 }
 
 /**
- * Centralized fetch helper attaching Firebase ID Token in Authorization header and resolving API base
+ * Centralized fetch helper attaching Firebase ID Token in Authorization header,
+ * resolving API base, and falling back gracefully to client-side database handlers
+ * on static hosts (like GitHub Pages) where no backend server is deployed.
  */
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
-  const targetUrl = url.startsWith('http://') || url.startsWith('https://') ? url : apiUrl(url);
+  const isHttp = url.startsWith('http://') || url.startsWith('https://');
+  const targetUrl = isHttp ? url : apiUrl(url);
+  const cleanPath = isHttp ? new URL(url).pathname : (url.startsWith('/') ? url : `/${url}`);
+
+  const hasConfiguredBackend = Boolean(
+    (metaEnv.VITE_API_BASE || '').trim() ||
+    (typeof window !== 'undefined' && localStorage.getItem('s88_backend_url'))
+  );
+
+  const isStaticHost = typeof window !== 'undefined' && (
+    window.location.hostname.endsWith('github.io') ||
+    window.location.hostname.endsWith('web.app') ||
+    window.location.hostname.endsWith('firebaseapp.com')
+  );
+
+  // If on GitHub Pages without a configured external backend URL, execute client fallback directly
+  if (isStaticHost && !hasConfiguredBackend && !isHttp) {
+    return handleClientApiFallback(cleanPath, options);
+  }
+
   const token = await getAuthToken();
   const headers = new Headers(options.headers || {});
   if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
@@ -90,9 +119,25 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
   if (token) {
     headers.set('Authorization', `Bearer ${token}`);
   }
-  return fetch(targetUrl, {
-    ...options,
-    headers
-  });
+
+  try {
+    const res = await fetch(targetUrl, {
+      ...options,
+      headers
+    });
+
+    const contentType = res.headers.get('content-type') || '';
+
+    // If server responded with 404 or returned static HTML (standard GitHub Pages 404 page)
+    if ((res.status === 404 || contentType.includes('text/html')) && !isHttp) {
+      console.warn(`[fetchWithAuth] Endpoint ${cleanPath} returned ${res.status} HTML. Routing to standalone client fallback.`);
+      return await handleClientApiFallback(cleanPath, options);
+    }
+
+    return res;
+  } catch (err) {
+    console.warn(`[fetchWithAuth] Network error reaching ${targetUrl}. Routing to client fallback:`, err);
+    return await handleClientApiFallback(cleanPath, options);
+  }
 }
 

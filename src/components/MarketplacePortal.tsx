@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, update, push, set, onValue } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { ShoppingBag, Award, Tag, Gift, CheckCircle2, AlertCircle, Sparkles, Coins } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -141,22 +141,6 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
   const handleBuyItem = async (item: ShopItem) => {
     setIsProcessing(true);
     try {
-      // Retrieve dynamic up-to-date user data to avoid stale React props desynchronization
-      const userSnap = await get(ref(db, `users/${uid}`));
-      if (!userSnap.exists()) {
-        onShowResult('THẤT BẠI', 'Tài khoản không tồn tại trên hệ thống!', false);
-        setIsProcessing(false);
-        return;
-      }
-      const freshUser = userSnap.val();
-      const myPP = freshUser.pp || 0;
-
-      if (myPP < item.price) {
-        onShowResult('THẤT BẠI', `Bạn không có đủ ${item.price.toLocaleString()} PP để mua vật phẩm này!`, false);
-        setIsProcessing(false);
-        return;
-      }
-
       // Check if user already owns it
       const owned = item.type === 'frame' 
         ? myInventory.frames.includes(item.value)
@@ -168,31 +152,27 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
         return;
       }
 
-      // Deduct PP & Add item to inventory
-      const newPP = myPP - item.price;
-      const updatedInv = { ...myInventory };
-      if (item.type === 'frame') {
-        updatedInv.frames = [...updatedInv.frames, item.value];
-      } else {
-        updatedInv.titles = [...updatedInv.titles, item.value];
+      const res = await fetchWithAuth('/api/marketplace/buy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          itemId: item.id,
+          itemType: item.type,
+          price: item.price,
+          value: item.value
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi mua vật phẩm');
       }
 
-      await update(ref(db, `users/${uid}`), {
-        pp: newPP,
-        inventory: updatedInv
-      });
-
-      // Write transaction logs
-      await push(ref(db, 'transactions'), {
-        sender: uid,
-        senderName: freshUser.name || 'Sinh Viên',
-        receiver: 'SYSTEM_SHOP',
-        receiverName: 'Cửa hàng S-System',
-        amount: item.price,
-        message: `Mua vật phẩm: ${item.name}`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
+      if (data.inventory) {
+        setMyInventory({
+          frames: data.inventory.frames || [],
+          titles: data.inventory.titles || []
+        });
+      }
 
       confetti({
         particleCount: 120,
@@ -201,8 +181,8 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
       });
 
       onShowResult('MUA THÀNH CÔNG!', `Chúc mừng! Bạn đã sở hữu thành công "${item.name}".\nVui lòng vào mục Kho Đồ để kích hoạt trang bị!`, true);
-    } catch (err) {
-      onShowResult('THẤT BẠI', 'Có lỗi xảy ra khi mua vật phẩm!', false);
+    } catch (err: any) {
+      onShowResult('THẤT BẠI', err.message || 'Có lỗi xảy ra khi mua vật phẩm!', false);
     } finally {
       setIsProcessing(false);
     }
@@ -251,48 +231,16 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
 
     setIsProcessing(true);
     try {
-      const codeRef = ref(db, `promo_codes/${code}`);
-      const snap = await get(codeRef);
-
-      if (!snap.exists()) {
-        onShowResult('THẤT BẠI', 'Mã quà tặng (Promo Code) không tồn tại hoặc đã hết hạn sử dụng!', false);
-        setIsProcessing(false);
-        return;
-      }
-
-      const pData = snap.val();
-      const claimedBy = pData.claimedBy || {};
-
-      if (claimedBy[uid]) {
-        onShowResult('THẤT BẠI', 'Bạn đã nhận quà từ mã khuyến mãi này trước đó rồi!', false);
-        setIsProcessing(false);
-        return;
-      }
-
-      if (pData.maxClaims && Object.keys(claimedBy).length >= pData.maxClaims) {
-        onShowResult('THẤT BẠI', 'Rất tiếc! Mã khuyến mãi này đã đạt giới hạn lượt sử dụng tối đa.', false);
-        setIsProcessing(false);
-        return;
-      }
-
-      // Claim success
-      const currentPP = user?.pp || 0;
-      const reward = pData.rewardPP || 5000;
-
-      await update(ref(db, `users/${uid}`), { pp: currentPP + reward });
-      await update(ref(db, `promo_codes/${code}/claimedBy`), { [uid]: Date.now() });
-
-      // Write transactions
-      await push(ref(db, 'transactions'), {
-        sender: 'PROMO_CODE_CENTER',
-        senderName: 'Trung tâm Quà tặng',
-        receiver: uid,
-        receiverName: user?.name || 'Sinh Viên',
-        amount: reward,
-        message: `Đổi mã Promo Code: ${code}`,
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
+      const resp = await fetchWithAuth('/api/promo/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code })
       });
+      const data = await resp.json();
+      if (!data.success) {
+        onShowResult('THẤT BẠI', data.error || 'Có lỗi xảy ra khi xử lý mã quà tặng!', false);
+        return;
+      }
 
       confetti({
         particleCount: 150,
@@ -300,10 +248,10 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
         colors: ['#00ff80', '#00f0ff', '#ffd700']
       });
 
-      onShowResult('ĐỔI QUÀ THÀNH CÔNG!', `Bạn húp trọn thành công +${reward.toLocaleString()} PP miễn phí vào ví ngân hàng!`, true);
+      onShowResult('ĐỔI QUÀ THÀNH CÔNG!', `Bạn húp trọn thành công +${(data.reward || 5000).toLocaleString()} PP miễn phí vào ví ngân hàng!`, true);
       setPromoCode('');
-    } catch (err) {
-      onShowResult('THẤT BẠI', 'Có lỗi xảy ra khi xử lý mã quà tặng!', false);
+    } catch (err: any) {
+      onShowResult('THẤT BẠI', err?.message || 'Có lỗi xảy ra khi xử lý mã quà tặng!', false);
     } finally {
       setIsProcessing(false);
     }
@@ -335,34 +283,19 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
 
     setIsProcessing(true);
     try {
-      // Check target UID exists
-      const targetRef = ref(db, `users/${target}`);
-      const tSnap = await get(targetRef);
-
-      if (!tSnap.exists()) {
-        onShowResult('THẤT BẠI', 'Không tìm thấy tài khoản sinh viên có UID tương ứng!', false);
-        setIsProcessing(false);
+      const resp = await fetchWithAuth('/api/bank/transfer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          receiverId: target,
+          amount: amt
+        })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        onShowResult('THẤT BẠI', data.error || 'Gặp lỗi khi gửi quà tặng!', false);
         return;
       }
-
-      const tData = tSnap.val();
-      const targetPP = tData.pp || 0;
-
-      // Transfer PP
-      await update(ref(db, `users/${uid}`), { pp: myPP - amt });
-      await update(ref(db, `users/${target}`), { pp: targetPP + amt });
-
-      // Add transactions
-      await push(ref(db, 'transactions'), {
-        sender: uid,
-        senderName: user?.name || 'Sinh Viên',
-        receiver: target,
-        receiverName: tData.name || 'Sinh Viên',
-        amount: amt,
-        message: giftMsg.trim() || 'Quà tặng PP thân ái!',
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
 
       // Notify target (add to notification node)
       await push(ref(db, `notifications/${target}`), {
@@ -372,12 +305,12 @@ export default function MarketplacePortal({ uid, user, onShowResult }: Marketpla
         timestamp: Date.now()
       });
 
-      onShowResult('GỬI QUÀ THÀNH CÔNG!', `Gửi thành công gói quà tặng ${amt.toLocaleString()} PP cho sinh viên ${tData.name}!`, true);
+      onShowResult('GỬI QUÀ THÀNH CÔNG!', `Gửi thành công gói quà tặng ${amt.toLocaleString()} PP cho sinh viên #${target}!`, true);
       setGiftTarget('');
       setGiftAmount('');
       setGiftMsg('');
-    } catch (err) {
-      onShowResult('THẤT BẠI', 'Gặp lỗi khi gửi quà tặng!', false);
+    } catch (err: any) {
+      onShowResult('THẤT BẠI', err?.message || 'Gặp lỗi khi gửi quà tặng!', false);
     } finally {
       setIsProcessing(false);
     }

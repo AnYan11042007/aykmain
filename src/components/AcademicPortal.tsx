@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, onValue, update, push, set } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { Award, BookOpen, AlertCircle, HelpCircle, Send, CheckCircle2, Clock, Trash2, ShieldAlert } from 'lucide-react';
 import { User, Quest, ClassRank, Report } from '../types';
 import confetti from 'canvas-confetti';
@@ -202,34 +202,13 @@ export default function AcademicPortal({ uid, user, onShowResult }: AcademicPort
     setActiveQuiz(null);
 
     try {
-      const qSnap = await get(ref(db, `quests/${qId}`));
-      if (!qSnap.exists()) return;
-      const qData = qSnap.val() as Quest;
-      const currentAttempts = qData.attempts?.[uid] || 0;
-
-      // Update attempt count
-      await update(ref(db, `quests/${qId}/attempts`), {
-        [uid]: currentAttempts + 1
+      const res = await fetchWithAuth('/api/academic/quiz-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questId: qId, selectedOpt: null })
       });
-
-      // Deduct penalty
-      const userPP = user?.pp || 0;
-      const newPP = Math.max(0, userPP - qData.penaltyPP);
-      await update(ref(db, `users/${uid}`), { pp: newPP });
-
-      // Write logs
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: `Quiz: ${qData.title}`,
-        bet: 0,
-        pnl: -qData.penaltyPP,
-        result: 'HẾT GIỜ (Trượt)',
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
-
-      onShowResult('QUÁ GIỜ!', `Hết thời gian làm bài!\nBạn bị phạt trừ -${qData.penaltyPP.toLocaleString()} PP.`, false);
+      const data = await res.json();
+      onShowResult('QUÁ GIỜ!', `Hết thời gian làm bài!\nBạn bị phạt trừ -${(data.penaltyPP || 0).toLocaleString()} PP.`, false);
     } catch (err) {
       console.error(err);
     }
@@ -242,65 +221,34 @@ export default function AcademicPortal({ uid, user, onShowResult }: AcademicPort
   const handleSubmitAnswer = async (selected: 'A' | 'B') => {
     if (!activeQuiz) return;
     const qId = activeQuiz.id;
-    const isCorrect = selected === activeQuiz.correctOpt;
     setActiveQuiz(null);
 
     if (timerRef.current) clearInterval(timerRef.current);
 
     try {
-      const qSnap = await get(ref(db, `quests/${qId}`));
-      if (!qSnap.exists()) return;
-      const qData = qSnap.val() as Quest;
-      const currentAttempts = qData.attempts?.[uid] || 0;
-
-      // Increment attempt count
-      await update(ref(db, `quests/${qId}/attempts`), {
-        [uid]: currentAttempts + 1
+      const res = await fetchWithAuth('/api/academic/quiz-submit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questId: qId, selectedOpt: selected })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi nộp bài');
+      }
 
-      const userPP = user?.pp || 0;
-      if (isCorrect) {
-        const newPP = userPP + qData.rewardPP;
-        await update(ref(db, `users/${uid}`), { pp: newPP });
-
-        // Log transaction success
-        await push(ref(db, 'game_logs'), {
-          uid,
-          name: user?.name || 'Sinh Viên',
-          game: `Quiz: ${qData.title}`,
-          bet: 0,
-          pnl: qData.rewardPP,
-          result: 'ĐÚNG (Chính xác)',
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
+      if (data.isCorrect) {
         confetti({
           particleCount: 100,
           spread: 70,
           origin: { y: 0.6 }
         });
-
-        onShowResult('CHÍNH XÁC!', `Tuyệt vời! Bạn chọn đúng đáp án.\nNhận ngay +${qData.rewardPP.toLocaleString()} PP!`, true);
+        onShowResult('CHÍNH XÁC!', `Tuyệt vời! Bạn chọn đúng đáp án.\nNhận ngay +${(data.rewardPP || 0).toLocaleString()} PP!`, true);
       } else {
-        const newPP = Math.max(0, userPP - qData.penaltyPP);
-        await update(ref(db, `users/${uid}`), { pp: newPP });
-
-        await push(ref(db, 'game_logs'), {
-          uid,
-          name: user?.name || 'Sinh Viên',
-          game: `Quiz: ${qData.title}`,
-          bet: 0,
-          pnl: -qData.penaltyPP,
-          result: 'SAI (Nhầm lẫn)',
-          time: new Date().toLocaleString('vi-VN'),
-          timestamp: Date.now()
-        });
-
-        onShowResult('SAI MẤT RỒI!', `Rất tiếc, câu trả lời chưa đúng.\nBị trừ phạt -${qData.penaltyPP.toLocaleString()} PP!`, false);
+        onShowResult('SAI MẤT RỒI!', `Rất tiếc, câu trả lời chưa đúng.\nBị trừ phạt -${(data.penaltyPP || 0).toLocaleString()} PP!`, false);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      alert(err.message || 'Lỗi nộp bài kiểm tra!');
     }
   };
 

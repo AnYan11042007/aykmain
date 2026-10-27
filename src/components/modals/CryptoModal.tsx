@@ -71,6 +71,7 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
         return;
       }
 
+      rugPullPointRef.current = data.rugPoint || 50.0;
       setIsTrading(true);
       setHasRugPulled(false);
       setMultiplier(1.00);
@@ -120,6 +121,16 @@ export default function CryptoModal({ uid, user, onClose, onShowResult }: Crypto
             ctx.lineTo(chartPointsRef.current[i].x, chartPointsRef.current[i].y);
           }
           ctx.stroke();
+        }
+
+        // Automatic Rug Pull trigger when market crashes
+        if (rugPullPointRef.current && currentMult >= rugPullPointRef.current) {
+          if (tradingIntervalRef.current) {
+            clearInterval(tradingIntervalRef.current);
+            tradingIntervalRef.current = null;
+          }
+          handleRugPull();
+          return;
         }
 
         // Maximum visual multiplier safety cap

@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { get, ref, onValue, update, remove, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Trophy, Swords, Zap } from 'lucide-react';
 import { User, TienLenRoom } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -214,13 +214,19 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult,
 
       // Check balance profiles
       for (const pU of playersList) {
-        const uSnap = await get(ref(db, `users/${pU}`));
-        const balance = uSnap.val()?.pp || 0;
-
-        if (balance >= room.bet) {
-          activeUids.push(pU);
-          updatePayload[`/users/${pU}/pp`] = balance - room.bet;
-        } else {
+        try {
+          const betResp = await fetchWithAuth('/api/game/room-bet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ betAmount: room.bet, targetUid: pU })
+          });
+          const betData = await betResp.json();
+          if (betData.success) {
+            activeUids.push(pU);
+          } else {
+            updatePayload[`/tienlen_rooms/${roomId}/players/${pU}`] = null;
+          }
+        } catch (e) {
           updatePayload[`/tienlen_rooms/${roomId}/players/${pU}`] = null;
         }
       }
@@ -312,10 +318,17 @@ export default function TienLenModal({ uid, user, roomId, onClose, onShowResult,
       if (nextHand.length === 0) {
         // User won the whole prize pool!
         const totalPot = room.bet * activeUids.length;
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const balance = uSnap.val()?.pp || 0;
+        await fetchWithAuth('/api/game/room-payout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetUid: uid,
+            payoutAmount: totalPot,
+            gameType: 'Tiến Lên',
+            result: 'Tới Nhất'
+          })
+        });
 
-        updatePayload[`/users/${uid}/pp`] = balance + totalPot;
         updatePayload[`/tienlen_rooms/${roomId}/status`] = 'ENDED';
 
         let winSummary = `<span class="text-glow-green text-[#00ff80] font-black text-lg">${user?.name} ĐÃ TỚI NHẤT TRẬN ĐẤU !!!</span><br>`;

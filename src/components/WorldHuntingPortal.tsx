@@ -6,7 +6,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { get, ref, update, push, onValue } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { incrementMissionProgress } from '../utils/missions';
 import { 
@@ -618,17 +618,13 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
       if (isKillHit) {
         // Player got the LAST HIT on 300M World Boss!
         const grandReward = boss.rewardPP || 500000000;
-        const dragonFrame = 'https://png.pngtree.com/png-clipart/20240319/original/pngtree-avatar-frame-dragon-round-animal-template-for-game-cartoon-empty-dragon-png-image_14623493.png';
-        
         setLocalPP((prev) => prev + grandReward);
-        const currentFrames = user?.inventory?.frames || [];
-        const updatedFrames = Array.from(new Set([...currentFrames, dragonFrame]));
 
-        update(ref(db, `users/${uid}`), { 
-          pp: localPP + grandReward,
-          'inventory/frames': updatedFrames,
-          activeFrame: dragonFrame
-        });
+        fetchWithAuth('/api/hunting/kill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rewardPP: grandReward, beastName: boss.name, isWorldBoss: true })
+        }).catch(() => {});
 
         onShowResult(
           '🎉 HẠ GỤC BOSS THẾ GIỚI! 🐉',
@@ -640,7 +636,11 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
 
     const reward = boss && boss.maxHp >= 100000000 ? Math.floor(5000000 * supportMult) : Math.floor(30000 * supportMult);
     setLocalPP((prev) => prev + reward);
-    update(ref(db, `users/${uid}`), { pp: localPP + reward });
+    fetchWithAuth('/api/hunting/kill', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rewardPP: reward, beastName: boss?.name || 'World Boss Hit' })
+    }).catch(() => {});
 
     setShowSlashOverlay(true);
     setTimeout(() => setShowSlashOverlay(false), 500);
@@ -1145,13 +1145,13 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
       setPersonalHistory((prev) => [newHistoryItem, ...prev.slice(0, 19)]);
 
       try {
-        const uSnap = await get(ref(db, `users/${uid}`));
-        const currentPP = uSnap.val()?.pp || 0;
-        const newPP = currentPP + beast.rewardPP;
-
-        setLocalPP(newPP);
+        setLocalPP((prev) => prev + beast.rewardPP);
         (window as any).__s88_last_legit_tx = Date.now();
-        await update(ref(db, `users/${uid}`), { pp: newPP });
+        fetchWithAuth('/api/hunting/kill', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ rewardPP: beast.rewardPP, beastName: beast.name, isWorldBoss: beast.tier === 'BOSS' })
+        }).catch(() => {});
 
         await push(ref(db, 'transactions'), {
           sender: 'WORLD_HUNTING_AYK8686',
@@ -1282,7 +1282,11 @@ export default function WorldHuntingPortal({ uid, user, onShowResult }: WorldHun
 
     try {
       (window as any).__s88_last_legit_tx = Date.now();
-      await update(ref(db, `users/${uid}`), { pp: nextPP });
+      fetchWithAuth('/api/hunting/fire', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost })
+      }).catch(() => {});
 
       const playerBullet: Bullet = {
         id: `p_bullet_${Date.now()}`,

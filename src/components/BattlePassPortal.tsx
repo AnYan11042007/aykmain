@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ref, get, update, onValue } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { Trophy, Shield, Sparkles, CheckCircle, Lock, Crown, Star, Target, ArrowRight, Zap, Gift } from 'lucide-react';
 import { motion } from 'motion/react';
@@ -266,37 +266,24 @@ export default function BattlePassPortal({ uid, user, onShowResult }: BattlePass
     setLoading(true);
 
     try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      if (!uSnap.exists()) {
-        onShowResult('THẤT BẠI ❌', 'Tài khoản không khả dụng!', false);
-        setLoading(false);
-        return;
-      }
-      const freshUser = uSnap.val();
-      const currentPP = freshUser.pp || 0;
-
-      if (currentPP < premiumCost) {
-        onShowResult(
-          'SỐ DƯ KHÔNG ĐỦ ❌',
-          `Kích hoạt S-Pass Premium cần ${premiumCost.toLocaleString()} PP. Bạn đang có ${currentPP.toLocaleString()} PP.`,
-          false
-        );
-        setLoading(false);
-        return;
-      }
-
-      await update(ref(db, `users/${uid}`), {
-        pp: currentPP - premiumCost,
-        isPremiumBattlePass: true
+      const res = await fetchWithAuth('/api/battlepass/upgrade', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cost: premiumCost })
       });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Gặp lỗi khi mua Battle Pass');
+      }
 
+      setIsPremium(true);
       onShowResult(
         'KÍCH HOẠT BATTLE PASS PREMIUM 🎉',
         'Chúc mừng bạn đã sở hữu AYK BATTLE PASS PREMIUM! Tất cả phần thưởng VIP cao cấp đã được mở khóa.',
         true
       );
-    } catch (err) {
-      onShowResult('THẤT BẠI ❌', 'Gặp lỗi khi mua Battle Pass! Vui lòng thử lại.', false);
+    } catch (err: any) {
+      onShowResult('THẤT BẠI ❌', err.message || 'Gặp lỗi khi mua Battle Pass! Vui lòng thử lại.', false);
     } finally {
       setLoading(false);
     }
@@ -332,26 +319,30 @@ export default function BattlePassPortal({ uid, user, onShowResult }: BattlePass
     setLoading(true);
     try {
       const rewardDetail = type === 'standard' ? tier.standardReward : tier.premiumReward;
-      const uSnap = await get(ref(db, `users/${uid}`));
-      const freshPP = uSnap.val()?.pp || 0;
-
-      const updates: any = {};
-      updates[`users/${uid}/pp`] = freshPP + rewardDetail.value;
-      updates[`users/${uid}/battlePassRewardsClaimed/${claimKey}`] = true;
-
-      if (rewardDetail.frame) {
-        updates[`users/${uid}/activeFrame`] = rewardDetail.frame;
+      const res = await fetchWithAuth('/api/battlepass/claim', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tierId: tier.id,
+          type,
+          rewardValue: rewardDetail.value,
+          frame: rewardDetail.frame
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi nhận thưởng');
       }
 
-      await update(ref(db), updates);
+      setClaimedRewards((prev) => ({ ...prev, [claimKey]: true }));
 
       onShowResult(
         'NHẬN QUÀ THÀNH CÔNG 🎁',
         `Bạn đã nhận phần thưởng ${rewardDetail.label}!${rewardDetail.frame ? '\nĐã mở khóa & trang bị khung Avatar mới!' : ''}`,
         true
       );
-    } catch (err) {
-      onShowResult('THẤT BẠI ❌', 'Lỗi kết nối máy chủ!', false);
+    } catch (err: any) {
+      onShowResult('THẤT BẠI ❌', err.message || 'Lỗi kết nối máy chủ!', false);
     } finally {
       setLoading(false);
     }

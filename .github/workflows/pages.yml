@@ -37,6 +37,7 @@ jobs:
         run: npm run build:pages
         env:
           VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_API_BASE: ${{ vars.VITE_API_BASE || secrets.VITE_API_BASE }}
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5

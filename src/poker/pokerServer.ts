@@ -69,28 +69,35 @@ export function createPokerDb(clientDb: any, adminDb?: any): PokerDb {
         try {
           return await adminDb.ref(path).get();
         } catch (e) {
-          return await get(ref(clientDb, path));
+          if (clientDb) return await get(ref(clientDb, path));
+          throw e;
         }
       },
       async set(path: string, val: any) {
         try {
           await adminDb.ref(path).set(val);
         } catch (e) {
-          await set(ref(clientDb, path), val);
+          if (clientDb) return await set(ref(clientDb, path), val);
+          throw e;
         }
       },
       async update(updates: Record<string, any>) {
         try {
           await adminDb.ref().update(updates);
         } catch (e) {
-          await update(ref(clientDb), updates);
+          if (clientDb) return await update(ref(clientDb), updates);
+          throw e;
         }
       },
-      async push(path: string, val: any) {
+      async push(path: string, val: any): Promise<void> {
         try {
           await adminDb.ref(path).push(val);
         } catch (e) {
-          await push(ref(clientDb, path), val);
+          if (clientDb) {
+            await push(ref(clientDb, path), val);
+            return;
+          }
+          throw e;
         }
       }
     };
@@ -106,7 +113,7 @@ export function createPokerDb(clientDb: any, adminDb?: any): PokerDb {
     async update(updates: Record<string, any>) {
       await update(ref(clientDb), updates);
     },
-    async push(path: string, val: any) {
+    async push(path: string, val: any): Promise<void> {
       await push(ref(clientDb, path), val);
     }
   };
@@ -169,10 +176,12 @@ export async function verifyUserSession(
       return { ok: false, error: 'Tài khoản đã bị tạm khóa' };
     }
 
-    // Verify sessionToken if present in database
-    if (user.sessionToken && sessionToken && user.sessionToken !== sessionToken) {
-      return { ok: false, error: 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại' };
-    }
+    try {
+      const walletSnap = await dbGet(db, `wallets/${uid}/pp`);
+      if (walletSnap && walletSnap.exists()) {
+        user.pp = Number(walletSnap.val()) || 0;
+      }
+    } catch (_) {}
 
     return { ok: true, user };
   } catch (err: any) {

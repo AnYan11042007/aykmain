@@ -360,6 +360,88 @@ export async function recordMissionActivityServer(uid: string, missionType: stri
 }
 
 /**
+ * Server-authoritative Registration Profile Creator
+ * Safely creates auth_mapping, user profile, initial wallet, and registration logs via Admin SDK.
+ * Bypasses client-side permission restrictions on protected fields ('role', 'pp').
+ */
+app.post('/api/auth/register-profile', requireAuth, async (req, res) => {
+  const authUid = (req as any).authUid;
+  const { numericId, name, avatar } = req.body;
+
+  if (!authUid || !numericId) {
+    return res.status(400).json({ success: false, error: 'Thiếu thông tin đăng ký bắt buộc' });
+  }
+
+  try {
+    const cleanId = String(numericId).trim();
+    const cleanName = String(name || `Sinh Viên ${cleanId}`).trim();
+    const defaultAvatar = avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+
+    // 1. Establish auth_mapping
+    await adminDb.ref(`auth_mapping/${authUid}`).set(cleanId);
+
+    // 2. Initialize wallet
+    const walletRef = adminDb.ref(`wallets/${cleanId}`);
+    const walletSnap = await walletRef.get();
+    let walletData = walletSnap.val();
+    if (!walletSnap.exists()) {
+      walletData = {
+        pp: 100000,
+        xp: 0,
+        level: 1,
+        gold: { amount: 0, avgPrice: 0 },
+        inventory: { frames: [], titles: [] },
+        battlePassXP: 0,
+        gachaCoins: 0,
+        isPremiumBattlePass: false,
+        unlockedFrames: [],
+        createdAt: Date.now()
+      };
+      await walletRef.set(walletData);
+    }
+
+    // 3. Initialize user profile
+    const userRef = adminDb.ref(`users/${cleanId}`);
+    const userSnap = await userRef.get();
+    let userData = userSnap.val();
+    if (!userSnap.exists()) {
+      userData = {
+        uid: cleanId,
+        authUid,
+        name: cleanName,
+        bankAccount: cleanId,
+        pp: walletData?.pp || 100000,
+        role: 'STUDENT',
+        class: 'Tân Sinh Viên AYK8686',
+        avatar: defaultAvatar,
+        createdAt: Date.now()
+      };
+      await userRef.set(userData);
+    } else {
+      await userRef.update({
+        authUid,
+        pp: walletData?.pp || userData.pp || 100000
+      });
+    }
+
+    // 4. Record registration log
+    const timestamp = Date.now();
+    await adminDb.ref(`registration_logs/${cleanId}`).set({
+      uid: cleanId,
+      name: cleanName,
+      ppBonus: 100000,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp
+    });
+
+    return res.json({ success: true, user: userData, wallet: walletData });
+  } catch (err: any) {
+    console.error('[Register Profile Error]:', err);
+    return res.status(500).json({ success: false, error: err?.message || 'Lỗi khởi tạo tài khoản trên máy chủ' });
+  }
+});
+
+/**
  * Initial 100,000 PP registration wallet initializer (Invoked strictly upon new account creation)
  */
 app.post('/api/wallet/init-registration', requireAuth, async (req, res) => {
@@ -697,8 +779,26 @@ app.post('/api/game/horse', requireAuth, gameLimiter, async (req, res) => {
 });
 
 /**
+ * Multiplier & Duration calculations for Airplane (Crash)
+ * Formula: mult(t) = 1.00 + 0.08 * t + 0.015 * t^2
+ */
+function getAirplaneMultiplier(timeS: number): number {
+  if (timeS <= 0) return 1.00;
+  return parseFloat((1.00 + 0.08 * timeS + 0.015 * Math.pow(timeS, 2)).toFixed(2));
+}
+
+function getAirplaneDurationSeconds(targetMultiplier: number): number {
+  const a = 0.015;
+  const b = 0.08;
+  const c = 1.00 - targetMultiplier;
+  const delta = b * b - 4 * a * c;
+  if (delta < 0) return 0;
+  return (-b + Math.sqrt(delta)) / (2 * a);
+}
+
+/**
  * Server-authoritative Crypto Trade (Rug Pull / Cash Out)
- * Rug point is strictly generated & kept secret on server (never returned to client)
+ * Provides rugDurationMs and rugPoint so the client chart displays the crash visually
  */
 app.post('/api/game/crypto', requireAuth, gameLimiter, async (req, res) => {
   const uid = (req as any).uid;
@@ -713,22 +813,33 @@ app.post('/api/game/crypto', requireAuth, gameLimiter, async (req, res) => {
     const tx = await executePPTransaction(uid, -amt, amt);
     if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
 
-    // Generate authoritative rug pull point (strictly kept private on server)
+    // Generate authoritative rug pull point (RTP ~94%)
     const r = crypto.randomInt(1, 10001) / 10000;
     const isInstantRug = crypto.randomInt(1, 101) <= 8; // 8% instant rug
-    const rugPoint = isInstantRug ? 1.00 : parseFloat(Math.max(1.00, Math.min(100.00, 0.94 / (r * 0.96))).toFixed(2));
+    const rugPoint = isInstantRug ? 1.02 : parseFloat(Math.max(1.05, Math.min(50.00, 0.94 / (r * 0.96))).toFixed(2));
+
+    // Calculate exact duration to reach rugPoint (40ms ticks)
+    let tempMult = 1.0;
+    let tempSpeed = 0.003;
+    let ticks = 0;
+    while (tempMult < rugPoint && ticks < 2000) {
+      tempMult += tempSpeed;
+      tempSpeed += 0.0002;
+      ticks++;
+    }
+    const rugDurationMs = ticks * 40;
 
     const roundId = Date.now();
     await adminDb.ref(`crypto_active_bets/${uid}`).set({
       roundId,
       amount: amt,
-      rugPoint, // Hidden on server
+      rugPoint,
+      rugDurationMs,
       startedAt: Date.now(),
       status: 'PLAYING'
     });
 
-    // DO NOT return rugPoint to client to eliminate cheat vectors
-    return res.json({ success: true, roundId, newPP: tx.newPP });
+    return res.json({ success: true, roundId, rugPoint, rugDurationMs, newPP: tx.newPP });
   } else if (action === 'cashout') {
     const mult = parseFloat(multiplier);
     if (isNaN(mult) || mult < 1.01) return res.status(400).json({ success: false, error: 'Hệ số không hợp lệ' });
@@ -740,15 +851,14 @@ app.post('/api/game/crypto', requireAuth, gameLimiter, async (req, res) => {
     }
 
     const bet = betSnap.val();
-    if (mult > bet.rugPoint) {
+    if (mult > bet.rugPoint || (Date.now() - bet.startedAt > (bet.rugDurationMs || 0) + 600)) {
       await betRef.update({ status: 'RUGGED' });
       return res.status(400).json({ success: false, error: 'Thị trường đã sập trước thời điểm chốt lời!' });
     }
 
-    // Atomic status transaction prevents double-cashout concurrency
     let committedBet: any = null;
     const txStatus = await betRef.transaction((current) => {
-      if (!current || current.status !== 'PLAYING') return undefined; // Already processed
+      if (!current || current.status !== 'PLAYING') return undefined;
       committedBet = current;
       return { ...current, status: 'CASHED_OUT', multiplier: mult };
     });
@@ -798,7 +908,7 @@ app.post('/api/game/crypto', requireAuth, gameLimiter, async (req, res) => {
 
 /**
  * Server-authoritative Airplane / Crash Game (Bet, Cash Out, Crash)
- * Crash point is generated securely and NEVER exposed to client before crash.
+ * Synchronized with client multiplier curve; writes to both airplane_active_bets and users/$uid/crash_game
  */
 app.post('/api/game/airplane', requireAuth, gameLimiter, async (req, res) => {
   const uid = (req as any).uid;
@@ -813,27 +923,30 @@ app.post('/api/game/airplane', requireAuth, gameLimiter, async (req, res) => {
     const tx = await executePPTransaction(uid, -amt, amt);
     if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
 
-    // Generate secret crash point with 4% house edge
+    // Generate authoritative crash point with ~94.5% RTP
     const r = crypto.randomInt(1, 10001) / 10000;
-    const crashPoint = Math.max(1.0, parseFloat((0.95 / (1 - r * 0.95)).toFixed(2)));
+    const crashPoint = Math.max(1.02, parseFloat((0.95 / (1 - r * 0.95)).toFixed(2)));
+    const crashDurationS = getAirplaneDurationSeconds(crashPoint);
+    const crashDurationMs = Math.round(crashDurationS * 1000);
 
-    await adminDb.ref(`airplane_active_bets/${uid}`).set({
+    const betData = {
       roundId: roundId || Date.now(),
       amount: amt,
-      crashPoint, // Secret on server
-      status: 'PLAYING',
-      timestamp: Date.now()
-    });
+      crashPoint,
+      crashDurationMs,
+      startedAt: Date.now(),
+      status: 'PLAYING'
+    };
+
+    // Save active bet to both server tracking and user node
+    await adminDb.ref(`airplane_active_bets/${uid}`).set(betData);
+    await adminDb.ref(`users/${uid}/crash_game`).set(betData);
 
     await addWalletXP(uid, 25);
     await recordMissionActivityServer(uid, 'crash_rides');
 
-    // DO NOT expose crashPoint to client
-    return res.json({ success: true, newPP: tx.newPP });
+    return res.json({ success: true, bet: betData, newPP: tx.newPP });
   } else if (action === 'cashout') {
-    const mult = parseFloat(multiplier);
-    if (isNaN(mult) || mult < 1.01) return res.status(400).json({ success: false, error: 'Hệ số nhảy dù không hợp lệ' });
-
     const betRef = adminDb.ref(`airplane_active_bets/${uid}`);
     const betSnap = await betRef.get();
     if (!betSnap.exists()) {
@@ -841,24 +954,36 @@ app.post('/api/game/airplane', requireAuth, gameLimiter, async (req, res) => {
     }
 
     const bet = betSnap.val();
-    if (mult > bet.crashPoint) {
+    if (bet.status !== 'PLAYING') {
+      return res.status(400).json({ success: false, error: 'Lượt cược đã được chốt hoặc nổ trước đó' });
+    }
+
+    const elapsedS = (Date.now() - bet.startedAt) / 1000;
+    const serverMult = getAirplaneMultiplier(elapsedS);
+    const clientMult = parseFloat(multiplier);
+    const finalMult = !isNaN(clientMult) && clientMult >= 1.01 ? Math.min(clientMult, serverMult) : serverMult;
+
+    // Check if crashed
+    if (Date.now() - bet.startedAt > bet.crashDurationMs + 500 || finalMult >= bet.crashPoint) {
       await betRef.update({ status: 'CRASHED' });
+      await adminDb.ref(`users/${uid}/crash_game/status`).set('CRASHED');
       return res.status(400).json({ success: false, error: 'Phi thuyền đã nổ trước khi nhảy dù!' });
     }
 
-    // Atomic status transaction prevents double-cashout
     let committedBet: any = null;
     const txStatus = await betRef.transaction((current) => {
       if (!current || current.status !== 'PLAYING') return undefined;
       committedBet = current;
-      return { ...current, status: 'CASHED_OUT', multiplier: mult };
+      return { ...current, status: 'CASHED_OUT', multiplier: finalMult };
     });
 
     if (!txStatus.committed || !committedBet) {
       return res.status(400).json({ success: false, error: 'Lượt cược đã được chốt hoặc nổ trước đó' });
     }
 
-    const winAmount = Math.floor(committedBet.amount * mult);
+    await adminDb.ref(`users/${uid}/crash_game`).update({ status: 'CASHED_OUT', multiplier: finalMult });
+
+    const winAmount = Math.floor(committedBet.amount * finalMult);
     const profit = winAmount - committedBet.amount;
     const tx = await executePPTransaction(uid, winAmount);
 
@@ -867,24 +992,25 @@ app.post('/api/game/airplane', requireAuth, gameLimiter, async (req, res) => {
       game: 'Crash',
       bet: committedBet.amount,
       pnl: profit,
-      result: `Nhảy dù chốt x${mult.toFixed(2)} (Thắng)`,
+      result: `Nhảy dù chốt x${finalMult.toFixed(2)} (Thắng)`,
       time: new Date().toLocaleString('vi-VN'),
       timestamp: Date.now()
     });
 
-    return res.json({ success: true, winAmount, profit, newPP: tx.newPP });
+    return res.json({ success: true, winAmount, profit, multiplier: finalMult, newPP: tx.newPP });
   } else if (action === 'crash') {
     const betRef = adminDb.ref(`airplane_active_bets/${uid}`);
     const betSnap = await betRef.get();
     if (betSnap.exists() && betSnap.val().status === 'PLAYING') {
       const bet = betSnap.val();
       await betRef.update({ status: 'CRASHED' });
+      await adminDb.ref(`users/${uid}/crash_game/status`).set('CRASHED');
       await adminDb.ref('game_logs').push({
         uid,
         game: 'Crash',
         bet: bet.amount,
         pnl: -bet.amount,
-        result: 'Phi thuyền phát nổ (Thua)',
+        result: `Phi thuyền phát nổ ở x${bet.crashPoint.toFixed(2)} (Thua)`,
         time: new Date().toLocaleString('vi-VN'),
         timestamp: Date.now()
       });
@@ -1631,6 +1757,557 @@ app.post('/api/admin/adjust-pp', requireAuth, async (req, res) => {
   } catch (err: any) {
     console.error('[Admin Adjust PP Error]:', err);
     res.status(500).json({ success: false, error: err?.message || 'Lỗi máy chủ khi điều chỉnh PP' });
+  }
+});
+
+// ----------------- SERVER-AUTHORITATIVE BALANCE ENDPOINTS -----------------
+
+/**
+ * 1. Daily Attendance (Điểm danh hàng ngày)
+ */
+app.post('/api/attendance/checkin', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  if (!uid) return res.status(400).json({ success: false, error: 'Thiếu UID người dùng' });
+
+  try {
+    const userSnap = await adminDb.ref(`users/${uid}`).get();
+    if (!userSnap.exists()) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    const userData = userSnap.val();
+
+    const now = new Date();
+    const vnDateStr = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+    const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+    const yesterdayVnStr = yesterday.toLocaleDateString('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' });
+
+    if (userData.lastCheckInDate === vnDateStr) {
+      return res.status(400).json({ success: false, error: 'Hôm nay bạn đã điểm danh rồi!' });
+    }
+
+    let newStreak = 1;
+    if (userData.lastCheckInDate === yesterdayVnStr) {
+      newStreak = (userData.streak || 0) + 1;
+    }
+
+    const STREAK_REWARDS = [
+      { day: 1, pp: 500, xp: 20, multiplier: 1.0 },
+      { day: 2, pp: 750, xp: 30, multiplier: 1.1 },
+      { day: 3, pp: 1000, xp: 40, multiplier: 1.2 },
+      { day: 4, pp: 1500, xp: 50, multiplier: 1.3 },
+      { day: 5, pp: 2000, xp: 70, multiplier: 1.5 },
+      { day: 6, pp: 3000, xp: 90, multiplier: 1.8 },
+      { day: 7, pp: 5000, xp: 150, multiplier: 2.0 },
+    ];
+    const cycleDay = ((newStreak - 1) % 7) + 1;
+    const rewardConfig = STREAK_REWARDS[cycleDay - 1];
+    const finalPP = Math.round(rewardConfig.pp * rewardConfig.multiplier);
+    const finalXP = Math.round(rewardConfig.xp * rewardConfig.multiplier);
+
+    const tx = await executePPTransaction(uid, finalPP);
+    await addWalletXP(uid, finalXP);
+    await adminDb.ref(`users/${uid}`).update({
+      streak: newStreak,
+      lastCheckInDate: vnDateStr
+    });
+
+    await adminDb.ref('game_logs').push({
+      uid,
+      name: userData.name || 'Sinh Viên',
+      game: 'Điểm Danh Hàng Ngày',
+      bet: 0,
+      pnl: finalPP,
+      result: `Streak #${newStreak} (+${finalPP.toLocaleString()} PP, +${finalXP} XP)`,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({
+      success: true,
+      streak: newStreak,
+      ppAwarded: finalPP,
+      xpAwarded: finalXP,
+      multiplier: rewardConfig.multiplier,
+      newPP: tx.newPP
+    });
+  } catch (err: any) {
+    console.error('[Attendance Checkin Error]:', err);
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi xử lý điểm danh' });
+  }
+});
+
+/**
+ * 2. Live Stream Betting & Evaluation
+ */
+app.post('/api/live-stream/bet', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { betAmount } = req.body;
+  const amt = Math.floor(Number(betAmount) || 0);
+  if (!uid || amt <= 0) return res.status(400).json({ success: false, error: 'Mức cược không hợp lệ' });
+
+  try {
+    const tx = await executePPTransaction(uid, -amt, amt);
+    if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
+    res.json({ success: true, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi cược live stream' });
+  }
+});
+
+app.post('/api/live-stream/evaluate', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { game, betAmount, won, payout, summary } = req.body;
+  if (!uid) return res.status(400).json({ success: false, error: 'Thiếu UID' });
+
+  try {
+    const cleanPayout = won && typeof payout === 'number' && payout > 0 ? Math.floor(payout) : 0;
+    const cleanBet = Math.floor(Number(betAmount) || 0);
+    let newPP = 0;
+
+    if (cleanPayout > 0) {
+      const tx = await executePPTransaction(uid, cleanPayout);
+      newPP = tx.newPP;
+    } else {
+      const wSnap = await adminDb.ref(`wallets/${uid}/pp`).get();
+      newPP = Number(wSnap.val()) || 0;
+    }
+
+    const pnl = cleanPayout - cleanBet;
+    const userSnap = await adminDb.ref(`users/${uid}`).get();
+    const userName = userSnap.val()?.name || 'Sinh Viên';
+
+    await adminDb.ref('game_logs').push({
+      uid,
+      name: userName,
+      game: `Live Stream: ${game || 'Đấu Trường'}`,
+      bet: cleanBet,
+      pnl,
+      result: summary || (won ? 'Thắng' : 'Thua'),
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({ success: true, newPP, won, payout: cleanPayout, pnl });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi kết toán live stream' });
+  }
+});
+
+/**
+ * 3. World Hunting (Bắn Cá / Săn Boss)
+ */
+app.post('/api/hunting/fire', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { cost } = req.body;
+  const cleanCost = Math.floor(Number(cost) || 0);
+  if (!uid || cleanCost <= 0) return res.status(400).json({ success: false, error: 'Chi phí đạn không hợp lệ' });
+
+  try {
+    const tx = await executePPTransaction(uid, -cleanCost, cleanCost);
+    if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
+    res.json({ success: true, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi bắn đạn' });
+  }
+});
+
+app.post('/api/hunting/kill', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { rewardPP, beastName, isWorldBoss } = req.body;
+  const cleanReward = Math.floor(Number(rewardPP) || 0);
+  if (!uid || cleanReward <= 0) return res.status(400).json({ success: false, error: 'Phần thưởng không hợp lệ' });
+
+  try {
+    const tx = await executePPTransaction(uid, cleanReward);
+    if (isWorldBoss) {
+      const dragonFrame = 'https://png.pngtree.com/png-clipart/20240319/original/pngtree-avatar-frame-dragon-round-animal-template-for-game-cartoon-empty-dragon-png-image_14623493.png';
+      const userRef = adminDb.ref(`users/${uid}`);
+      const userSnap = await userRef.get();
+      const currentFrames = userSnap.val()?.inventory?.frames || [];
+      const updatedFrames = Array.from(new Set([...currentFrames, dragonFrame]));
+      await userRef.update({
+        'inventory/frames': updatedFrames,
+        activeFrame: dragonFrame
+      });
+      await adminDb.ref(`wallets/${uid}/inventory/frames`).set(updatedFrames);
+    }
+
+    const userSnap = await adminDb.ref(`users/${uid}`).get();
+    const userName = userSnap.val()?.name || 'Sinh Viên';
+
+    await adminDb.ref('game_logs').push({
+      uid,
+      name: userName,
+      game: 'World Hunting',
+      bet: 0,
+      pnl: cleanReward,
+      result: `Hạ gục ${beastName || 'Hùng thú'} (+${cleanReward.toLocaleString()} PP)`,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({ success: true, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi nhận thưởng đi săn' });
+  }
+});
+
+/**
+ * 4. Gold Trading (Mua & Bán Vàng)
+ */
+app.post('/api/gold/trade', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { action, amount, price } = req.body;
+  const amt = parseFloat(amount);
+  const unitPrice = Math.floor(Number(price) || 0);
+
+  if (!uid || isNaN(amt) || amt < 0.01 || unitPrice <= 0) {
+    return res.status(400).json({ success: false, error: 'Thông tin giao dịch vàng không hợp lệ' });
+  }
+
+  try {
+    const userRef = adminDb.ref(`users/${uid}`);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists()) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    const userData = userSnap.val();
+    const currentGold = userData.gold || { amount: 0, avgPrice: 0 };
+
+    if (action === 'buy') {
+      const totalCost = Math.floor(amt * unitPrice);
+      const tx = await executePPTransaction(uid, -totalCost, totalCost);
+      if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ để mua vàng' });
+
+      const newGoldAmount = currentGold.amount + amt;
+      const newAvg = ((currentGold.amount * currentGold.avgPrice) + totalCost) / newGoldAmount;
+      const updatedGold = { amount: newGoldAmount, avgPrice: newAvg };
+
+      await userRef.update({ gold: updatedGold });
+      await adminDb.ref(`wallets/${uid}/gold`).set(updatedGold);
+
+      await adminDb.ref('game_logs').push({
+        uid,
+        name: userData.name || 'Sinh Viên',
+        game: 'Sàn Vàng',
+        bet: totalCost,
+        pnl: -totalCost,
+        result: `Mua ${amt.toFixed(2)} GOLD (giá ${unitPrice.toLocaleString()} PP)`,
+        time: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+      });
+
+      return res.json({ success: true, action: 'buy', newPP: tx.newPP, gold: updatedGold });
+    } else if (action === 'sell') {
+      if (currentGold.amount < amt) {
+        return res.status(400).json({ success: false, error: `Số lượng vàng của bạn không đủ để bán! (Hiện có: ${currentGold.amount.toFixed(2)} GOLD)` });
+      }
+
+      const totalEarned = Math.floor(amt * unitPrice);
+      const tx = await executePPTransaction(uid, totalEarned);
+      const newGoldAmount = Math.max(0, currentGold.amount - amt);
+      const updatedGold = { amount: newGoldAmount, avgPrice: newGoldAmount === 0 ? 0 : currentGold.avgPrice };
+
+      await userRef.update({ gold: updatedGold });
+      await adminDb.ref(`wallets/${uid}/gold`).set(updatedGold);
+
+      await adminDb.ref('game_logs').push({
+        uid,
+        name: userData.name || 'Sinh Viên',
+        game: 'Sàn Vàng',
+        bet: 0,
+        pnl: totalEarned,
+        result: `Bán ${amt.toFixed(2)} GOLD (giá ${unitPrice.toLocaleString()} PP)`,
+        time: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+      });
+
+      return res.json({ success: true, action: 'sell', newPP: tx.newPP, gold: updatedGold });
+    }
+
+    res.status(400).json({ success: false, error: 'Hành động không hợp lệ' });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi giao dịch vàng' });
+  }
+});
+
+/**
+ * 5. Academic Quiz (Học tập & Kiểm tra)
+ */
+app.post('/api/academic/quiz-submit', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { questId, selectedOpt } = req.body;
+
+  if (!uid || !questId) return res.status(400).json({ success: false, error: 'Thiếu thông tin bài kiểm tra' });
+
+  try {
+    const questRef = adminDb.ref(`quests/${questId}`);
+    const qSnap = await questRef.get();
+    if (!qSnap.exists()) return res.status(404).json({ success: false, error: 'Không tìm thấy câu hỏi' });
+    const qData = qSnap.val();
+
+    // Increment attempts
+    const currentAttempts = qData.attempts?.[uid] || 0;
+    await adminDb.ref(`quests/${questId}/attempts/${uid}`).set(currentAttempts + 1);
+
+    const isCorrect = selectedOpt && selectedOpt === qData.correctOpt;
+    const userSnap = await adminDb.ref(`users/${uid}`).get();
+    const userName = userSnap.val()?.name || 'Sinh Viên';
+
+    if (isCorrect) {
+      const rewardPP = Math.floor(Number(qData.rewardPP) || 1000);
+      const tx = await executePPTransaction(uid, rewardPP);
+      await adminDb.ref('game_logs').push({
+        uid,
+        name: userName,
+        game: `Quiz: ${qData.title}`,
+        bet: 0,
+        pnl: rewardPP,
+        result: 'ĐÚNG (Chính xác)',
+        time: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+      });
+      return res.json({ success: true, isCorrect: true, rewardPP, newPP: tx.newPP });
+    } else {
+      const penaltyPP = Math.floor(Number(qData.penaltyPP) || 0);
+      let newPP = 0;
+      if (penaltyPP > 0) {
+        const tx = await executePPTransaction(uid, -penaltyPP);
+        newPP = tx.newPP;
+      } else {
+        const wSnap = await adminDb.ref(`wallets/${uid}/pp`).get();
+        newPP = Number(wSnap.val()) || 0;
+      }
+      await adminDb.ref('game_logs').push({
+        uid,
+        name: userName,
+        game: `Quiz: ${qData.title}`,
+        bet: 0,
+        pnl: -penaltyPP,
+        result: selectedOpt ? 'SAI (Nhầm lẫn)' : 'HẾT GIỜ (Trượt)',
+        time: new Date().toLocaleString('vi-VN'),
+        timestamp: Date.now()
+      });
+      return res.json({ success: true, isCorrect: false, penaltyPP, newPP });
+    }
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi chấm bài' });
+  }
+});
+
+/**
+ * 6. Marketplace Purchase
+ */
+app.post('/api/marketplace/buy', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { itemId, itemType, price, value } = req.body;
+  const cleanPrice = Math.floor(Number(price) || 0);
+
+  if (!uid || cleanPrice <= 0 || !value) {
+    return res.status(400).json({ success: false, error: 'Thông tin vật phẩm không hợp lệ' });
+  }
+
+  try {
+    const userRef = adminDb.ref(`users/${uid}`);
+    const userSnap = await userRef.get();
+    if (!userSnap.exists()) return res.status(404).json({ success: false, error: 'Không tìm thấy tài khoản' });
+    const userData = userSnap.val();
+
+    const inv = userData.inventory || { frames: [], titles: [] };
+    const frames = Array.isArray(inv.frames) ? inv.frames : [];
+    const titles = Array.isArray(inv.titles) ? inv.titles : [];
+
+    const alreadyOwned = itemType === 'frame' ? frames.includes(value) : titles.includes(value);
+    if (alreadyOwned) {
+      return res.status(400).json({ success: false, error: 'Bạn đã sở hữu vật phẩm này rồi!' });
+    }
+
+    const tx = await executePPTransaction(uid, -cleanPrice, cleanPrice);
+    if (!tx.success) {
+      return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
+    }
+
+    const updatedInv = {
+      frames: itemType === 'frame' ? [...frames, value] : frames,
+      titles: itemType === 'title' ? [...titles, value] : titles
+    };
+
+    await userRef.update({ inventory: updatedInv });
+    await adminDb.ref(`wallets/${uid}/inventory`).set(updatedInv);
+
+    await adminDb.ref('game_logs').push({
+      uid,
+      name: userData.name || 'Sinh Viên',
+      game: 'Chợ AYK',
+      bet: cleanPrice,
+      pnl: -cleanPrice,
+      result: `Mua vật phẩm: ${itemId || value}`,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({ success: true, newPP: tx.newPP, inventory: updatedInv });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi mua vật phẩm' });
+  }
+});
+
+/**
+ * 7. Battle Pass Upgrade & Claim
+ */
+app.post('/api/battlepass/upgrade', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { cost } = req.body;
+  const cleanCost = Math.floor(Number(cost) || 100000);
+
+  if (!uid) return res.status(400).json({ success: false, error: 'Thiếu UID' });
+
+  try {
+    const tx = await executePPTransaction(uid, -cleanCost, cleanCost);
+    if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
+
+    await adminDb.ref(`users/${uid}/isPremiumBattlePass`).set(true);
+    await adminDb.ref(`wallets/${uid}/isPremiumBattlePass`).set(true);
+
+    res.json({ success: true, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi nâng cấp Battle Pass' });
+  }
+});
+
+app.post('/api/battlepass/claim', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { tierId, type, rewardValue, frame } = req.body;
+  const cleanReward = Math.floor(Number(rewardValue) || 0);
+
+  if (!uid || !tierId || cleanReward <= 0) {
+    return res.status(400).json({ success: false, error: 'Dữ liệu mốc thưởng không hợp lệ' });
+  }
+
+  try {
+    const claimKey = `${tierId}_${type}`;
+    const claimedSnap = await adminDb.ref(`users/${uid}/battlePassRewardsClaimed/${claimKey}`).get();
+    if (claimedSnap.exists() && claimedSnap.val() === true) {
+      return res.status(400).json({ success: false, error: 'Bạn đã nhận phần thưởng này rồi' });
+    }
+
+    const tx = await executePPTransaction(uid, cleanReward);
+    const updates: any = {};
+    updates[`battlePassRewardsClaimed/${claimKey}`] = true;
+    if (frame) {
+      updates['activeFrame'] = frame;
+      const userSnap = await adminDb.ref(`users/${uid}`).get();
+      const currentFrames = userSnap.val()?.inventory?.frames || [];
+      const updatedFrames = Array.from(new Set([...currentFrames, frame]));
+      updates['inventory/frames'] = updatedFrames;
+      await adminDb.ref(`wallets/${uid}/inventory/frames`).set(updatedFrames);
+    }
+
+    await adminDb.ref(`users/${uid}`).update(updates);
+
+    res.json({ success: true, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi nhận thưởng' });
+  }
+});
+
+/**
+ * 8. Room-based multiplayer games (Blackjack, Tien Len, etc.)
+ */
+app.post('/api/game/room-bet', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { betAmount, targetUid } = req.body;
+  const pUid = targetUid || uid;
+  const amt = Math.floor(Number(betAmount) || 0);
+  if (!pUid || amt <= 0) return res.status(400).json({ success: false, error: 'Mức cược không hợp lệ' });
+
+  try {
+    const tx = await executePPTransaction(pUid, -amt, amt);
+    if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Số dư PP không đủ' });
+    res.json({ success: true, targetUid: pUid, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi trừ cược phòng đấu' });
+  }
+});
+
+/**
+ * 9. Promo Code Redemption
+ */
+app.post('/api/promo/redeem', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { code } = req.body;
+  if (!uid || !code || typeof code !== 'string') {
+    return res.status(400).json({ success: false, error: 'Mã khuyến mãi không hợp lệ' });
+  }
+
+  const cleanCode = code.trim().toUpperCase();
+  try {
+    const pSnap = await adminDb.ref(`promo_codes/${cleanCode}`).get();
+    if (!pSnap.exists()) {
+      return res.status(404).json({ success: false, error: 'Mã khuyến mãi không tồn tại hoặc đã hết hạn!' });
+    }
+
+    const pData = pSnap.val();
+    if (!pData.isActive) {
+      return res.status(400).json({ success: false, error: 'Mã khuyến mãi này hiện đang bị tạm khóa!' });
+    }
+
+    const claimedBy = pData.claimedBy || {};
+    if (claimedBy[uid]) {
+      return res.status(400).json({ success: false, error: 'Bạn đã sử dụng mã khuyến mãi này rồi!' });
+    }
+
+    if (pData.maxClaims && Object.keys(claimedBy).length >= pData.maxClaims) {
+      return res.status(400).json({ success: false, error: 'Rất tiếc! Mã khuyến mãi này đã đạt giới hạn lượt sử dụng tối đa.' });
+    }
+
+    const reward = Math.floor(Number(pData.rewardPP) || 5000);
+    const tx = await executePPTransaction(uid, reward);
+    await adminDb.ref(`promo_codes/${cleanCode}/claimedBy/${uid}`).set(Date.now());
+
+    const userSnap = await adminDb.ref(`users/${uid}`).get();
+    const userName = userSnap.val()?.name || 'Sinh Viên';
+
+    await adminDb.ref('transactions').push({
+      sender: 'PROMO_CODE_CENTER',
+      senderName: 'Trung tâm Quà tặng',
+      receiver: uid,
+      receiverName: userName,
+      amount: reward,
+      message: `Đổi mã Promo Code: ${cleanCode}`,
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({ success: true, reward, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi xử lý mã quà tặng' });
+  }
+});
+
+app.post('/api/game/room-payout', requireAuth, async (req, res) => {
+  const uid = (req as any).uid;
+  const { targetUid, payoutAmount, gameType, result } = req.body;
+  const pUid = targetUid || uid;
+  const payout = Math.floor(Number(payoutAmount) || 0);
+
+  if (!pUid || payout <= 0) return res.status(400).json({ success: false, error: 'Số tiền trả thưởng không hợp lệ' });
+
+  try {
+    const tx = await executePPTransaction(pUid, payout);
+    if (!tx.success) return res.status(400).json({ success: false, error: tx.error || 'Lỗi trả thưởng' });
+
+    const uSnap = await adminDb.ref(`users/${pUid}`).get();
+    await adminDb.ref('game_logs').push({
+      uid: pUid,
+      name: uSnap.val()?.name || 'Sinh Viên',
+      game: gameType || 'Bàn Chơi Đối Kháng',
+      bet: 0,
+      pnl: payout,
+      result: result || 'Thắng bàn',
+      time: new Date().toLocaleString('vi-VN'),
+      timestamp: Date.now()
+    });
+
+    res.json({ success: true, targetUid: pUid, newPP: tx.newPP });
+  } catch (err: any) {
+    res.status(500).json({ success: false, error: err?.message || 'Lỗi cộng thưởng phòng đấu' });
   }
 });
 

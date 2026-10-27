@@ -18,7 +18,7 @@
     "wallets": {
       "$uid": {
         ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
-        ".write": false
+        ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
       }
     },
 
@@ -28,7 +28,7 @@
         ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
 
         "pp": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+          ".validate": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
         },
         "xp": {
           ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
@@ -205,18 +205,20 @@
 
     "poker_rooms": {
       ".read": "auth != null",
-      ".write": false
+      "$roomId": {
+        ".write": "auth != null"
+      }
     },
 
     "poker_private": {
       "$roomId": {
         "deck": {
           ".read": false,
-          ".write": false
+          ".write": "auth != null"
         },
         "$uid": {
           ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
-          ".write": false
+          ".write": "auth != null"
         }
       }
     },

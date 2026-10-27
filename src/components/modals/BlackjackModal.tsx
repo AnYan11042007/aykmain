@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, onValue, update, remove, push } from 'firebase/database';
-import { db } from '../../firebase';
+import { db, fetchWithAuth } from '../../firebase';
 import { X, Trophy, AlertTriangle, Layers } from 'lucide-react';
 import { User, BlackjackRoom, BlackjackPlayer } from '../../types';
 import { incrementMissionProgress } from '../../utils/missions';
@@ -150,15 +150,20 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
       const activeUids: string[] = [];
 
       for (const pU of playersList) {
-        const uSnap = await get(ref(db, `users/${pU}`));
-        const balance = uSnap.val()?.pp || 0;
-
-        if (balance >= room.bet) {
-          activeUids.push(pU);
-          // Deduct bets at launch
-          updatePayload[`/users/${pU}/pp`] = balance - room.bet;
-        } else {
-          // Kick broke players from room
+        try {
+          const betResp = await fetchWithAuth('/api/game/room-bet', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ betAmount: room.bet, targetUid: pU })
+          });
+          const betData = await betResp.json();
+          if (betData.success) {
+            activeUids.push(pU);
+          } else {
+            // Kick broke players from room
+            updatePayload[`/blackjack_rooms/${roomId}/players/${pU}`] = null;
+          }
+        } catch (e) {
           updatePayload[`/blackjack_rooms/${roomId}/players/${pU}`] = null;
         }
       }
@@ -352,47 +357,58 @@ export default function BlackjackModal({ uid, user, roomId, onClose, onShowResul
       const pInfo = getBjInfo(pD.hand);
       const res = compareBj(pInfo.score, pInfo.type, finalDInfo.score, finalDInfo.type);
 
-      const uSnap = await get(ref(db, `users/${pU}`));
-      const balance = uSnap.val()?.pp || 0;
       const bet = currentRoom.bet;
 
       if (pInfo.type === 'QUAC') {
         // Player quắc is instant loss (already deducted on start)
         finalSummary += `<span class="text-red-400 font-bold">${pD.name}: QUẮC BÙ (-${bet.toLocaleString()})</span><br>`;
-        await push(ref(db, 'game_logs'), {
-          uid: pU, name: pD.name, game: 'Blackjack', bet: bet, pnl: -bet, result: 'Quắc', time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
-        });
       } else if (pInfo.type === 'XIBANG' || pInfo.type === 'XIDACH') {
         // Natural Blackjacks pay x2.5
-        updatePayload[`/users/${pU}/pp`] = balance + Math.floor(bet * 2.5);
-        finalSummary += `<span class="text-[#00ff80] font-black">${pD.name}: TỚI TRẮNG (+${Math.floor(bet * 1.5).toLocaleString()})</span><br>`;
-        await push(ref(db, 'game_logs'), {
-          uid: pU, name: pD.name, game: 'Blackjack', bet: bet, pnl: Math.floor(bet * 1.5), result: 'Blackjack', time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
+        const payoutVal = Math.floor(bet * 2.5);
+        await fetchWithAuth('/api/game/room-payout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetUid: pU,
+            payoutAmount: payoutVal,
+            gameType: 'Blackjack',
+            result: 'Xì Dách / Xì Bàng (+2.5x)'
+          })
         });
+        finalSummary += `<span class="text-[#00ff80] font-black">${pD.name}: TỚI TRẮNG (+${Math.floor(bet * 1.5).toLocaleString()})</span><br>`;
       } else {
         if (res === 1) {
           // Player wins -> payout multiplier (x2.2 for Ngũ Linh, x2 otherwise)
           const mult = pInfo.type === 'NGULINH' ? 2.2 : 2.0;
           const payoutVal = Math.floor(bet * mult);
-          updatePayload[`/users/${pU}/pp`] = balance + payoutVal;
+          await fetchWithAuth('/api/game/room-payout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetUid: pU,
+              payoutAmount: payoutVal,
+              gameType: 'Blackjack',
+              result: pInfo.type === 'NGULINH' ? 'Ngũ Linh (+2.2x)' : 'Thắng (+2.0x)'
+            })
+          });
 
           finalSummary += `<span class="text-emerald-400 font-bold">${pD.name}: THẮNG (+${Math.floor(bet * (mult - 1)).toLocaleString()})</span><br>`;
-          await push(ref(db, 'game_logs'), {
-            uid: pU, name: pD.name, game: 'Blackjack', bet: bet, pnl: Math.floor(bet * (mult - 1)), result: 'Thắng', time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
-          });
         } else if (res === 0) {
           // Draw -> refund cược
-          updatePayload[`/users/${pU}/pp`] = balance + bet;
-          finalSummary += `<span class="text-yellow-400 font-bold">${pD.name}: HÒA (Hoàn cược)</span><br>`;
-          await push(ref(db, 'game_logs'), {
-            uid: pU, name: pD.name, game: 'Blackjack', bet: bet, pnl: 0, result: 'Hòa', time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
+          await fetchWithAuth('/api/game/room-payout', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetUid: pU,
+              payoutAmount: bet,
+              gameType: 'Blackjack',
+              result: 'Hòa (Hoàn cược)'
+            })
           });
+          finalSummary += `<span class="text-yellow-400 font-bold">${pD.name}: HÒA (Hoàn cược)</span><br>`;
         } else {
           // Lose
           finalSummary += `<span class="text-red-400 font-bold">${pD.name}: THUA CÁI (-${bet.toLocaleString()})</span><br>`;
-          await push(ref(db, 'game_logs'), {
-            uid: pU, name: pD.name, game: 'Blackjack', bet: bet, pnl: -bet, result: 'Thua', time: new Date().toLocaleString('vi-VN'), timestamp: Date.now()
-          });
         }
       }
     }

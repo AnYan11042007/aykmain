@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { get, ref, push, update, onValue, query, limitToLast, remove } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { incrementMissionProgress } from '../utils/missions';
 import { getTodayVNString, getVNTimeString } from '../utils/date';
@@ -812,30 +812,9 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
   
   const fcRealtimeScore = getFCRealtimeScore();
 
-  // Admin/Teacher commission pay credit helper (5% of the bet amount goes to admin automatically)
-  const payAdminCommission = async (betAmount: number) => {
-    const commission = Math.floor(betAmount * 0.05); // 5% house commission
-    if (commission <= 0) return;
-    try {
-      const usersRef = ref(db, 'users');
-      const snap = await get(usersRef);
-      if (snap.exists()) {
-        const updates: Record<string, any> = {};
-        snap.forEach((child) => {
-          const val = child.val();
-          if (val.role === 'TEACHER') {
-            const currentTeacherPP = val.pp || 0;
-            updates[`users/${child.key}/pp`] = currentTeacherPP + commission;
-          }
-        });
-        if (Object.keys(updates).length > 0) {
-          await update(ref(db), updates);
-          console.log(`Paid ${commission} PP admin commission to teacher(s)`);
-        }
-      }
-    } catch (err) {
-      console.error('Error paying admin commission:', err);
-    }
+  // Admin/Teacher commission pay credit helper (handled securely via server-side logic)
+  const payAdminCommission = async (_betAmount: number) => {
+    // Client-side direct pp writes are forbidden by security rules
   };
 
   // Time-synchronized clock ticks
@@ -985,13 +964,17 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       
       const handleEvaluateTx = async () => {
         try {
-          const uSnap = await get(ref(db, `users/${uid}`));
-          const freshPP = uSnap.val()?.pp || 0;
-          let netProfit = profit - currentBetPlaced.amount;
-          
-          if (profit > 0) {
-            await update(ref(db, `users/${uid}`), { pp: freshPP + profit });
-          }
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live Stream Tài Xỉu',
+              betAmount: currentBetPlaced.amount,
+              won,
+              payout: profit,
+              summary: (isTriple && (currentBetPlaced.choice === 'TRIPLE_1' || currentBetPlaced.choice === 'TRIPLE_6') && won) ? 'Bão (Thắng)' : isTriple ? 'Bão (Thua)' : won ? 'Thắng' : 'Thua'
+            })
+          });
 
           if (uid) {
             await incrementMissionProgress(uid, 'taixiu_play', 1);
@@ -1000,17 +983,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             }
             await incrementMissionProgress(uid, 'game_play', 1);
           }
-
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live Stream Tài Xỉu',
-            bet: currentBetPlaced.amount,
-            pnl: netProfit,
-            result: (isTriple && (currentBetPlaced.choice === 'TRIPLE_1' || currentBetPlaced.choice === 'TRIPLE_6') && won) ? 'Bão (Thắng)' : isTriple ? 'Bão (Thua)' : won ? 'Thắng' : 'Thua',
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
 
           const choiceText = currentBetPlaced.choice === 'TAI' ? 'Tài' : currentBetPlaced.choice === 'XIU' ? 'Xỉu' : currentBetPlaced.choice === 'TRIPLE_1' ? 'Bão 1' : 'Bão 6';
           const winMsg = won 
@@ -1045,20 +1017,21 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     if (crashPhase === 'COOLDOWN' && currentBetPlaced && currentBetPlaced.cycleId === crashCycleId && !currentBetPlaced.evaluated) {
       const handleCrashBoom = async () => {
         try {
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live Phi Thuyền Crash',
+              betAmount: currentBetPlaced.amount,
+              won: false,
+              payout: 0,
+              summary: 'Thua do phi thuyền nổ'
+            })
+          });
+
           if (uid) {
             await incrementMissionProgress(uid, 'game_play', 1);
           }
-
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live Phi Thuyền Crash',
-            bet: currentBetPlaced.amount,
-            pnl: -currentBetPlaced.amount,
-            result: 'Thua',
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
 
           onShowResult(
             'PHI THUYỀN NỔ TUNG - THẤT BẠI 💥',
@@ -1088,25 +1061,21 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     const netProfit = payout - currentBetPlaced.amount;
 
     try {
-      const uSnap = await get(ref(db, `users/${uid}`));
-      const freshPP = uSnap.val()?.pp || 0;
-
-      await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
+      await fetchWithAuth('/api/live-stream/evaluate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          game: 'Live Phi Thuyền Crash',
+          betAmount: currentBetPlaced.amount,
+          won: true,
+          payout,
+          summary: `Thắng (Nhảy dù x${mult})`
+        })
+      });
 
       if (uid) {
         await incrementMissionProgress(uid, 'game_play', 1);
       }
-
-      await push(ref(db, 'game_logs'), {
-        uid,
-        name: user?.name || 'Sinh Viên',
-        game: 'Live Phi Thuyền Crash',
-        bet: currentBetPlaced.amount,
-        pnl: netProfit,
-        result: 'Thắng',
-        time: new Date().toLocaleString('vi-VN'),
-        timestamp: Date.now()
-      });
 
       onShowResult(
         'PHI THUYỀN - CHỐT LÃI THÀNH CÔNG 🚀',
@@ -1150,13 +1119,17 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
       const handleEvaluatePenalty = async () => {
         try {
-          const uSnap = await get(ref(db, `users/${uid}`));
-          const freshPP = uSnap.val()?.pp || 0;
-          let netProfit = payout - currentBetPlaced.amount;
-          
-          if (payout > 0) {
-            await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
-          }
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live Penalty Shootout',
+              betAmount: currentBetPlaced.amount,
+              won,
+              payout,
+              summary: won ? 'Thắng sút luân lưu' : 'Trượt sút luân lưu'
+            })
+          });
 
           if (uid) {
             if (res.isGoal) {
@@ -1164,17 +1137,6 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
             }
             await incrementMissionProgress(uid, 'game_play', 1);
           }
-
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live Penalty Shootout',
-            bet: currentBetPlaced.amount,
-            pnl: netProfit,
-            result: won ? 'Thắng' : 'Thua',
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
 
           const quadrantLabels = ['Góc Cao Trái', 'Góc Cao Phải', 'Góc Dưới Trái', 'Góc Dưới Phải', 'Chính Giữa'];
           const targetName = quadrantLabels[res.target];
@@ -1217,29 +1179,22 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
       const handleEvaluateHorse = async () => {
         try {
-          const uSnap = await get(ref(db, `users/${uid}`));
-          const freshPP = uSnap.val()?.pp || 0;
-          let netProfit = payout - currentBetPlaced.amount;
-          
-          if (payout > 0) {
-            await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
-          }
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live Đua Ngựa',
+              betAmount: currentBetPlaced.amount,
+              won,
+              payout,
+              summary: won ? `Thắng (Ngựa #${res.winner})` : `Thua (Ngựa #${res.winner} thắng)`
+            })
+          });
 
           if (uid) {
             await incrementMissionProgress(uid, 'horse_rides', 1);
             await incrementMissionProgress(uid, 'game_play', 1);
           }
-
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live Đua Ngựa',
-            bet: currentBetPlaced.amount,
-            pnl: netProfit,
-            result: won ? `Thắng (Ngựa ${res.winner})` : `Thua (Ngựa ${res.winner} thắng)`,
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
 
           onShowResult(
             won ? 'LIVE ĐUA NGỰA - THẮNG CUỘC 🐎' : 'LIVE ĐUA NGỰA - TRẬT KÈO 💀',
@@ -1274,29 +1229,22 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
       const handleEvaluateClaw = async () => {
         try {
-          const uSnap = await get(ref(db, `users/${uid}`));
-          const freshPP = uSnap.val()?.pp || 0;
-          let netProfit = payout - currentBetPlaced.amount;
-          
-          if (payout > 0) {
-            await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
-          }
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live Gắp Thú',
+              betAmount: currentBetPlaced.amount,
+              won,
+              payout,
+              summary: won ? 'Thắng gắp thú' : 'Thua gắp thú'
+            })
+          });
 
           if (uid) {
             await incrementMissionProgress(uid, 'claw_machine', 1);
             await incrementMissionProgress(uid, 'game_play', 1);
           }
-
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live Gắp Thú',
-            bet: currentBetPlaced.amount,
-            pnl: netProfit,
-            result: won ? 'Thắng' : 'Thua',
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
 
           const prizeNames = ['Gấu Bông 🧸', 'Kỳ Lân 🦄', 'Rồng Lửa 🐉', 'Mèo Kitty 🐱', 'Cáo Đỏ 🦊'];
           const prizeName = prizeNames[res.prizeIndex];
@@ -1341,29 +1289,22 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
 
       const handleEvaluateFc = async () => {
         try {
-          const uSnap = await get(ref(db, `users/${uid}`));
-          const freshPP = uSnap.val()?.pp || 0;
-          let netProfit = payout - currentBetPlaced.amount;
-          
-          if (payout > 0) {
-            await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
-          }
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live FC Arena',
+              betAmount: currentBetPlaced.amount,
+              won,
+              payout,
+              summary: won ? 'Thắng FC Mobile' : 'Thua FC Mobile'
+            })
+          });
 
           if (uid) {
             await incrementMissionProgress(uid, 'fcmobile_match', 1);
             await incrementMissionProgress(uid, 'game_play', 1);
           }
-
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live FC Arena',
-            bet: currentBetPlaced.amount,
-            pnl: netProfit,
-            result: won ? 'Thắng' : 'Thua',
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
 
           onShowResult(
             won ? 'LIVE FC ARENA - CHIẾN THẮNG 🏟️' : 'LIVE FC ARENA - BẠI TRẬN 💀',
@@ -1401,42 +1342,59 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
       if (dVal > tVal) winner = 'DRAGON';
       else if (tVal > dVal) winner = 'TIGER';
 
-      const won = currentBetPlaced.choice === winner;
-      const mult = winner === 'TIE' ? 8.0 : 2.0;
-      const payout = won ? Math.floor(currentBetPlaced.amount * mult) : 0;
+      const isTie = winner === 'TIE';
+      let isRefund = false;
+      let won = currentBetPlaced.choice === winner;
+      let payout = 0;
+
+      if (won) {
+        const mult = isTie ? 8.0 : 2.0;
+        payout = Math.floor(currentBetPlaced.amount * mult);
+      } else if (isTie && (currentBetPlaced.choice === 'DRAGON' || currentBetPlaced.choice === 'TIGER')) {
+        // Hòa là không mất tiền: hoàn lại 100% tiền cược!
+        isRefund = true;
+        payout = currentBetPlaced.amount;
+      }
 
       const handleEvaluateDt = async () => {
         try {
-          const uSnap = await get(ref(db, `users/${uid}`));
-          const freshPP = uSnap.val()?.pp || 0;
-          let netProfit = payout - currentBetPlaced.amount;
-
-          if (payout > 0) {
-            await update(ref(db, `users/${uid}`), { pp: freshPP + payout });
-          }
+          await fetchWithAuth('/api/live-stream/evaluate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              game: 'Live Rồng Hổ',
+              betAmount: currentBetPlaced.amount,
+              won: won || isRefund,
+              payout,
+              summary: won
+                ? (isTie ? 'Thắng Hòa x8' : 'Thắng Rồng Hổ x2')
+                : isRefund
+                ? 'Hòa (Hoàn 100% tiền cược)'
+                : 'Thua Rồng Hổ'
+            })
+          });
 
           if (uid) {
             await incrementMissionProgress(uid, 'game_play', 1);
           }
 
-          await push(ref(db, 'game_logs'), {
-            uid,
-            name: user?.name || 'Sinh Viên',
-            game: 'Live Rồng Hổ',
-            bet: currentBetPlaced.amount,
-            pnl: netProfit,
-            result: won ? 'Thắng' : 'Thua',
-            time: new Date().toLocaleString('vi-VN'),
-            timestamp: Date.now()
-          });
-
           const winnerText = winner === 'DRAGON' ? 'RỒNG THẮNG 🐉' : winner === 'TIGER' ? 'HỔ THẮNG 🐯' : 'HÒA 🤝';
           const choiceText = currentBetPlaced.choice === 'DRAGON' ? 'Rồng' : currentBetPlaced.choice === 'TIGER' ? 'Hổ' : 'Hòa';
 
+          let resultTitle = won
+            ? 'LIVE RỒNG HỔ - THẮNG LỚN 🎉'
+            : isRefund
+            ? 'LIVE RỒNG HỔ - HÒA CƯỢC 🤝'
+            : 'LIVE RỒNG HỔ - THUA CUỘC 💀';
+
+          let resultMsg = isRefund
+            ? `Kết quả: Rồng [${getCardLabel(dVal)}${res.dragonSuit}] - Hổ [${getCardLabel(tVal)}${res.tigerSuit}] (${winnerText}).\n\nCửa đặt: ${choiceText}\nKết quả: HÒA TRẬN - Bạn không mất tiền! Được hoàn lại +${payout.toLocaleString()} PP.`
+            : `Kết quả: Rồng [${getCardLabel(dVal)}${res.dragonSuit}] - Hổ [${getCardLabel(tVal)}${res.tigerSuit}] (${winnerText}).\n\nCửa đặt: ${choiceText}\nTài sản: ${won ? `+${payout.toLocaleString()}` : `-${currentBetPlaced.amount.toLocaleString()}`} PP.`;
+
           onShowResult(
-            won ? 'LIVE RỒNG HỔ - THẮNG LỚN 🎉' : 'LIVE RỒNG HỔ - THUA CUỘC 💀',
-            `Kết quả: Rồng [${getCardLabel(dVal)}${res.dragonSuit}] - Hổ [${getCardLabel(tVal)}${res.tigerSuit}] (${winnerText}).\n\nCửa đặt: ${choiceText}\nTài sản: ${won ? `+${payout.toLocaleString()}` : `-${currentBetPlaced.amount.toLocaleString()}`} PP.`,
-            won
+            resultTitle,
+            resultMsg,
+            won || isRefund
           );
 
           setCurrentBetPlaced((prev) => prev ? { ...prev, evaluated: true } : null);
@@ -1519,10 +1477,16 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
     }
 
     try {
-      await update(ref(db, `users/${uid}`), { pp: currentPP - amt });
-
-      // Credit 5% commission of the bet amount directly to Admin/Teacher accounts
-      await payAdminCommission(amt);
+      const resp = await fetchWithAuth('/api/live-stream/bet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ betAmount: amt })
+      });
+      const data = await resp.json();
+      if (!data.success) {
+        alert(data.error || 'Lỗi đặt cược!');
+        return;
+      }
 
       // If playing Crash, increment daily mission rides count
       if (activeTab === 'crash') {
@@ -3490,7 +3454,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
               {activeTab === 'dragontiger' && (
                 <div className="space-y-2">
                   <div className="p-2.5 bg-amber-950/10 border border-yellow-500/20 rounded-xl text-[10px] font-mono text-yellow-400 leading-relaxed text-center">
-                    🐉 Đặt cược RỒNG HỔ hoặc cửa HÒA. Hòa thắng trả lại 50% tiền cược Rồng/Hổ và ăn gấp 8 lần cửa Hòa!
+                    🐉 Đặt cược RỒNG, HỔ hoặc HÒA. Nếu kết quả HÒA: Hoàn 100% tiền cược cho cửa Rồng/Hổ (không mất tiền); Đặt trúng cửa Hòa ăn x8!
                   </div>
                   <div className="grid grid-cols-3 gap-2.5">
                     <button
@@ -3706,7 +3670,7 @@ export default function LiveStreamPanel({ uid, user, onShowResult }: LiveStreamP
                     <p>&nbsp;&nbsp;- Cược Rồng thắng: Nhận <strong className="text-yellow-400">x2.0</strong></p>
                     <p>&nbsp;&nbsp;- Cược Hổ thắng: Nhận <strong className="text-yellow-400">x2.0</strong></p>
                     <p>&nbsp;&nbsp;- Cược Hòa (Tie): Nhận <strong className="text-yellow-400">x8.0</strong></p>
-                    <p>• <strong className="text-emerald-400">Chính sách bảo hiểm cửa Hòa</strong>: Nếu ván đấu có kết quả Hòa, người chơi đã đặt cược cửa Rồng hoặc cửa Hổ sẽ được <strong className="text-emerald-400">hoàn trả lại 50%</strong> số tiền đã đặt cược!</p>
+                    <p>• <strong className="text-emerald-400">Chính sách bảo hiểm cửa Hòa</strong>: Nếu ván đấu có kết quả Hòa, người chơi đã đặt cược cửa Rồng hoặc cửa Hổ sẽ <strong className="text-emerald-400">không mất tiền (hoàn trả 100% tiền cược)</strong>!</p>
                   </>
                 )}
               </div>

@@ -104,19 +104,19 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       let uData = snap.exists() ? snap.val() : null;
 
       if (!uData) {
-        // Create initial profile without pass
-        uData = {
-          uid: matchedUid,
-          authUid,
-          name: `Sinh Viên ${matchedUid}`,
-          bankAccount: matchedUid,
-          pp: 100000,
-          role: 'STUDENT',
-          class: 'Tân Sinh Viên AYK8686',
-          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
-          createdAt: Date.now()
-        };
-        await set(ref(db, `users/${matchedUid}`), uData);
+        try {
+          const regRes = await fetchWithAuth('/api/auth/register-profile', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ numericId: matchedUid, name: `Sinh Viên ${matchedUid}` })
+          });
+          const regData = await regRes.json();
+          if (regData.success && regData.user) {
+            uData = regData.user;
+          }
+        } catch (initErr) {
+          console.warn('Init profile error:', initErr);
+        }
       }
 
       if (uData.locked) {
@@ -218,35 +218,24 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       const authUid = userCred.user.uid;
       const idToken = await userCred.user.getIdToken();
 
-      // 2. Store auth mapping
-      await set(ref(db, `auth_mapping/${authUid}`), numericId);
+      // Store auth session token in storage
+      try { localStorage.setItem('s88_id_token', idToken); } catch (e) {}
 
-      // 3. Create user profile in RTDB WITHOUT plaintext password
+      // 2. Safely initialize user profile, auth_mapping, and starting 100k PP wallet via server Admin SDK
       const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
-
-      await set(ref(db, `users/${numericId}`), {
-        uid: numericId,
-        authUid: authUid,
-        name: name,
-        bankAccount: numericId,
-        pp: 100000, // 100k PP starting bonus
-        role: 'STUDENT',
-        class: 'Tân Sinh Viên AYK8686',
-        avatar: defaultAvatar,
-        sessionToken: idToken,
-        createdAt: Date.now()
+      const regRes = await fetchWithAuth('/api/auth/register-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          numericId,
+          name,
+          avatar: defaultAvatar
+        })
       });
-
-      // 4. Log registration
-      const timestamp = Date.now();
-      const logTime = new Date().toLocaleString('vi-VN');
-      await set(ref(db, `registration_logs/${numericId}`), {
-        uid: numericId,
-        name: name,
-        ppBonus: 100000,
-        time: logTime,
-        timestamp: timestamp
-      });
+      const regData = await regRes.json();
+      if (!regRes.ok || !regData.success) {
+        throw new Error(regData.error || 'Lỗi khởi tạo hồ sơ sinh viên');
+      }
 
       // Auto login newly registered student directly
       try { localStorage.setItem('s88_uid', numericId); } catch (e) {}

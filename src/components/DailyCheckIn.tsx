@@ -5,7 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { ref, update, onValue } from 'firebase/database';
-import { db } from '../firebase';
+import { db, fetchWithAuth } from '../firebase';
 import { User } from '../types';
 import { Calendar, Flame, Sparkles, CheckCircle2, Gift, Zap, X, Trophy, ShieldCheck, Star } from 'lucide-react';
 import confetti from 'canvas-confetti';
@@ -70,28 +70,17 @@ export default function DailyCheckIn({ uid, user, onShowResult }: DailyCheckInPr
     setIsClaiming(true);
 
     try {
-      let newStreak = 1;
-      if (lastCheckInDate === yesterdayStr) {
-        newStreak = streak + 1;
+      const res = await fetchWithAuth('/api/attendance/checkin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Lỗi điểm danh');
       }
 
-      const cycleDay = ((newStreak - 1) % 7) + 1;
-      const rewardConfig = STREAK_REWARDS[cycleDay - 1];
-
-      // Calculate final reward with streak multiplier
-      const finalPP = Math.round(rewardConfig.pp * rewardConfig.multiplier);
-      const finalXP = Math.round(rewardConfig.xp * rewardConfig.multiplier);
-
-      const userRef = ref(db, `users/${uid}`);
-      const currentPP = user?.pp || 0;
-      const currentXP = user?.xp || 0;
-
-      await update(userRef, {
-        pp: currentPP + finalPP,
-        xp: currentXP + finalXP,
-        streak: newStreak,
-        lastCheckInDate: todayStr,
-      });
+      setStreak(data.streak);
+      setLastCheckInDate(todayStr);
 
       // Confetti & Celebration
       confetti({
@@ -104,14 +93,17 @@ export default function DailyCheckIn({ uid, user, onShowResult }: DailyCheckInPr
         confetti({ particleCount: 70, angle: 120, spread: 60, origin: { x: 1 } });
       }, 200);
 
-      const msg = `🎉 ĐIỂM DANH THÀNH CÔNG (Ngày #${newStreak})!\nThở sức chuỗi Streak: +${finalPP.toLocaleString()} PP & +${finalXP} XP (Thưởng Hệ Số x${rewardConfig.multiplier.toFixed(1)})!`;
+      const msg = `🎉 ĐIỂM DANH THÀNH CÔNG (Ngày #${data.streak})!\nThở sức chuỗi Streak: +${data.ppAwarded.toLocaleString()} PP & +${data.xpAwarded} XP (Thưởng Hệ Số x${data.multiplier.toFixed(1)})!`;
       if (onShowResult) {
         onShowResult('🔥 ĐIỂM DANH NHẬN BỘI THƯỞNG', msg, true);
       }
 
       setIsOpen(false);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Checkin error:', err);
+      if (onShowResult) {
+        onShowResult('ĐIỂM DANH THẤT BẠI', err.message || 'Không thể điểm danh!', false);
+      }
     } finally {
       setIsClaiming(false);
     }
