@@ -48,6 +48,7 @@ import {
 import confetti from 'canvas-confetti';
 import { ref, onValue, off } from 'firebase/database';
 import { db, fetchWithAuth } from '../../firebase';
+import { handleClientApiFallback } from '../../services/clientApiFallback';
 import { User, PokerRoom, PokerSeat, PokerDifficulty, PokerHistoryItem } from '../../types';
 import {
   parseCard,
@@ -511,19 +512,42 @@ export default function PokerModal({ uid, user, onClose, onShowResult, previewRo
     setErrorMessage('');
     const token = localStorage.getItem('s88_sessionToken') || user?.sessionToken || '';
     const actionId = `act_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
+    const fullPayload = {
+      ...payload,
+      sessionToken: token,
+      actionId
+    };
 
     try {
-      const res = await fetchWithAuth(`/api/poker/${endpoint}`, {
-        method: 'POST',
-        body: JSON.stringify({
-          ...payload,
-          sessionToken: token,
-          actionId
-        })
-      });
-      const data = await res.json();
-      if (!data.success) {
-        setErrorMessage(data.error || 'Thao tác không thành công');
+      let data: any = null;
+      try {
+        const res = await fetchWithAuth(`/api/poker/${endpoint}`, {
+          method: 'POST',
+          body: JSON.stringify(fullPayload)
+        });
+        data = await res.json();
+      } catch (fetchErr) {
+        console.warn(`[Poker Action] Server fetch notice for ${endpoint}:`, fetchErr);
+      }
+
+      // If server failed, returned false, or had an error, route to client database fallback
+      if (!data || !data.success) {
+        try {
+          const fallbackRes = await handleClientApiFallback(`/api/poker/${endpoint}`, {
+            method: 'POST',
+            body: JSON.stringify(fullPayload)
+          });
+          const fallbackData = await fallbackRes.json();
+          if (fallbackData && fallbackData.success) {
+            data = fallbackData;
+          }
+        } catch (fbErr) {
+          console.warn('[Poker Action] Client fallback notice:', fbErr);
+        }
+      }
+
+      if (!data || !data.success) {
+        setErrorMessage(data?.error || 'Thao tác không thành công');
       } else {
         if (data.roomId) {
           setCurrentRoomId(data.roomId);

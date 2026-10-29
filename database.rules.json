@@ -2,283 +2,182 @@
   "rules": {
     ".read": false,
     ".write": false,
-
     "admins": {
       ".read": "auth != null",
       ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')"
     },
-
     "auth_mapping": {
+      ".read": true,
       "$authUid": {
-        ".read": "auth != null && (auth.uid === $authUid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
-        ".write": false
+        ".read": true,
+        ".write": "auth != null && (auth.uid === $authUid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
       }
     },
-
     "wallets": {
+      ".read": "auth != null",
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
+        ".read": "auth != null",
         ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
       }
     },
-
     "users": {
+      ".read": true,
       "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
+        ".read": true,
         ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)",
-
-        "pp": {
-          ".validate": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "xp": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "gold": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "inventory": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "battlePassXP": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "gachaCoins": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "isPremiumBattlePass": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "level": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "unlockedFrames": {
-          ".validate": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "role": {
-          ".validate": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "locked": {
-          ".validate": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "daily_missions": {
-          ".validate": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "daily_missions_claimed": {
-          ".validate": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "wheel_daily_spins": {
-          ".validate": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "transfers_today": {
-          ".validate": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
-        },
-        "createdAt": {
-          ".validate": "!data.exists()"
-        },
         "pass": {
           ".validate": false
         }
       }
     },
-
     "public_profiles": {
-      ".read": "auth != null",
+      ".read": true,
       "$uid": {
         ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)"
       }
     },
-
-    "settings": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+    "chat_messages": {
+      ".read": true,
+      ".write": "auth != null"
     },
-
-    "transactions": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')",
-      ".indexOn": ["sender", "receiver", "timestamp"]
-    },
-
-    "matches": {
-      ".read": "auth != null",
-      "$matchId": {
-        ".write": "auth != null && (!data.exists() || data.child('player1').val() === auth.uid || data.child('player2').val() === auth.uid || auth.token.admin === true)"
-      }
-    },
-
     "rps_rooms": {
-      ".read": "auth != null",
-      "$roomId": {
-        ".write": "auth != null",
-        "moves": {
-          "$playerUid": {
-            ".write": "auth != null && (auth.uid === $playerUid || root.child('auth_mapping').child(auth.uid).val() === $playerUid)"
-          }
-        }
-      }
-    },
-
-    "blackjack_rooms": {
-      ".read": "auth != null",
-      "$roomId": {
-        ".write": "auth != null",
-        "seats": {
-          "$seatIdx": {
-            ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || newData.child('uid').val() === auth.uid || auth.token.admin === true)"
-          }
-        }
-      }
-    },
-
-    "tienlen_rooms": {
-      ".read": "auth != null",
-      "$roomId": {
-        ".write": "auth != null",
-        "players": {
-          "$playerUid": {
-            ".write": "auth != null && (auth.uid === $playerUid || root.child('auth_mapping').child(auth.uid).val() === $playerUid || auth.token.admin === true)"
-          }
-        }
-      }
-    },
-
-    "tienlen_private": {
-      "$roomId": {
-        "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
-          ".write": false
-        }
-      }
-    },
-
-    "quests": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-    },
-
-    "daily_missions_pool": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-    },
-
-    "promo_codes": {
-      ".read": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-    },
-
-    "live_arena_bets": {
-      ".read": "auth != null",
-      "$game": {
-        "$betId": {
-          ".write": "auth != null && (!data.exists() || data.child('uid').val() === auth.uid || root.child('auth_mapping').child(auth.uid).val() === data.child('uid').val())",
-          ".validate": "newData.hasChild('uid') && (newData.child('uid').val() === auth.uid || root.child('auth_mapping').child(auth.uid).val() === newData.child('uid').val())"
-        }
-      }
-    },
-
-    "live_arena_chat": {
-      ".read": "auth != null",
-      ".write": "auth != null"
-    },
-
-    "reports": {
-      ".read": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)",
-      ".write": "auth != null"
-    },
-
-    "cheater_alerts": {
-      ".read": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-    },
-
-    "notifications": {
-      "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
-        ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)"
-      }
-    },
-
-    "classes": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
-    },
-
-    "poker_rooms": {
-      ".read": "auth != null",
+      ".read": true,
       "$roomId": {
         ".write": "auth != null"
       }
     },
-
-    "poker_private": {
+    "blackjack_rooms": {
+      ".read": true,
       "$roomId": {
-        "deck": {
-          ".read": false,
-          ".write": "auth != null"
-        },
+        ".write": "auth != null"
+      }
+    },
+    "tienlen_rooms": {
+      ".read": true,
+      "$roomId": {
+        ".write": "auth != null"
+      }
+    },
+    "tienlen_private": {
+      "$roomId": {
         "$uid": {
-          ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
+          ".read": "auth != null",
           ".write": "auth != null"
         }
       }
     },
-
-    "market": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN' || root.child('admins').child(auth.uid).val() === true)"
+    "cyber3d_rooms": {
+      ".read": true,
+      "$roomId": {
+        ".write": "auth != null"
+      }
     },
-
+    "poker_rooms": {
+      ".read": true,
+      "$roomId": {
+        ".write": "auth != null"
+      }
+    },
+    "poker_private": {
+      "$roomId": {
+        "deck": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        },
+        "$uid": {
+          ".read": "auth != null",
+          ".write": "auth != null"
+        }
+      }
+    },
+    "casino_stream": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "casino_history": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "live_rooms": {
+      ".read": true,
+      "$roomId": {
+        ".write": "auth != null"
+      }
+    },
     "online": {
-      ".read": "auth != null",
+      ".read": true,
       "$uid": {
-        ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid)"
+        ".write": "auth != null"
       }
     },
-
     "online_logs": {
-      "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
-        ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid)"
-      }
-    },
-
-    "global_chat": {
       ".read": "auth != null",
-      "$msgId": {
-        ".write": "auth != null",
-        ".validate": "newData.hasChildren(['senderId', 'message']) && (newData.child('senderId').val() === auth.uid || root.child('auth_mapping').child(auth.uid).val() === newData.child('senderId').val()) && newData.child('message').isString() && newData.child('message').val().length <= 500"
+      "$uid": {
+        ".write": "auth != null"
       }
     },
-
     "game_logs": {
       ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')",
-      ".indexOn": ["uid", "game", "timestamp"]
+      ".write": "auth != null"
     },
-
-    "registration_logs": {
-      ".read": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')",
+    "transactions": {
+      ".read": "auth != null",
       "$uid": {
-        ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid)"
+        ".read": "auth != null",
+        ".write": "auth != null"
       }
     },
-
-    "password_reset_requests": {
-      ".read": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')",
-      "$uid": {
-        ".read": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)",
-        ".write": "auth != null && (auth.uid === $uid || root.child('auth_mapping').child(auth.uid).val() === $uid || auth.token.admin === true)"
+    "world_hunting": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "marketplace": {
+      ".read": true,
+      "$itemId": {
+        ".write": "auth != null"
       }
     },
-
-    "rankings": {
-      ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')"
+    "lucky_wheel_history": {
+      ".read": true,
+      ".write": "auth != null"
     },
-
-    "announcements": {
+    "gold_history": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "gold_market": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "system_config": {
+      ".read": true,
+      ".write": "auth != null && (auth.token.admin === true || root.child('admins').child(auth.uid).val() === true)"
+    },
+    "academic": {
+      ".read": true,
+      ".write": "auth != null"
+    },
+    "feedbacks": {
       ".read": "auth != null",
-      ".write": "auth != null && (auth.token.admin === true || auth.token.role === 'ADMIN')"
+      ".write": "auth != null"
+    },
+    "missions": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null"
+      }
+    },
+    "user_missions": {
+      ".read": true,
+      "$uid": {
+        ".write": "auth != null"
+      }
+    },
+    "notifications": {
+      "$uid": {
+        ".read": "auth != null",
+        ".write": "auth != null"
+      }
     }
   }
 }

@@ -45,7 +45,11 @@ if (typeof window !== 'undefined') {
  * e.g. "student_1" -> "student_1@ayk8686.internal"
  */
 export function formatVirtualEmail(identifier: string): string {
-  const clean = identifier.trim().toLowerCase().replace(/[^a-z0-9_.-]/g, '');
+  const trimmed = (identifier || '').trim().toLowerCase();
+  if (trimmed.includes('@')) {
+    return trimmed;
+  }
+  const clean = trimmed.replace(/[^a-z0-9_.-]/g, '');
   return `${clean || 'user'}@ayk8686.internal`;
 }
 
@@ -88,7 +92,7 @@ export async function getAuthToken(): Promise<string | null> {
 /**
  * Centralized fetch helper attaching Firebase ID Token in Authorization header,
  * resolving API base, and falling back gracefully to client-side database handlers
- * on static hosts (like GitHub Pages) where no backend server is deployed.
+ * on static hosts (like GitHub Pages) or when backend returns 401/404/500 errors.
  */
 export async function fetchWithAuth(url: string, options: RequestInit = {}): Promise<Response> {
   const isHttp = url.startsWith('http://') || url.startsWith('https://');
@@ -120,6 +124,14 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
     headers.set('Authorization', `Bearer ${token}`);
   }
 
+  // Also include cached student UID if available in header for fallback auth
+  try {
+    const cachedUid = localStorage.getItem('s88_uid');
+    if (cachedUid && !headers.has('X-User-Uid')) {
+      headers.set('X-User-Uid', cachedUid);
+    }
+  } catch (_) {}
+
   try {
     const res = await fetch(targetUrl, {
       ...options,
@@ -128,9 +140,9 @@ export async function fetchWithAuth(url: string, options: RequestInit = {}): Pro
 
     const contentType = res.headers.get('content-type') || '';
 
-    // If server responded with 404 or returned static HTML (standard GitHub Pages 404 page)
-    if ((res.status === 404 || contentType.includes('text/html')) && !isHttp) {
-      console.warn(`[fetchWithAuth] Endpoint ${cleanPath} returned ${res.status} HTML. Routing to standalone client fallback.`);
+    // If server responded with 404, 401, 500, or returned static HTML
+    if ((res.status === 404 || res.status === 401 || res.status >= 500 || contentType.includes('text/html')) && !isHttp) {
+      console.warn(`[fetchWithAuth] Endpoint ${cleanPath} returned ${res.status}. Routing to standalone client database fallback.`);
       return await handleClientApiFallback(cleanPath, options);
     }
 

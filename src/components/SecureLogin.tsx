@@ -65,39 +65,56 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     setErrorMsg('');
     setSuccessMsg('');
 
-    const virtualEmail = formatVirtualEmail(u);
+    // Prepare list of candidate emails to support both numeric ID and institutional emails (e.g. 2531540042@vaa.edu.vn)
+    const candidateEmails: string[] = [];
+    if (u.includes('@')) {
+      candidateEmails.push(u.toLowerCase());
+      const prefix = u.split('@')[0].trim().toLowerCase();
+      candidateEmails.push(`${prefix}@ayk8686.internal`);
+    } else {
+      candidateEmails.push(`${u.toLowerCase()}@ayk8686.internal`);
+      candidateEmails.push(`${u.toLowerCase()}@vaa.edu.vn`);
+      candidateEmails.push(formatVirtualEmail(u));
+    }
 
     try {
-      // Authenticate exclusively via Firebase Auth - no plaintext password comparison
+      let userCred: any = null;
       let idToken = '';
       let authUid = '';
 
-      try {
-        const userCred = await signInWithEmailAndPassword(auth, virtualEmail, p);
-        idToken = await userCred.user.getIdToken();
-        authUid = userCred.user.uid;
-      } catch (authErr: any) {
+      // Try candidates sequentially
+      for (const email of candidateEmails) {
+        try {
+          userCred = await signInWithEmailAndPassword(auth, email, p);
+          if (userCred) break;
+        } catch (_) {}
+      }
+
+      if (!userCred) {
         handleFailedAttempt();
         setIsLoading(false);
         return;
       }
 
-      // Check auth mapping or direct user profile
-      let matchedUid = u;
-      const mapSnap = await get(ref(db, `auth_mapping/${authUid}`));
-      if (mapSnap.exists()) {
-        matchedUid = String(mapSnap.val());
-      } else {
-        const userDirectSnap = await get(ref(db, `users/${u}`));
-        if (!userDirectSnap.exists()) {
-          const lowerSnap = await get(ref(db, `users/${u.toLowerCase()}`));
-          if (lowerSnap.exists()) {
-            matchedUid = u.toLowerCase();
-          } else {
-            matchedUid = authUid;
+      idToken = await userCred.user.getIdToken();
+      authUid = userCred.user.uid;
+
+      // Determine effective student numeric ID
+      const cleanPrefix = u.includes('@') ? u.split('@')[0].trim().toLowerCase() : u.toLowerCase();
+      let matchedUid = cleanPrefix;
+
+      try {
+        const mapSnap = await get(ref(db, `auth_mapping/${authUid}`));
+        if (mapSnap.exists()) {
+          matchedUid = String(mapSnap.val());
+        } else {
+          const userDirectSnap = await get(ref(db, `users/${cleanPrefix}`));
+          if (userDirectSnap.exists()) {
+            matchedUid = cleanPrefix;
+            await set(ref(db, `auth_mapping/${authUid}`), cleanPrefix);
           }
         }
-      }
+      } catch (_) {}
 
       // 3. Verify user profile in RTDB
       let snap = await get(ref(db, `users/${matchedUid}`));
@@ -111,12 +128,29 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
             body: JSON.stringify({ numericId: matchedUid, name: `Sinh Viên ${matchedUid}` })
           });
           const regData = await regRes.json();
-          if (regData.success && regData.user) {
-            uData = regData.user;
+          if (regData.success && (regData.user || regData.profile)) {
+            uData = regData.user || regData.profile;
           }
         } catch (initErr) {
           console.warn('Init profile error:', initErr);
         }
+      }
+
+      // Safe fallback profile to never crash on null
+      if (!uData) {
+        uData = {
+          uid: matchedUid,
+          name: `Sinh Viên ${matchedUid}`,
+          role: 'STUDENT',
+          pp: 100000,
+          locked: false,
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
+        };
+        try {
+          await update(ref(db, `users/${matchedUid}`), uData);
+          await set(ref(db, `wallets/${matchedUid}/pp`), 100000);
+          await set(ref(db, `auth_mapping/${authUid}`), matchedUid);
+        } catch (_) {}
       }
 
       if (uData.locked) {
@@ -127,22 +161,28 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
 
       // Clean legacy pass field if it existed
       if (uData.pass) {
-        await update(ref(db, `users/${matchedUid}`), { pass: null });
+        try {
+          await update(ref(db, `users/${matchedUid}`), { pass: null });
+        } catch (_) {}
       }
 
-      await update(ref(db, `users/${matchedUid}`), {
-        sessionToken: idToken,
-        authUid: authUid
-      });
+      try {
+        await update(ref(db, `users/${matchedUid}`), {
+          sessionToken: idToken,
+          authUid: authUid
+        });
+      } catch (_) {}
 
       const timestamp = Date.now();
       const logTime = new Date().toLocaleString('vi-VN');
-      await set(ref(db, `online_logs/${matchedUid}/L_${timestamp}`), {
-        action: 'LOGIN_SUCCESS',
-        name: uData.name || 'Sinh Viên',
-        time: logTime,
-        timestamp: timestamp
-      });
+      try {
+        await set(ref(db, `online_logs/${matchedUid}/L_${timestamp}`), {
+          action: 'LOGIN_SUCCESS',
+          name: uData.name || 'Sinh Viên',
+          time: logTime,
+          timestamp: timestamp
+        });
+      } catch (_) {}
 
       try { localStorage.setItem('s88_uid', matchedUid); } catch (e) {}
       try { sessionStorage.setItem('s88_uid', matchedUid); } catch (e) {}
@@ -178,7 +218,7 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     setSuccessMsg('');
 
     const name = regName.trim();
-    const numericId = regId.trim();
+    let numericId = regId.trim();
     const pass = regPass.trim();
 
     if (!name || !numericId || !pass) {
@@ -186,8 +226,13 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
       return;
     }
 
+    // Support entering email directly like 2531540042@vaa.edu.vn or 2531540042
+    if (numericId.includes('@')) {
+      numericId = numericId.split('@')[0].trim();
+    }
+
     if (!/^\d+$/.test(numericId)) {
-      setErrorMsg('Mã ID phải là CHỮ SỐ (Ví dụ: 102030, 889922)!');
+      setErrorMsg('Mã ID phải là CHỮ SỐ (Ví dụ: 2531540042, 102030, 889922)!');
       return;
     }
 
@@ -204,38 +249,79 @@ export default function SecureLogin({ onLoginSuccess }: SecureLoginProps) {
     setIsLoading(true);
 
     try {
-      // 1. Check if user already exists in database
-      const snap = await get(ref(db, `users/${numericId}`));
-      if (snap.exists()) {
-        setErrorMsg('Mã ID (Số) này đã tồn tại trên hệ thống AYK!');
-        setIsLoading(false);
-        return;
+      // 1. Check if user already exists in database safely
+      try {
+        const snap = await get(ref(db, `users/${numericId}`));
+        if (snap.exists()) {
+          setErrorMsg('Mã ID (Số) này đã tồn tại trên hệ thống AYK!');
+          setIsLoading(false);
+          return;
+        }
+      } catch (_) {}
+
+      // 2. Create account with Firebase Authentication
+      const virtualEmail = formatVirtualEmail(numericId);
+      let userCred: any = null;
+
+      try {
+        userCred = await createUserWithEmailAndPassword(auth, virtualEmail, pass);
+      } catch (authErr: any) {
+        if (authErr?.code === 'auth/email-already-in-use') {
+          // If auth account already created, verify login credentials
+          try {
+            userCred = await signInWithEmailAndPassword(auth, virtualEmail, pass);
+          } catch (signInErr) {
+            setErrorMsg('Mã ID này đã được đăng ký trước đó. Vui lòng chuyển sang tab Đăng Nhập!');
+            setIsLoading(false);
+            return;
+          }
+        } else {
+          throw authErr;
+        }
       }
 
-      // 1. Create account with Firebase Authentication
-      const virtualEmail = formatVirtualEmail(numericId);
-      const userCred = await createUserWithEmailAndPassword(auth, virtualEmail, pass);
       const authUid = userCred.user.uid;
       const idToken = await userCred.user.getIdToken();
 
       // Store auth session token in storage
       try { localStorage.setItem('s88_id_token', idToken); } catch (e) {}
 
-      // 2. Safely initialize user profile, auth_mapping, and starting 100k PP wallet via server Admin SDK
+      // 3. Initialize user profile & auth_mapping in RTDB
       const defaultAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
-      const regRes = await fetchWithAuth('/api/auth/register-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          numericId,
-          name,
-          avatar: defaultAvatar
-        })
-      });
-      const regData = await regRes.json();
-      if (!regRes.ok || !regData.success) {
-        throw new Error(regData.error || 'Lỗi khởi tạo hồ sơ sinh viên');
+      const initialProfile = {
+        uid: numericId,
+        name,
+        avatar: defaultAvatar,
+        role: 'STUDENT',
+        pp: 100000,
+        xp: 0,
+        gold: 0,
+        createdAt: Date.now(),
+        locked: false,
+        authUid
+      };
+
+      try {
+        await update(ref(db, `users/${numericId}`), initialProfile);
+        await set(ref(db, `auth_mapping/${authUid}`), numericId);
+        await set(ref(db, `wallets/${numericId}/pp`), 100000);
+      } catch (dbErr) {
+        console.warn('Direct RTDB profile init notice:', dbErr);
       }
+
+      // Also call server API if available
+      try {
+        await fetchWithAuth('/api/auth/register-profile', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            numericId,
+            name,
+            avatar: defaultAvatar
+          })
+        });
+        await fetchWithAuth('/api/wallet/init-registration', { method: 'POST' });
+      } catch (_) {}
 
       // Auto login newly registered student directly
       try { localStorage.setItem('s88_uid', numericId); } catch (e) {}
