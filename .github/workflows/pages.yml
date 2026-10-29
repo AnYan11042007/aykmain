@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -34,19 +34,31 @@ jobs:
         run: npm ci || npm install
 
       - name: Build Client for GitHub Pages
+        id: build_client
         run: npm run build:pages
         env:
-          VITE_BASE: /${{ github.event.repository.name }}/
-          VITE_API_BASE: ${{ vars.VITE_API_BASE || secrets.VITE_API_BASE }}
+          VITE_BASE: ./
+          VITE_API_BASE: ${{ vars.VITE_API_BASE || secrets.VITE_API_BASE || 'https://ais-dev-f5dcd4tv2i7kva3hf5rqrd-590433286911.asia-southeast1.run.app' }}
 
       - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
+        continue-on-error: true
 
       - name: Upload Pages Artifact
         uses: actions/upload-pages-artifact@v3
         with:
           path: "./dist"
+        continue-on-error: true
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages (Actions Environment)
         id: deployment
         uses: actions/deploy-pages@v4
+        continue-on-error: true
+
+      - name: Deploy to gh-pages branch (Branch Fallback)
+        uses: peaceiris/actions-gh-pages@v4
+        if: always() && steps.build_client.outcome == 'success'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          keep_files: false

@@ -18,11 +18,28 @@
         <div style="font-size:26px;font-weight:900;letter-spacing:3px;margin-bottom:12px;color:#00f0ff;text-shadow:0 0 15px rgba(0,240,255,0.7);">
           AYK MAIN 8686
         </div>
-        <div style="font-size:14px;color:#8b949e;margin-bottom:20px;">
+        <div id="ayk-init-status" style="font-size:14px;color:#8b949e;margin-bottom:20px;">
           Đang khởi tạo hệ thống đào tạo thông minh...
         </div>
       </div>
     </div>
+    <script>
+      // Diagnostic helper: If main app fails to load after 5 seconds (e.g. raw source served on GitHub Pages without build)
+      setTimeout(function() {
+        var el = document.getElementById('ayk-init-status');
+        var root = document.getElementById('root');
+        if (el && root && root.children.length === 1) {
+          el.innerHTML = '<div style="background:rgba(255,68,68,0.15);border:1px solid #ff4444;border-radius:8px;padding:16px;max-width:520px;text-align:left;color:#fff;font-family:sans-serif;box-shadow:0 0 20px rgba(255,0,0,0.2);">' +
+            '<div style="color:#ff4444;font-weight:bold;font-size:15px;margin-bottom:8px;">⚠️ Trang web đang chạy file nguồn chưa build!</div>' +
+            '<div style="font-size:13px;line-height:1.6;color:#e6edf3;">GitHub Pages đang phát trực tiếp file gốc của repo thay vì bản build. Hãy làm theo 2 bước sau:' +
+            '<ol style="margin:8px 0 0 18px;padding:0;">' +
+            '<li>Vào <b>GitHub Repo &rarr; Settings &rarr; Pages</b>, tại mục <b>Source</b> chọn <b>GitHub Actions</b>.</li>' +
+            '<li>Vào tab <b>Actions &rarr; Deploy to GitHub Pages &rarr; Run workflow</b> (chọn branch <code>main</code>), chờ dấu tích xanh ✔ rồi F5 lại.</li>' +
+            '</ol></div>' +
+            '</div>';
+        }
+      }, 5000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
